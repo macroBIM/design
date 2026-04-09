@@ -1,13 +1,13 @@
-// 메뉴 클릭 시 실행되는 메인 함수 v007
+// Main function executed on menu click  v008
 function steelsection_click() {
-    // 1. 불필요한 사이드바를 '투명화'가 아니라 '공간째로 완전 삭제(숨김)' 처리
+    // 1. Hide the unnecessary sidebar completely
     const sideArea = document.getElementById('wrap_side');
     if(sideArea) {
         sideArea.innerHTML = ''; 
         sideArea.style.display = 'none'; 
     }
 
-    // 2. 표 전용 CSS 디자인 동적 삽입 (드롭다운 커스텀 디자인 추가)
+    // 2. Dynamic injection of CSS for the steel table (Custom dropdown styling included)
     if (!document.getElementById('steel-table-style')) {
         const style = document.createElement('style');
         style.id = 'steel-table-style';
@@ -22,7 +22,7 @@ function steelsection_click() {
             .steel-table tbody td:first-child { border-left: 1px solid #dee2e6; font-weight: bold; }
             .table-secondary { background-color: #e9ecef !important; color: #555;}
             
-            /* 드롭다운 메뉴를 크고 확실하게 보이도록 디자인 개선 */
+            /* Enhanced Custom Dropdown Styling */
             .custom-select-box {
                 appearance: none; 
                 -webkit-appearance: none;
@@ -53,7 +53,7 @@ function steelsection_click() {
         document.head.appendChild(style);
     }
 
-    // 3. 메인 영역 HTML
+    // 3. Main Area HTML Setup
     const mainArea = document.getElementById('wrap_main');
     mainArea.innerHTML = `
         <div class="position-relative d-flex align-items-center justify-content-center pt-0 pb-2 mb-2 border-bottom" style="height: 180px;">
@@ -61,19 +61,19 @@ function steelsection_click() {
             <div class="position-absolute d-flex align-items-center" style="left: 0; padding-left: 5px;">
                 
                 <select id="section-selector" class="custom-select-box font-weight-bold mr-4" onchange="loadSelectedSection()" style="width: auto;">
-                    <option value="hsection" selected>H형강 (H-Section)</option>
-                    <option value="channel">ㄷ형강 (Channel)</option>
-                    <option value="equalangle">등변 ㄱ형강 (Equal Angle)</option>
-                    <option value="unequalangle">부등변 ㄱ형강 (Unequal Angle)</option>
-                    <option value="invertedangle">부등변 부등두께 ㄱ형강 (Inverted Angle)</option>
+                    <option value="hsection" selected>H-Section</option>
+                    <option value="channel">Channel</option>
+                    <option value="equalangle">Equal Angle</option>
+                    <option value="unequalangle">Unequal Angle</option>
+                    <option value="invertedangle">Inverted Angle</option>
                 </select>
                 
                 <div style="width: 210px; height: 170px; display: flex; align-items: center; justify-content: center; background-color: white; border: 1px solid #ddd; border-radius: 8px; padding: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.08);">
-                    <img id="section-image" src="" alt="단면도" style="width: 100%; height: 100%; object-fit: contain;">
+                    <img id="section-image" src="" alt="Section Profile" style="width: 100%; height: 100%; object-fit: contain;">
                 </div>
             </div>
 
-            <h1 class="h1 font-weight-bold mb-0">강구조 단면성능표</h1>
+            <h1 class="h1 font-weight-bold mb-0">Section Properties</h1>
             
         </div>
 
@@ -82,42 +82,42 @@ function steelsection_click() {
                 <table class="table table-sm table-hover mb-0 steel-table">
                     <thead id="data-table-head"></thead>
                     <tbody id="data-table-body">
-                        <tr><td class="text-center py-5">데이터를 준비 중입니다...</td></tr>
+                        <tr><td class="text-center py-5">Loading data...</td></tr>
                     </tbody>
                 </table>
             </div>
         </div>
     `;
 
-    // 4. 화면이 그려지면 기본값(H형강) 즉시 로드
+    // 4. Initial Load (H-Section default)
     loadSelectedSection();
 }
 
-// 각 철골 규격별 URL 및 헤더(thead) 설정 객체
+// Configuration for each section type (URLs and translated Headers with fixed units)
 const sectionConfigs = {
     'hsection': {
         url: 'https://macrobim.github.io/design/hsection.csv',
-        thead: `<tr><th rowspan="2">호칭치수<br>(H x B)</th><th rowspan="2">단위무게<br>(kg/m)</th><th colspan="5">표준단면치수 (mm)</th><th>단면적</th><th colspan="2">단면 2차 모멘트</th><th colspan="2">단면 2차 반경</th><th colspan="2">단면계수</th><th colspan="2">소성단면계수</th><th>뒤틀림상수</th><th>비틀림상수</th></tr><tr><th>H</th><th>B</th><th>t1</th><th>t2</th><th>r</th><th>(cm²)</th><th>Ix</th><th>Iy</th><th>ix</th><th>iy</th><th>Sx</th><th>Sy</th><th>Zx</th><th>Zy</th><th>Cw</th><th>J</th></tr>`
+        thead: `<tr><th rowspan="2">Designation<br>(H x B)</th><th rowspan="2">Unit Weight<br>(kg/m)</th><th colspan="5">Standard Sectional Dimension (mm)</th><th rowspan="2">Sectional Area<br>(cm²)</th><th colspan="2">Moment of Inertia<br>(cm⁴)</th><th colspan="2">Radius of Gyration<br>(cm)</th><th colspan="2">Modulus of Section<br>(cm³)</th><th colspan="2">Plastic Modulus<br>(cm³)</th><th rowspan="2">Warping Constant<br>Cw</th><th rowspan="2">Torsional Constant<br>J</th></tr><tr><th>H</th><th>B</th><th>t1</th><th>t2</th><th>r</th><th>Ix</th><th>Iy</th><th>ix</th><th>iy</th><th>Sx</th><th>Sy</th><th>Zx</th><th>Zy</th></tr>`
     },
     'channel': {
         url: 'https://macrobim.github.io/design/channel.csv',
-        thead: `<tr><th rowspan="2">호칭치수<br>(H x B)</th><th colspan="6">표준단면치수 (mm)</th><th rowspan="2">단면적<br>(cm²)</th><th rowspan="2">단위무게<br>(kg/m)</th><th colspan="2">중심의 위치 (cm)</th><th colspan="2">단면 2차 모멘트 (cm⁴)</th><th colspan="2">단면 2차 반경 (cm)</th><th colspan="2">단면계수 (cm³)</th></tr><tr><th>H</th><th>B</th><th>t1</th><th>t2</th><th>r1</th><th>r2</th><th>Cx</th><th>Cy</th><th>Ix</th><th>Iy</th><th>ix</th><th>iy</th><th>Zx</th><th>Zy</th></tr>`
+        thead: `<tr><th rowspan="2">Designation<br>(H x B)</th><th colspan="6">Standard Sectional Dimension (mm)</th><th rowspan="2">Sectional Area<br>(cm²)</th><th rowspan="2">Unit Weight<br>(kg/m)</th><th colspan="2">Center of Gravity (cm)</th><th colspan="2">Moment of Inertia (cm⁴)</th><th colspan="2">Radius of Gyration (cm)</th><th colspan="2">Modulus of Section (cm³)</th></tr><tr><th>H</th><th>B</th><th>t1</th><th>t2</th><th>r1</th><th>r2</th><th>Cx</th><th>Cy</th><th>Ix</th><th>Iy</th><th>ix</th><th>iy</th><th>Zx</th><th>Zy</th></tr>`
     },
     'equalangle': {
         url: 'https://macrobim.github.io/design/equalangle.csv',
-        thead: `<tr><th rowspan="2">호칭치수<br>(A x B)</th><th colspan="5">표준단면치수 (mm)</th><th rowspan="2">단면적<br>(cm²)</th><th rowspan="2">단위무게<br>(kg/m)</th><th rowspan="2">중심위치<br>Cx, Cy (cm)</th><th colspan="3">단면 2차 모멘트 (cm⁴)</th><th colspan="3">단면 2차 반경 (cm)</th><th rowspan="2">단면계수<br>Zx, Zy (cm³)</th></tr><tr><th>A</th><th>B</th><th>t</th><th>r1</th><th>r2</th><th>Ix, Iy</th><th>max.Iu</th><th>min.Iv</th><th>ix, iy</th><th>max.iu</th><th>min.iv</th></tr>`
+        thead: `<tr><th rowspan="2">Designation<br>(A x B)</th><th colspan="5">Standard Sectional Dimension (mm)</th><th rowspan="2">Sectional Area<br>(cm²)</th><th rowspan="2">Unit Weight<br>(kg/m)</th><th rowspan="2">Center of Gravity<br>Cx, Cy (cm)</th><th colspan="3">Moment of Inertia (cm⁴)</th><th colspan="3">Radius of Gyration (cm)</th><th rowspan="2">Modulus of Section<br>Zx, Zy (cm³)</th></tr><tr><th>A</th><th>B</th><th>t</th><th>r1</th><th>r2</th><th>Ix, Iy</th><th>max.Iu</th><th>min.Iv</th><th>ix, iy</th><th>max.iu</th><th>min.iv</th></tr>`
     },
     'unequalangle': {
         url: 'https://macrobim.github.io/design/unequalangle.csv',
-        thead: `<tr><th rowspan="2">호칭치수<br>(A x B)</th><th colspan="5">표준단면치수 (mm)</th><th rowspan="2">단면적<br>(cm²)</th><th rowspan="2">단위무게<br>(kg/m)</th><th colspan="2">중심위치 (cm)</th><th colspan="4">단면 2차 모멘트 (cm⁴)</th><th colspan="4">단면 2차 반경 (cm)</th><th rowspan="2">Tan α</th><th colspan="2">단면계수 (cm³)</th></tr><tr><th>A</th><th>B</th><th>t</th><th>r1</th><th>r2</th><th>Cx</th><th>Cy</th><th>Ix</th><th>Iy</th><th>max.Iu</th><th>min.Iv</th><th>ix</th><th>iy</th><th>max.iu</th><th>min.iv</th><th>Zx</th><th>Zy</th></tr>`
+        thead: `<tr><th rowspan="2">Designation<br>(A x B)</th><th colspan="5">Standard Sectional Dimension (mm)</th><th rowspan="2">Sectional Area<br>(cm²)</th><th rowspan="2">Unit Weight<br>(kg/m)</th><th colspan="2">Center of Gravity (cm)</th><th colspan="4">Moment of Inertia (cm⁴)</th><th colspan="4">Radius of Gyration (cm)</th><th rowspan="2">Tan α</th><th colspan="2">Modulus of Section (cm³)</th></tr><tr><th>A</th><th>B</th><th>t</th><th>r1</th><th>r2</th><th>Cx</th><th>Cy</th><th>Ix</th><th>Iy</th><th>max.Iu</th><th>min.Iv</th><th>ix</th><th>iy</th><th>max.iu</th><th>min.iv</th><th>Zx</th><th>Zy</th></tr>`
     },
     'invertedangle': {
         url: 'https://macrobim.github.io/design/invertedangle.csv',
-        thead: `<tr><th rowspan="2">호칭치수<br>(A x B)</th><th colspan="6">표준단면치수 (mm)</th><th rowspan="2">단면적<br>(cm²)</th><th rowspan="2">단위무게<br>(kg/m)</th><th colspan="2">중심위치 (cm)</th><th colspan="4">단면 2차 모멘트 (cm⁴)</th><th colspan="4">단면 2차 반경 (cm)</th><th rowspan="2">Tan α</th><th colspan="2">단면계수 (cm³)</th></tr><tr><th>A</th><th>B</th><th>t1</th><th>t2</th><th>r1</th><th>r2</th><th>Cx</th><th>Cy</th><th>Ix</th><th>Iy</th><th>max.Iu</th><th>min.Iv</th><th>ix</th><th>iy</th><th>max.iu</th><th>min.iv</th><th>Zx</th><th>Zy</th></tr>`
+        thead: `<tr><th rowspan="2">Designation<br>(A x B)</th><th colspan="6">Standard Sectional Dimension (mm)</th><th rowspan="2">Sectional Area<br>(cm²)</th><th rowspan="2">Unit Weight<br>(kg/m)</th><th colspan="2">Center of Gravity (cm)</th><th colspan="4">Moment of Inertia (cm⁴)</th><th colspan="4">Radius of Gyration (cm)</th><th rowspan="2">Tan α</th><th colspan="2">Modulus of Section (cm³)</th></tr><tr><th>A</th><th>B</th><th>t1</th><th>t2</th><th>r1</th><th>r2</th><th>Cx</th><th>Cy</th><th>Ix</th><th>Iy</th><th>max.Iu</th><th>min.Iv</th><th>ix</th><th>iy</th><th>max.iu</th><th>min.iv</th><th>Zx</th><th>Zy</th></tr>`
     }
 };
 
-// 선택된 형강에 매칭되는 깃허브 이미지 파일명
+// Image mappings for GitHub
 const imageConfigs = {
     'hsection': 'Hsection.jpg',
     'channel': 'channel.png',
@@ -128,7 +128,7 @@ const imageConfigs = {
 
 const GITHUB_BASE_URL = 'https://macrobim.github.io/design/';
 
-// 드롭다운 변경 시 실행되는 데이터 로드 함수
+// Function to fetch and render data when dropdown changes
 async function loadSelectedSection() {
     const selector = document.getElementById('section-selector');
     const selectedType = selector.value;
@@ -143,7 +143,7 @@ async function loadSelectedSection() {
     const tbody = document.getElementById('data-table-body');
     
     thead.innerHTML = config.thead;
-    tbody.innerHTML = `<tr><td colspan="30" class="text-center py-5">데이터를 불러오는 중입니다...</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="30" class="text-center py-5">Loading data...</td></tr>`;
 
     try {
         const response = await fetch(config.url);
@@ -180,7 +180,7 @@ async function loadSelectedSection() {
         tbody.appendChild(fragment);
 
     } catch (error) {
-        console.error('데이터 파싱 에러:', error);
-        tbody.innerHTML = `<tr><td colspan="30" class="text-danger text-center py-5">데이터를 불러오지 못했습니다. 파일 주소를 확인해주세요.</td></tr>`;
+        console.error('Data parsing error:', error);
+        tbody.innerHTML = `<tr><td colspan="30" class="text-danger text-center py-5">Failed to load data. Please check the file URL.</td></tr>`;
     }
 }

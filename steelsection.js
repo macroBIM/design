@@ -1,6 +1,5 @@
-//
-// h section, angle, channel 데이터 업로드 v001
-//
+// v002 이미지파일 업로드
+
 // 메뉴 클릭 시 실행되는 메인 함수
 function steelsection_click() {
     // 1. 사이드바 영역 설정
@@ -31,20 +30,26 @@ function steelsection_click() {
         document.head.appendChild(style);
     }
 
-    // 3. 메인 영역 HTML (드롭다운 메뉴 포함)
+    // 3. 메인 영역 HTML (드롭다운 메뉴 + 단면도 이미지 포함)
     const mainArea = document.getElementById('wrap_main');
     mainArea.innerHTML = `
         <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
             <h1 class="h2">강구조 단면성능표</h1>
             
-            <div class="btn-toolbar mb-2 mb-md-0">
-                <select id="section-selector" class="form-control font-weight-bold shadow-sm" onchange="loadSelectedSection()" style="cursor: pointer; width: auto; font-size: 1.1rem;">
-                    <option value="hsection">H형강 (H-Section)</option>
+            <div class="d-flex align-items-center mb-2 mb-md-0">
+                
+                <select id="section-selector" class="form-control font-weight-bold shadow-sm mr-4" onchange="loadSelectedSection()" style="cursor: pointer; width: auto; font-size: 1.1rem;">
+                    <option value="hsection" selected>H형강 (H-Section)</option>
                     <option value="channel">ㄷ형강 (Channel)</option>
                     <option value="equalangle">등변 ㄱ형강 (Equal Angle)</option>
                     <option value="unequalangle">부등변 ㄱ형강 (Unequal Angle)</option>
                     <option value="invertedangle">부등변 부등두께 ㄱ형강 (Inverted Angle)</option>
                 </select>
+                
+                <div style="height: 100px; width: 120px; display: flex; align-items: center; justify-content: center; background-color: #f8f9fa; border: 1px solid #ddd; border-radius: 4px;">
+                    <img id="section-image" src="" alt="단면도" style="max-height: 90px; max-width: 110px; object-fit: contain;">
+                </div>
+                
             </div>
         </div>
         <p class="text-muted small">* 표시는 KS(JIS)에 없는 규격입니다.</p>
@@ -89,13 +94,33 @@ const sectionConfigs = {
     }
 };
 
+// 선택된 형강에 매칭되는 깃허브 이미지 파일명 (대소문자 주의)
+const imageConfigs = {
+    'hsection': 'Hsection.jpg',
+    'channel': 'channel.png',
+    'equalangle': 'angle.png',
+    'unequalangle': 'angle.png',
+    'invertedangle': 'invertedangle.png'
+};
+
+// 깃허브 Pages 기본 주소
+const GITHUB_BASE_URL = 'https://macrobim.github.io/design/';
+
 // 드롭다운 변경 시 실행되는 데이터 로드 함수
 async function loadSelectedSection() {
-    // 선택된 값 가져오기
+    // 1. 선택된 값 가져오기
     const selector = document.getElementById('section-selector');
     const selectedType = selector.value;
     const config = sectionConfigs[selectedType];
     
+    // 2. 단면도 이미지 변경
+    const imageElement = document.getElementById('section-image');
+    if(imageElement && imageConfigs[selectedType]) {
+        // 이미지 주소 = 기본주소 + 파일명
+        imageElement.src = GITHUB_BASE_URL + imageConfigs[selectedType];
+    }
+    
+    // 3. 테이블 세팅
     const thead = document.getElementById('data-table-head');
     const tbody = document.getElementById('data-table-body');
     
@@ -108,7 +133,6 @@ async function loadSelectedSection() {
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         
         const csvText = await response.text();
-        // 윈도우(\r\n)와 맥(\n) 줄바꿈 모두 완벽 대응
         const rows = csvText.trim().split(/\r?\n/); 
         tbody.innerHTML = ''; 
 
@@ -135,7 +159,7 @@ async function loadSelectedSection() {
             tdName.textContent = name;
             tr.appendChild(tdName);
             
-            // KS여부 열을 제외한 나머지 데이터 삽입 (동적 컬럼 개수 대응)
+            // KS여부 열을 제외한 나머지 데이터 삽입
             const len = hasKSFlag ? cols.length - 1 : cols.length;
             for (let j = 1; j < len; j++) {
                 const td = document.createElement('td');

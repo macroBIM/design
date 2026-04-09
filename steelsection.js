@@ -1,13 +1,13 @@
-// 메뉴 클릭 시 실행되는 메인 함수 v006 claude
+// 메뉴 클릭 시 실행되는 메인 함수 v007
 function steelsection_click() {
     // 1. 불필요한 사이드바를 '투명화'가 아니라 '공간째로 완전 삭제(숨김)' 처리
     const sideArea = document.getElementById('wrap_side');
     if(sideArea) {
         sideArea.innerHTML = ''; 
-        sideArea.style.display = 'none'; // 하얀색 네모 박스 공간 자체를 아예 없앰
+        sideArea.style.display = 'none'; 
     }
 
-    // 2. 표 전용 CSS 디자인 동적 삽입
+    // 2. 표 전용 CSS 디자인 동적 삽입 (드롭다운 커스텀 디자인 추가)
     if (!document.getElementById('steel-table-style')) {
         const style = document.createElement('style');
         style.id = 'steel-table-style';
@@ -21,72 +21,33 @@ function steelsection_click() {
             .steel-table tbody td { font-size: 12px; text-align: center; white-space: nowrap; border-bottom: 1px solid #dee2e6; border-right: 1px solid #dee2e6; }
             .steel-table tbody td:first-child { border-left: 1px solid #dee2e6; font-weight: bold; }
             .table-secondary { background-color: #e9ecef !important; color: #555;}
-
-            /* 드롭다운 커스텀 스타일 */
-            .section-select-wrapper {
-                position: relative;
-                display: inline-block;
-            }
-            .section-select-wrapper::after {
-                content: '▾';
-                position: absolute;
-                right: 12px;
-                top: 50%;
-                transform: translateY(-50%);
-                font-size: 16px;
-                color: #495057;
-                pointer-events: none;
-            }
-            #section-selector {
-                appearance: none;
+            
+            /* 드롭다운 메뉴를 크고 확실하게 보이도록 디자인 개선 */
+            .custom-select-box {
+                appearance: none; 
                 -webkit-appearance: none;
-                padding: 8px 38px 8px 14px;
-                font-size: 1rem;
-                font-weight: 600;
-                color: #212529;
-                background-color: #fff;
+                background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="%23333" viewBox="0 0 16 16"><path d="M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z"/></svg>');
+                background-repeat: no-repeat;
+                background-position: right 15px center;
+                background-size: 16px 12px;
+                padding: 12px 45px 12px 20px;
                 border: 2px solid #ced4da;
                 border-radius: 8px;
-                box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+                font-size: 1.15rem;
+                color: #333;
+                background-color: #fdfdfd;
                 cursor: pointer;
-                transition: border-color 0.2s, box-shadow 0.2s;
-                min-width: 260px;
+                transition: all 0.2s ease-in-out;
+                box-shadow: 0 4px 6px rgba(0,0,0,0.05);
             }
-            #section-selector:focus {
+            .custom-select-box:hover {
+                border-color: #adb5bd;
+                box-shadow: 0 6px 10px rgba(0,0,0,0.1);
+            }
+            .custom-select-box:focus {
                 outline: none;
-                border-color: #212529;
-                box-shadow: 0 0 0 3px rgba(33,37,41,0.15);
-            }
-            #section-selector:hover {
-                border-color: #868e96;
-            }
-
-            /* 이미지 박스 */
-            .section-img-box {
-                width: 200px;
-                height: 168px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                background-color: #f8f9fa;
-                border: 1px solid #dee2e6;
-                border-radius: 8px;
-                padding: 8px;
-                box-shadow: 0 2px 6px rgba(0,0,0,0.07);
-                margin-top: 10px;
-            }
-            .section-img-box img {
-                width: 100%;
-                height: 100%;
-                object-fit: contain;
-            }
-
-            /* 좌측 컨트롤 영역 */
-            .section-controls {
-                display: flex;
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 10px;
+                border-color: #6c757d;
+                box-shadow: 0 0 0 0.2rem rgba(108,117,125,.25);
             }
         `;
         document.head.appendChild(style);
@@ -95,23 +56,20 @@ function steelsection_click() {
     // 3. 메인 영역 HTML
     const mainArea = document.getElementById('wrap_main');
     mainArea.innerHTML = `
-        <div class="position-relative d-flex align-items-center justify-content-center pt-0 pb-2 mb-2 border-bottom" style="height: 160px;">
+        <div class="position-relative d-flex align-items-center justify-content-center pt-0 pb-2 mb-2 border-bottom" style="height: 180px;">
             
-            <div class="position-absolute d-flex align-items-center" style="left: 0; top: 50%; transform: translateY(-50%);">
-                <div class="section-controls">
-                    <div class="section-select-wrapper">
-                        <select id="section-selector" onchange="loadSelectedSection()">
-                            <option value="hsection" selected>H형강 (H-Section)</option>
-                            <option value="channel">ㄷ형강 (Channel)</option>
-                            <option value="equalangle">등변 ㄱ형강 (Equal Angle)</option>
-                            <option value="unequalangle">부등변 ㄱ형강 (Unequal Angle)</option>
-                            <option value="invertedangle">부등변 부등두께 ㄱ형강 (Inverted Angle)</option>
-                        </select>
-                    </div>
-
-                    <div class="section-img-box">
-                        <img id="section-image" src="" alt="단면도">
-                    </div>
+            <div class="position-absolute d-flex align-items-center" style="left: 0; padding-left: 5px;">
+                
+                <select id="section-selector" class="custom-select-box font-weight-bold mr-4" onchange="loadSelectedSection()" style="width: auto;">
+                    <option value="hsection" selected>H형강 (H-Section)</option>
+                    <option value="channel">ㄷ형강 (Channel)</option>
+                    <option value="equalangle">등변 ㄱ형강 (Equal Angle)</option>
+                    <option value="unequalangle">부등변 ㄱ형강 (Unequal Angle)</option>
+                    <option value="invertedangle">부등변 부등두께 ㄱ형강 (Inverted Angle)</option>
+                </select>
+                
+                <div style="width: 210px; height: 170px; display: flex; align-items: center; justify-content: center; background-color: white; border: 1px solid #ddd; border-radius: 8px; padding: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.08);">
+                    <img id="section-image" src="" alt="단면도" style="width: 100%; height: 100%; object-fit: contain;">
                 </div>
             </div>
 

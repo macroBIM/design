@@ -1,11 +1,11 @@
-// 메뉴 클릭 시 실행되는 메인 함수  v003
+// 메뉴 클릭 시 실행되는 메인 함수 v004
 function steelsection_click() {
-    // 1. 사이드바 영역 설정
+    // 1. 사이드바 영역 설정 (높이는 유지하되, 파란색 글자와 마크는 보이지 않게 숨김 처리)
     const sideArea = document.getElementById('wrap_side');
     if(sideArea) {
         sideArea.innerHTML = `
-            <li class="nav-item">
-                <a class="nav-link active" href="#">강구조 단면성능표</a>
+            <li class="nav-item" style="visibility: hidden; pointer-events: none;">
+                <a class="nav-link active" href="#" style="min-height: 40px;">강구조 단면성능표</a>
             </li>
         `;
     }
@@ -28,30 +28,29 @@ function steelsection_click() {
         document.head.appendChild(style);
     }
 
-    // 3. 메인 영역 HTML (드롭다운 메뉴 + 단면도 이미지 포함)
+    // 3. 메인 영역 HTML (레이아웃 완벽 수정: 왼쪽 정렬, 중앙 정렬 분리)
     const mainArea = document.getElementById('wrap_main');
     mainArea.innerHTML = `
-        <div class="d-flex align-items-center pt-3 pb-2 mb-3 border-bottom hsection-header-container" style="min-height: 100px;">
+        <div class="position-relative d-flex align-items-center justify-content-center pt-3 pb-3 mb-3 border-bottom" style="min-height: 160px;">
             
-            <div class="mr-3">
-                <select id="section-selector" class="form-control font-weight-bold shadow-sm" onchange="loadSelectedSection()" style="cursor: pointer; width: auto; font-size: 1.1rem;">
+            <div class="position-absolute d-flex align-items-center" style="left: 0;">
+                <select id="section-selector" class="form-control font-weight-bold shadow-sm mr-3" onchange="loadSelectedSection()" style="cursor: pointer; width: auto; font-size: 1.1rem;">
                     <option value="hsection" selected>H형강 (H-Section)</option>
                     <option value="channel">ㄷ형강 (Channel)</option>
                     <option value="equalangle">등변 ㄱ형강 (Equal Angle)</option>
                     <option value="unequalangle">부등변 ㄱ형강 (Unequal Angle)</option>
                     <option value="invertedangle">부등변 부등두께 ㄱ형강 (Inverted Angle)</option>
                 </select>
+                
+                <div style="width: 160px; height: 130px; display: flex; align-items: center; justify-content: center; background-color: white; border: 1px solid #ddd; border-radius: 6px; padding: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
+                    <img id="section-image" src="" alt="단면도" style="width: 100%; height: 100%; object-fit: contain;">
+                </div>
             </div>
 
-            <div class="flex-grow-1 text-center">
-                <h1 class="h2 font-weight-bold mb-0">강구조 단면성능표</h1>
-            </div>
-
-            <div style="height: 100px; width: 100px; display: flex; align-items: center; justify-content: center; background-color: #f8f9fa; border: 1px solid #ddd; border-radius: 4px; overflow: hidden;">
-                <img id="section-image" src="" alt="단면도" style="height: 100%; width: 100%; object-fit: contain;">
-            </div>
+            <h1 class="h1 font-weight-bold mb-0">강구조 단면성능표</h1>
             
         </div>
+
         <div class="steel-card mb-4">
             <div class="steel-scroll">
                 <table class="table table-sm table-hover mb-0 steel-table">
@@ -92,7 +91,7 @@ const sectionConfigs = {
     }
 };
 
-// 선택된 형강에 매칭되는 깃허브 이미지 파일명 (대소문자 주의)
+// 선택된 형강에 매칭되는 깃허브 이미지 파일명
 const imageConfigs = {
     'hsection': 'Hsection.jpg',
     'channel': 'channel.png',
@@ -101,28 +100,22 @@ const imageConfigs = {
     'invertedangle': 'invertedangle.png'
 };
 
-// 깃허브 Pages 기본 주소
 const GITHUB_BASE_URL = 'https://macrobim.github.io/design/';
 
 // 드롭다운 변경 시 실행되는 데이터 로드 함수
 async function loadSelectedSection() {
-    // 1. 선택된 값 가져오기
     const selector = document.getElementById('section-selector');
     const selectedType = selector.value;
     const config = sectionConfigs[selectedType];
     
-    // 2. 단면도 이미지 변경
     const imageElement = document.getElementById('section-image');
     if(imageElement && imageConfigs[selectedType]) {
-        // 이미지 주소 = 기본주소 + 파일명
         imageElement.src = GITHUB_BASE_URL + imageConfigs[selectedType];
     }
     
-    // 3. 테이블 세팅
     const thead = document.getElementById('data-table-head');
     const tbody = document.getElementById('data-table-body');
     
-    // 테이블 헤더 교체
     thead.innerHTML = config.thead;
     tbody.innerHTML = `<tr><td colspan="30" class="text-center py-5">데이터를 불러오는 중입니다...</td></tr>`;
 
@@ -138,28 +131,18 @@ async function loadSelectedSection() {
 
         for (let i = 1; i < rows.length; i++) {
             const cols = rows[i].split(',');
-            if (cols.length < 5) continue; // 빈 줄 무시
+            if (cols.length < 5) continue; 
             
-            // 마지막 컬럼이 'O' 또는 'X' (KS규격여부)인지 확인
             const lastCol = cols[cols.length - 1].trim();
             const hasKSFlag = (lastCol === 'O' || lastCol === 'X');
-            const isStandard = (lastCol === 'O');
             
-            // 파란색 글자와 그 엔터티 삭제: 
-            // 1. table-secondary 클래스 제거 (이미지에서 파란색으로 보이는 디자인)
-            const rowClass = ''; // ''; // (hasKSFlag && !isStandard) ? 'table-secondary' : ''; 
-            // 2. "*" 추가 제거
-            const name = cols[0]; // cols[0]; // (hasKSFlag && !isStandard) ? `${cols[0]} *` : cols[0];   
-
+            // 파란색 음영, 별표(*) 제거 요청에 따라 단순화
             const tr = document.createElement('tr');
-            if (rowClass) tr.classList.add(rowClass);
 
-            // 호칭 치수 삽입
             const tdName = document.createElement('td');
-            tdName.textContent = name;
+            tdName.textContent = cols[0];
             tr.appendChild(tdName);
             
-            // KS여부 열을 제외한 나머지 데이터 삽입
             const len = hasKSFlag ? cols.length - 1 : cols.length;
             for (let j = 1; j < len; j++) {
                 const td = document.createElement('td');

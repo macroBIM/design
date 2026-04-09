@@ -1,4 +1,4 @@
-// rebartable.js v002
+// rebartable.js v003
 
 function rebar_click() {
     // 1. 메인 화면 초기화 및 스크롤 가능한 컨테이너 생성
@@ -33,9 +33,9 @@ function rebar_click() {
 
     // 3. CSV 파일 경로 설정 (GitHub Pages의 루트 경로에 파일이 있다고 가정)
     // 기존 상대 경로를 깃허브 Pages의 절대 경로로 수정
-    const pathKS = 'https://macrobim.github.io/macroBIM/design/rebar_ks.csv';
-    const pathASTM = 'https://macrobim.github.io/macroBIM/design/rebar_astm.csv';
-    const pathBS = 'https://macrobim.github.io/macroBIM/design/rebar_bs.csv';
+    const pathKS = 'https://macrobim.github.io/design/rebar_ks.csv';
+    const pathASTM = 'https://macrobim.github.io/design/rebar_astm.csv';
+    const pathBS = 'https://macrobim.github.io/design/rebar_bs.csv';
 
     // 4. 데이터 Fetch 및 렌더링 실행
     fetchAndRenderCSV(pathKS, 'rebar-ks-container', '1. KS D 3504 (한국 표준 - 이형 봉강)');

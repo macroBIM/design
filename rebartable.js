@@ -1,4 +1,4 @@
-// bim_rebar.js v004
+// bim_rebar.js v005
 
 function rebar_click() {
     // 1. 메인 화면 초기화 (영문 적용)
@@ -69,6 +69,7 @@ function fetchAndRenderCSV(url, containerId, title) {
 }
 
 // 테이블 렌더링 함수 (디자인 적용)
+// 테이블 렌더링 함수 (디자인 적용)
 function renderTable(csvText, containerId, title) {
     const rows = csvText.replace(/\r/g, '').trim().split('\n');
     if (rows.length === 0) return;
@@ -76,16 +77,16 @@ function renderTable(csvText, containerId, title) {
     // 제목 렌더링
     let html = `<h4 class="mb-3 fw-bold text-dark">${title}</h4>
                 <div class="table-responsive bg-white shadow-sm mb-5">
-                <table class="table table-hover table-bordered text-center align-middle mb-0" style="border: 1px solid #dee2e6;">`;
+                <table class="table table-hover table-bordered text-center align-middle mb-0">`;
 
-    // 헤더 처리 (참고 이미지와 유사한 다크 테마 적용)
+    // 헤더 처리 (이미지와 동일하게 table-dark 적용하여 검정 배경에 하얀 글씨 설정)
     const headers = rows[0].split(',');
-    html += '<thead style="background-color: #212529; color: #ffffff; border-bottom: 2px solid #000;"><tr>';
+    html += '<thead class="table-dark align-middle"><tr>';
     headers.forEach(header => {
         let key = header.trim();
         // 딕셔너리에 매핑된 단어가 있으면 영문으로, 없으면 원래 텍스트 사용
         let translatedHeader = headerTranslations[key] || key;
-        html += `<th style="padding: 15px 10px; font-weight: 600; font-size: 0.95rem;">${translatedHeader}</th>`;
+        html += `<th style="padding: 15px 10px; font-weight: 600; font-size: 0.95rem; border-color: #373b3e;">${translatedHeader}</th>`;
     });
     html += '</tr></thead><tbody>';
 
@@ -97,7 +98,7 @@ function renderTable(csvText, containerId, title) {
         html += '<tr>';
         cols.forEach((col, index) => {
             if (index === 0) {
-                // 첫 번째 열(이름)에만 굵은 글씨와 약간의 배경색 적용
+                // 첫 번째 열(이름)에만 굵은 글씨
                 html += `<td style="font-weight: bold; background-color: #f8f9fa;">${col.trim()}</td>`;
             } else {
                 html += `<td>${col.trim()}</td>`;

@@ -1,13 +1,10 @@
-// 메뉴 클릭 시 실행되는 메인 함수 v004
+// 메뉴 클릭 시 실행되는 메인 함수 v005
 function steelsection_click() {
-    // 1. 사이드바 영역 설정 (높이는 유지하되, 파란색 글자와 마크는 보이지 않게 숨김 처리)
+    // 1. 불필요한 사이드바를 '투명화'가 아니라 '공간째로 완전 삭제(숨김)' 처리
     const sideArea = document.getElementById('wrap_side');
     if(sideArea) {
-        sideArea.innerHTML = `
-            <li class="nav-item" style="visibility: hidden; pointer-events: none;">
-                <a class="nav-link active" href="#" style="min-height: 40px;">강구조 단면성능표</a>
-            </li>
-        `;
+        sideArea.innerHTML = ''; 
+        sideArea.style.display = 'none'; // 하얀색 네모 박스 공간 자체를 아예 없앰
     }
 
     // 2. 표 전용 CSS 디자인 동적 삽입
@@ -28,10 +25,10 @@ function steelsection_click() {
         document.head.appendChild(style);
     }
 
-    // 3. 메인 영역 HTML (레이아웃 완벽 수정: 왼쪽 정렬, 중앙 정렬 분리)
+    // 3. 메인 영역 HTML (상단 여백 완전 제거 및 높이 압축)
     const mainArea = document.getElementById('wrap_main');
     mainArea.innerHTML = `
-        <div class="position-relative d-flex align-items-center justify-content-center pt-3 pb-3 mb-3 border-bottom" style="min-height: 160px;">
+        <div class="position-relative d-flex align-items-center justify-content-center pt-0 pb-2 mb-2 border-bottom" style="height: 140px;">
             
             <div class="position-absolute d-flex align-items-center" style="left: 0;">
                 <select id="section-selector" class="form-control font-weight-bold shadow-sm mr-3" onchange="loadSelectedSection()" style="cursor: pointer; width: auto; font-size: 1.1rem;">
@@ -136,7 +133,6 @@ async function loadSelectedSection() {
             const lastCol = cols[cols.length - 1].trim();
             const hasKSFlag = (lastCol === 'O' || lastCol === 'X');
             
-            // 파란색 음영, 별표(*) 제거 요청에 따라 단순화
             const tr = document.createElement('tr');
 
             const tdName = document.createElement('td');

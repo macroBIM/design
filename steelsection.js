@@ -1,4 +1,4 @@
-// Main function executed on menu click  v008
+// Main function executed on menu click  v009
 function steelsection_click() {
     // 1. Hide the unnecessary sidebar completely
     const sideArea = document.getElementById('wrap_side');
@@ -7,7 +7,7 @@ function steelsection_click() {
         sideArea.style.display = 'none'; 
     }
 
-    // 2. Dynamic injection of CSS for the steel table (Custom dropdown styling included)
+    // 2. Dynamic injection of CSS for the steel table
     if (!document.getElementById('steel-table-style')) {
         const style = document.createElement('style');
         style.id = 'steel-table-style';
@@ -15,9 +15,14 @@ function steelsection_click() {
             .steel-card { background: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); overflow: hidden; margin-top: 10px;}
             .steel-scroll { max-height: 75vh; overflow-y: auto; }
             .steel-table { border-collapse: separate; border-spacing: 0; width: 100%; min-width: 1000px; }
-            .steel-table thead th { background-color: #212529 !important; color: white; font-size: 12px; text-align: center; vertical-align: middle; border-bottom: 1px solid #444; border-right: 1px solid #444; }
+            
+            /* 수정된 부분 1: background-clip 추가로 스크롤 시 테두리 깜빡임 방지 */
+            .steel-table thead th { background-color: #212529 !important; color: white; font-size: 12px; text-align: center; vertical-align: middle; border-bottom: 1px solid #444; border-right: 1px solid #444; background-clip: padding-box; }
+            
+            /* 수정된 부분 2: height와 top의 픽셀을 오차 없이 일치시킴 */
             .steel-table thead tr:nth-child(1) th { position: sticky; top: 0; height: 46px; z-index: 102; border-top: 1px solid #444;}
-            .steel-table thead tr:nth-child(2) th { position: sticky; top: 45px; height: 36px; z-index: 101; box-shadow: 0 2px 2px -1px rgba(0,0,0,0.4); }
+            .steel-table thead tr:nth-child(2) th { position: sticky; top: 46px; height: 36px; z-index: 101; box-shadow: 0 2px 2px -1px rgba(0,0,0,0.4); }
+            
             .steel-table tbody td { font-size: 12px; text-align: center; white-space: nowrap; border-bottom: 1px solid #dee2e6; border-right: 1px solid #dee2e6; }
             .steel-table tbody td:first-child { border-left: 1px solid #dee2e6; font-weight: bold; }
             .table-secondary { background-color: #e9ecef !important; color: #555;}

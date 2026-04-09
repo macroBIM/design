@@ -1,4 +1,4 @@
-// 메뉴 클릭 시 실행되는 메인 함수 v005
+// 메뉴 클릭 시 실행되는 메인 함수 v006 claude
 function steelsection_click() {
     // 1. 불필요한 사이드바를 '투명화'가 아니라 '공간째로 완전 삭제(숨김)' 처리
     const sideArea = document.getElementById('wrap_side');
@@ -21,26 +21,97 @@ function steelsection_click() {
             .steel-table tbody td { font-size: 12px; text-align: center; white-space: nowrap; border-bottom: 1px solid #dee2e6; border-right: 1px solid #dee2e6; }
             .steel-table tbody td:first-child { border-left: 1px solid #dee2e6; font-weight: bold; }
             .table-secondary { background-color: #e9ecef !important; color: #555;}
+
+            /* 드롭다운 커스텀 스타일 */
+            .section-select-wrapper {
+                position: relative;
+                display: inline-block;
+            }
+            .section-select-wrapper::after {
+                content: '▾';
+                position: absolute;
+                right: 12px;
+                top: 50%;
+                transform: translateY(-50%);
+                font-size: 16px;
+                color: #495057;
+                pointer-events: none;
+            }
+            #section-selector {
+                appearance: none;
+                -webkit-appearance: none;
+                padding: 8px 38px 8px 14px;
+                font-size: 1rem;
+                font-weight: 600;
+                color: #212529;
+                background-color: #fff;
+                border: 2px solid #ced4da;
+                border-radius: 8px;
+                box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+                cursor: pointer;
+                transition: border-color 0.2s, box-shadow 0.2s;
+                min-width: 260px;
+            }
+            #section-selector:focus {
+                outline: none;
+                border-color: #212529;
+                box-shadow: 0 0 0 3px rgba(33,37,41,0.15);
+            }
+            #section-selector:hover {
+                border-color: #868e96;
+            }
+
+            /* 이미지 박스 */
+            .section-img-box {
+                width: 200px;
+                height: 168px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                background-color: #f8f9fa;
+                border: 1px solid #dee2e6;
+                border-radius: 8px;
+                padding: 8px;
+                box-shadow: 0 2px 6px rgba(0,0,0,0.07);
+                margin-top: 10px;
+            }
+            .section-img-box img {
+                width: 100%;
+                height: 100%;
+                object-fit: contain;
+            }
+
+            /* 좌측 컨트롤 영역 */
+            .section-controls {
+                display: flex;
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
         `;
         document.head.appendChild(style);
     }
 
-    // 3. 메인 영역 HTML (상단 여백 완전 제거 및 높이 압축)
+    // 3. 메인 영역 HTML
     const mainArea = document.getElementById('wrap_main');
     mainArea.innerHTML = `
-        <div class="position-relative d-flex align-items-center justify-content-center pt-0 pb-2 mb-2 border-bottom" style="height: 140px;">
+        <div class="position-relative d-flex align-items-center justify-content-center pt-0 pb-2 mb-2 border-bottom" style="height: 160px;">
             
-            <div class="position-absolute d-flex align-items-center" style="left: 0;">
-                <select id="section-selector" class="form-control font-weight-bold shadow-sm mr-3" onchange="loadSelectedSection()" style="cursor: pointer; width: auto; font-size: 1.1rem;">
-                    <option value="hsection" selected>H형강 (H-Section)</option>
-                    <option value="channel">ㄷ형강 (Channel)</option>
-                    <option value="equalangle">등변 ㄱ형강 (Equal Angle)</option>
-                    <option value="unequalangle">부등변 ㄱ형강 (Unequal Angle)</option>
-                    <option value="invertedangle">부등변 부등두께 ㄱ형강 (Inverted Angle)</option>
-                </select>
-                
-                <div style="width: 160px; height: 130px; display: flex; align-items: center; justify-content: center; background-color: white; border: 1px solid #ddd; border-radius: 6px; padding: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
-                    <img id="section-image" src="" alt="단면도" style="width: 100%; height: 100%; object-fit: contain;">
+            <div class="position-absolute d-flex align-items-center" style="left: 0; top: 50%; transform: translateY(-50%);">
+                <div class="section-controls">
+                    <div class="section-select-wrapper">
+                        <select id="section-selector" onchange="loadSelectedSection()">
+                            <option value="hsection" selected>H형강 (H-Section)</option>
+                            <option value="channel">ㄷ형강 (Channel)</option>
+                            <option value="equalangle">등변 ㄱ형강 (Equal Angle)</option>
+                            <option value="unequalangle">부등변 ㄱ형강 (Unequal Angle)</option>
+                            <option value="invertedangle">부등변 부등두께 ㄱ형강 (Inverted Angle)</option>
+                        </select>
+                    </div>
+
+                    <div class="section-img-box">
+                        <img id="section-image" src="" alt="단면도">
+                    </div>
                 </div>
             </div>
 

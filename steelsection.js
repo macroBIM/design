@@ -1,6 +1,4 @@
-// v002 이미지파일 업로드
-
-// 메뉴 클릭 시 실행되는 메인 함수
+// 메뉴 클릭 시 실행되는 메인 함수  v003
 function steelsection_click() {
     // 1. 사이드바 영역 설정
     const sideArea = document.getElementById('wrap_side');
@@ -33,27 +31,27 @@ function steelsection_click() {
     // 3. 메인 영역 HTML (드롭다운 메뉴 + 단면도 이미지 포함)
     const mainArea = document.getElementById('wrap_main');
     mainArea.innerHTML = `
-        <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-            <h1 class="h2">강구조 단면성능표</h1>
+        <div class="d-flex align-items-center pt-3 pb-2 mb-3 border-bottom hsection-header-container" style="min-height: 100px;">
             
-            <div class="d-flex align-items-center mb-2 mb-md-0">
-                
-                <select id="section-selector" class="form-control font-weight-bold shadow-sm mr-4" onchange="loadSelectedSection()" style="cursor: pointer; width: auto; font-size: 1.1rem;">
+            <div class="mr-3">
+                <select id="section-selector" class="form-control font-weight-bold shadow-sm" onchange="loadSelectedSection()" style="cursor: pointer; width: auto; font-size: 1.1rem;">
                     <option value="hsection" selected>H형강 (H-Section)</option>
                     <option value="channel">ㄷ형강 (Channel)</option>
                     <option value="equalangle">등변 ㄱ형강 (Equal Angle)</option>
                     <option value="unequalangle">부등변 ㄱ형강 (Unequal Angle)</option>
                     <option value="invertedangle">부등변 부등두께 ㄱ형강 (Inverted Angle)</option>
                 </select>
-                
-                <div style="height: 100px; width: 120px; display: flex; align-items: center; justify-content: center; background-color: #f8f9fa; border: 1px solid #ddd; border-radius: 4px;">
-                    <img id="section-image" src="" alt="단면도" style="max-height: 90px; max-width: 110px; object-fit: contain;">
-                </div>
-                
             </div>
-        </div>
-        <p class="text-muted small">* 표시는 KS(JIS)에 없는 규격입니다.</p>
 
+            <div class="flex-grow-1 text-center">
+                <h1 class="h2 font-weight-bold mb-0">강구조 단면성능표</h1>
+            </div>
+
+            <div style="height: 100px; width: 100px; display: flex; align-items: center; justify-content: center; background-color: #f8f9fa; border: 1px solid #ddd; border-radius: 4px; overflow: hidden;">
+                <img id="section-image" src="" alt="단면도" style="height: 100%; width: 100%; object-fit: contain;">
+            </div>
+            
+        </div>
         <div class="steel-card mb-4">
             <div class="steel-scroll">
                 <table class="table table-sm table-hover mb-0 steel-table">
@@ -147,9 +145,11 @@ async function loadSelectedSection() {
             const hasKSFlag = (lastCol === 'O' || lastCol === 'X');
             const isStandard = (lastCol === 'O');
             
-            // X일 경우 회색 배경 클래스 추가
-            const rowClass = (hasKSFlag && !isStandard) ? 'table-secondary' : ''; 
-            const name = (hasKSFlag && !isStandard) ? `${cols[0]} *` : cols[0];   
+            // 파란색 글자와 그 엔터티 삭제: 
+            // 1. table-secondary 클래스 제거 (이미지에서 파란색으로 보이는 디자인)
+            const rowClass = ''; // ''; // (hasKSFlag && !isStandard) ? 'table-secondary' : ''; 
+            // 2. "*" 추가 제거
+            const name = cols[0]; // cols[0]; // (hasKSFlag && !isStandard) ? `${cols[0]} *` : cols[0];   
 
             const tr = document.createElement('tr');
             if (rowClass) tr.classList.add(rowClass);

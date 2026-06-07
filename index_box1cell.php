@@ -787,9 +787,15 @@ session_start();
     <!-- ── BOX1CELL TEMPLATE ── -->
     <template id="tpl-draw-box1cell">
       <div class="draw-card">
-        <div class="draw-card-header">
-          <div class="draw-card-title">Dimension (mm)</div>
-          <div class="draw-card-desc">Input 1-Cell Box section parameters (Begin / End)</div>
+        <div class="draw-card-header" style="display:flex;justify-content:space-between;align-items:center;">
+          <div>
+            <div class="draw-card-title">Dimension (mm)</div>
+            <div class="draw-card-desc">Input 1-Cell Box section parameters (Begin / End)</div>
+          </div>
+          <button class="btn-generate" onclick="document.getElementById('box1cell_guide_img').style.display=document.getElementById('box1cell_guide_img').style.display==='none'?'block':'none'" style="margin:0;font-size:12px;padding:6px 14px;"><i class="bi bi-image"></i> VIEW GUIDE</button>
+        </div>
+        <div id="box1cell_guide_img" style="display:none;padding:10px;background:#f8f9fa;border-bottom:1px solid #e2e8f0;text-align:center;">
+          <img src="https://macrobim.github.io/macroBIM/box1cell_vars.png" style="max-width:100%;height:auto;border:1px solid #ddd;border-radius:4px;">
         </div>
         <div class="draw-card-body">
           <div style="margin-bottom:20px;">

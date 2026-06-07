@@ -874,11 +874,9 @@ session_start();
             <div class="col-label">sl_b (%)</div>
             <input class="form-input" type="number" id="dslb_s" value="3" onchange="fdraw_box1cell()">
             <input class="form-input" type="number" id="dslb_e" value="3" onchange="fdraw_box1cell()">
-          </div>
-          <div style="margin-top:16px;display:flex;align-items:center;gap:12px;">
-            <label class="form-label" style="margin:0;white-space:nowrap;">Seg Length</label>
-            <input class="form-input" type="number" id="dseg_leng" value="5000" onchange="fdraw_box1cell()" style="width:160px;">
-            <button class="btn-generate" onclick="odxf_box1cell.download('Box1Cell.dxf')" style="margin:0;white-space:nowrap;"><i class="bi bi-download"></i> DXF DOWNLOAD</button>
+            <div class="col-label">Seg Length</div>
+            <input class="form-input" type="number" id="dseg_leng" value="5000" onchange="fdraw_box1cell()">
+            <button class="btn-generate" onclick="odxf_box1cell.download('Box1Cell.dxf')" style="margin:0;width:100%;"><i class="bi bi-download"></i> DXF DOWNLOAD</button>
           </div>
         </div>
       </div>

@@ -206,11 +206,11 @@ session_start();
     background:#1e293b;border-radius:10px;overflow:hidden;
     min-height:560px;
   }
-  #hsecplot,#channelplot,#ibeamplot,#spliceplot,#liftinglugplot{
+  #hsecplot,#channelplot,#spliceplot,#liftinglugplot{
     width:100%;height:560px;background:#000;border-radius:10px;
     cursor:grab;
   }
-  #box1cellplot{
+  #ibeamplot,#box1cellplot{
     width:100%;background:#000;border-radius:10px;
     cursor:grab;
   }
@@ -252,10 +252,11 @@ session_start();
 <script src="https://macrobim.github.io/macroBIM/bim_liftinglug.js"></script>
 <script src="https://macrobim.github.io/macroBIM/bim_box1cell.js"></script>
 
-<!-- ═══════ THREE.js for 3D Box Girder ═══════ -->
+<!-- ═══════ THREE.js for 3D Box Girder & I-Beam ═══════ -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://unpkg.com/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 <script src="https://macrobim.github.io/macroBIM/bim_box1cell_3d.js"></script>
+<script src="https://macrobim.github.io/macroBIM/bim_ibeam_3d.js"></script>
 
 <!-- ═══════ EXTERNAL PAGE SCRIPTS (GitHub) ═══════ -->
 <script src="https://macrobim.github.io/design/rebartable_claude.js"></script>
@@ -504,82 +505,89 @@ session_start();
       <div id="mount-draw-ibeam"></div>
     </div>
 
+    <!-- ── IBEAM TEMPLATE (box1cell 패턴: 9-col Begin/End + 3D/2D Viewport) ── -->
     <template id="tpl-draw-ibeam">
-      <!-- INPUT CARD -->
       <div class="draw-card">
-        <div class="draw-card-header">
-          <div class="draw-card-title">Dimension (mm)</div>
-          <div class="draw-card-desc">Input I-beam (plate girder) cross-section parameters</div>
+        <div class="draw-card-header" style="display:flex;justify-content:space-between;align-items:center;">
+          <div>
+            <div class="draw-card-title">Dimension (mm)</div>
+            <div class="draw-card-desc">Input I-beam (plate girder) cross-section parameters (Begin / End)</div>
+          </div>
+          <button class="btn-generate" onclick="document.getElementById('ibeam_guide_img').style.display=document.getElementById('ibeam_guide_img').style.display==='none'?'block':'none'" style="margin:0;font-size:12px;padding:6px 14px;"><i class="bi bi-image"></i> VIEW GUIDE</button>
+        </div>
+        <div id="ibeam_guide_img" style="display:none;padding:10px;background:#f8f9fa;border-bottom:1px solid #e2e8f0;text-align:center;">
+          <img src="https://macrobim.github.io/macroBIM/ibeam_vars.png" style="max-width:100%;height:auto;border:1px solid #ddd;border-radius:4px;">
         </div>
         <div class="draw-card-body">
           <div style="margin-bottom:20px;">
-            <div class="form-label" style="margin-bottom:6px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;">Batch Input (CSV) <span style="font-weight:400;text-transform:none;letter-spacing:0;color:#94a3b8;">— 1줄: H,Bt,Bb,tft,tft1,tbf,tbf1,tw,Rtf,Rwt,Rwb,Rbf,Cb / 2줄: L</span></div>
-            <textarea class="form-input" id="sUserText" rows="2" style="width:100%;resize:vertical;" placeholder="1500,1235,985,85,45,135,140,160,50,200,100,50,20&#10;500" onchange="putParams_ibeam('sUserText'); fdraw_ibeam();">1500,1235,985,85,45,135,140,160,50,200,100,50,20
+            <div class="form-label" style="margin-bottom:6px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;">Batch Input (CSV) <span style="font-weight:400;text-transform:none;letter-spacing:0;color:#94a3b8;">— 1줄: Begin / 2줄: End / 3줄: Beam Length</span></div>
+            <textarea class="form-input" id="sUserText" rows="4" style="width:100%;resize:vertical;font-size:12px;" onchange="putParams_ibeam('sUserText'); fdraw_ibeam();">1500,1235,985,85,45,135,140,160,50,200,100,50,20
+1500,1235,985,85,45,135,140,160,50,200,100,50,20
 500</textarea>
           </div>
-          <div class="form-grid">
-            <div class="form-group">
-              <label class="form-label">I Beam Height</label>
-              <input class="form-input" type="number" id="dh" value="1500" onchange="fdraw_ibeam()">
-            </div>
-            <div class="form-group">
-              <label class="form-label">I Beam Top Width</label>
-              <input class="form-input" type="number" id="dbt" value="1235" onchange="fdraw_ibeam()">
-            </div>
-            <div class="form-group">
-              <label class="form-label">I Beam Bottom Width</label>
-              <input class="form-input" type="number" id="dbb" value="985" onchange="fdraw_ibeam()">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Top Flange Thickness</label>
-              <input class="form-input" type="number" id="dttf" value="85" onchange="fdraw_ibeam()">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Top Hunch Thickness</label>
-              <input class="form-input" type="number" id="dttf1" value="45" onchange="fdraw_ibeam()">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Bottom Flange Thickness</label>
-              <input class="form-input" type="number" id="dtbf" value="135" onchange="fdraw_ibeam()">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Bottom Hunch Thickness</label>
-              <input class="form-input" type="number" id="dtbf1" value="140" onchange="fdraw_ibeam()">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Web Thickness</label>
-              <input class="form-input" type="number" id="dtw" value="160" onchange="fdraw_ibeam()">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Radius on Top Flange <span>(R=0 if no need)</span></label>
-              <input class="form-input" type="number" id="drtf" value="50" onchange="fdraw_ibeam()">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Radius on Web Top <span>(R=0 if no need)</span></label>
-              <input class="form-input" type="number" id="drwt" value="200" onchange="fdraw_ibeam()">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Radius on Web Bottom <span>(R=0 if no need)</span></label>
-              <input class="form-input" type="number" id="drwb" value="100" onchange="fdraw_ibeam()">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Radius on Bottom Flange <span>(R=0 if no need)</span></label>
-              <input class="form-input" type="number" id="drbf" value="50" onchange="fdraw_ibeam()">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Chamfer on Bottom Flange <span>(C=0 if no need)</span></label>
-              <input class="form-input" type="number" id="dchb" value="20" onchange="fdraw_ibeam()">
-            </div>
-            <div class="form-group">
-              <label class="form-label">I Beam Length</label>
-              <input class="form-input" type="number" id="dseg_leng" value="500" onchange="fdraw_ibeam()">
-            </div>
+
+          <div class="form-grid-9col" style="margin-bottom:12px;">
+            <div class="col-header var-header">Variable</div>
+            <div class="col-header">Begin</div>
+            <div class="col-header">End</div>
+            <div class="col-header var-header">Variable</div>
+            <div class="col-header">Begin</div>
+            <div class="col-header">End</div>
+            <div class="col-header var-header">Variable</div>
+            <div class="col-header">Begin</div>
+            <div class="col-header">End</div>
           </div>
-          <button class="btn-generate" onclick="odxf_ibeam.download('IBeam.dxf')"><i class="bi bi-download"></i> DXF DOWNLOAD</button>
+          <div class="form-grid-9col">
+            <div class="col-label">h</div>
+            <input class="form-input" type="number" id="dh_s" value="1500" onchange="fdraw_ibeam()">
+            <input class="form-input" type="number" id="dh_e" value="1500" onchange="fdraw_ibeam()">
+            <div class="col-label">bt</div>
+            <input class="form-input" type="number" id="dbt_s" value="1235" onchange="fdraw_ibeam()">
+            <input class="form-input" type="number" id="dbt_e" value="1235" onchange="fdraw_ibeam()">
+            <div class="col-label">bb</div>
+            <input class="form-input" type="number" id="dbb_s" value="985" onchange="fdraw_ibeam()">
+            <input class="form-input" type="number" id="dbb_e" value="985" onchange="fdraw_ibeam()">
+
+            <div class="col-label">ttf</div>
+            <input class="form-input" type="number" id="dttf_s" value="85" onchange="fdraw_ibeam()">
+            <input class="form-input" type="number" id="dttf_e" value="85" onchange="fdraw_ibeam()">
+            <div class="col-label">ttf1</div>
+            <input class="form-input" type="number" id="dttf1_s" value="45" onchange="fdraw_ibeam()">
+            <input class="form-input" type="number" id="dttf1_e" value="45" onchange="fdraw_ibeam()">
+            <div class="col-label">tbf</div>
+            <input class="form-input" type="number" id="dtbf_s" value="135" onchange="fdraw_ibeam()">
+            <input class="form-input" type="number" id="dtbf_e" value="135" onchange="fdraw_ibeam()">
+
+            <div class="col-label">tbf1</div>
+            <input class="form-input" type="number" id="dtbf1_s" value="140" onchange="fdraw_ibeam()">
+            <input class="form-input" type="number" id="dtbf1_e" value="140" onchange="fdraw_ibeam()">
+            <div class="col-label">tw</div>
+            <input class="form-input" type="number" id="dtw_s" value="160" onchange="fdraw_ibeam()">
+            <input class="form-input" type="number" id="dtw_e" value="160" onchange="fdraw_ibeam()">
+            <div class="col-label">rtf <span style="color:#94a3b8;font-size:10px;">(0=없음)</span></div>
+            <input class="form-input" type="number" id="drtf_s" value="50" onchange="fdraw_ibeam()">
+            <input class="form-input" type="number" id="drtf_e" value="50" onchange="fdraw_ibeam()">
+
+            <div class="col-label">rwt <span style="color:#94a3b8;font-size:10px;">(0=없음)</span></div>
+            <input class="form-input" type="number" id="drwt_s" value="200" onchange="fdraw_ibeam()">
+            <input class="form-input" type="number" id="drwt_e" value="200" onchange="fdraw_ibeam()">
+            <div class="col-label">rwb <span style="color:#94a3b8;font-size:10px;">(0=없음)</span></div>
+            <input class="form-input" type="number" id="drwb_s" value="100" onchange="fdraw_ibeam()">
+            <input class="form-input" type="number" id="drwb_e" value="100" onchange="fdraw_ibeam()">
+            <div class="col-label">rbf <span style="color:#94a3b8;font-size:10px;">(0=없음)</span></div>
+            <input class="form-input" type="number" id="drbf_s" value="50" onchange="fdraw_ibeam()">
+            <input class="form-input" type="number" id="drbf_e" value="50" onchange="fdraw_ibeam()">
+
+            <div class="col-label">chb <span style="color:#94a3b8;font-size:10px;">(0=없음)</span></div>
+            <input class="form-input" type="number" id="dchb_s" value="20" onchange="fdraw_ibeam()">
+            <input class="form-input" type="number" id="dchb_e" value="20" onchange="fdraw_ibeam()">
+            <div class="col-label">Beam Length</div>
+            <input class="form-input" type="number" id="dseg_leng" value="500" onchange="fdraw_ibeam()" style="grid-column:span 5;">
+          </div>
+          <button class="btn-generate" onclick="odxf_ibeam.download('IBeam.dxf')" style="width:100%;margin-top:16px;"><i class="bi bi-download"></i> DXF DOWNLOAD</button>
         </div>
       </div>
 
-      <!-- DRAWING CARD -->
       <div class="draw-card">
         <div class="draw-card-header">
           <div class="draw-card-title">Drawing View <span style="font-weight:400;color:#94a3b8;font-size:12px;">(Synchronized Zoom / Pan)</span></div>

@@ -225,10 +225,12 @@ session_start();
   .stat-icon.green{background:#ecfdf5;color:#10b981;}
   @media(max-width:720px){.stat-grid{grid-template-columns:1fr;}}
 
-  /* ── BOX1CELL 3-COLUMN GRID ── */
-  .form-grid-3col{display:grid;grid-template-columns:140px 1fr 1fr;gap:8px 16px;align-items:center;}
-  .form-grid-3col .col-label{font-size:12px;font-weight:600;color:#0f172a;}
-  .form-grid-3col .col-header{font-size:11px;font-weight:700;color:#2563eb;text-align:center;padding-bottom:4px;border-bottom:1px solid #e2e8f0;}
+  /* ── BOX1CELL 9-COLUMN GRID (3 pairs of Variable/Begin/End per row) ── */
+  .form-grid-9col{display:grid;grid-template-columns:80px 1fr 1fr 80px 1fr 1fr 80px 1fr 1fr;gap:8px 10px;align-items:center;}
+  .form-grid-9col .col-label{font-size:12px;font-weight:600;color:#0f172a;}
+  .form-grid-9col .col-header{font-size:11px;font-weight:700;color:#2563eb;text-align:center;padding-bottom:4px;border-bottom:1px solid #e2e8f0;}
+  .form-grid-9col .col-header.var-header{text-align:left;}
+  .form-grid-9col .form-input{padding:8px 8px;font-size:12.5px;}
 
   /* ── LOADING / ERROR ── */
   .loading-row{text-align:center;padding:40px 20px !important;color:#94a3b8;}
@@ -805,12 +807,18 @@ session_start();
 5000</textarea>
           </div>
 
-          <div class="form-grid-3col" style="margin-bottom:12px;">
-            <div class="col-header" style="text-align:left;">Variable</div>
-            <div class="col-header">Begin Section</div>
-            <div class="col-header">End Section</div>
+          <div class="form-grid-9col" style="margin-bottom:12px;">
+            <div class="col-header var-header">Variable</div>
+            <div class="col-header">Begin</div>
+            <div class="col-header">End</div>
+            <div class="col-header var-header">Variable</div>
+            <div class="col-header">Begin</div>
+            <div class="col-header">End</div>
+            <div class="col-header var-header">Variable</div>
+            <div class="col-header">Begin</div>
+            <div class="col-header">End</div>
           </div>
-          <div class="form-grid-3col">
+          <div class="form-grid-9col">
             <div class="col-label">h</div>
             <input class="form-input" type="number" id="dh_s" value="6600" onchange="fdraw_box1cell()">
             <input class="form-input" type="number" id="dh_e" value="8000" onchange="fdraw_box1cell()">
@@ -820,6 +828,7 @@ session_start();
             <div class="col-label">bb</div>
             <input class="form-input" type="number" id="dbb_s" value="6000" onchange="fdraw_box1cell()">
             <input class="form-input" type="number" id="dbb_e" value="6000" onchange="fdraw_box1cell()">
+
             <div class="col-label">btsh</div>
             <input class="form-input" type="number" id="dbth_s" value="1500" onchange="fdraw_box1cell()">
             <input class="form-input" type="number" id="dbth_e" value="1500" onchange="fdraw_box1cell()">
@@ -829,6 +838,7 @@ session_start();
             <div class="col-label">bcan</div>
             <input class="form-input" type="number" id="dbc_s" value="1500" onchange="fdraw_box1cell()">
             <input class="form-input" type="number" id="dbc_e" value="1500" onchange="fdraw_box1cell()">
+
             <div class="col-label">t1</div>
             <input class="form-input" type="number" id="dt1_s" value="300" onchange="fdraw_box1cell()">
             <input class="form-input" type="number" id="dt1_e" value="300" onchange="fdraw_box1cell()">
@@ -838,6 +848,7 @@ session_start();
             <div class="col-label">t3</div>
             <input class="form-input" type="number" id="dt3_s" value="600" onchange="fdraw_box1cell()">
             <input class="form-input" type="number" id="dt3_e" value="600" onchange="fdraw_box1cell()">
+
             <div class="col-label">t4</div>
             <input class="form-input" type="number" id="dt4_s" value="600" onchange="fdraw_box1cell()">
             <input class="form-input" type="number" id="dt4_e" value="600" onchange="fdraw_box1cell()">
@@ -847,6 +858,7 @@ session_start();
             <div class="col-label">t6</div>
             <input class="form-input" type="number" id="dt6_s" value="300" onchange="fdraw_box1cell()">
             <input class="form-input" type="number" id="dt6_e" value="300" onchange="fdraw_box1cell()">
+
             <div class="col-label">tb</div>
             <input class="form-input" type="number" id="dtb_s" value="840" onchange="fdraw_box1cell()">
             <input class="form-input" type="number" id="dtb_e" value="840" onchange="fdraw_box1cell()">
@@ -856,24 +868,27 @@ session_start();
             <div class="col-label">bh</div>
             <input class="form-input" type="number" id="dbbh_s" value="200" onchange="fdraw_box1cell()">
             <input class="form-input" type="number" id="dbbh_e" value="200" onchange="fdraw_box1cell()">
+
             <div class="col-label">vh1</div>
             <input class="form-input" type="number" id="dbh1_s" value="200" onchange="fdraw_box1cell()">
             <input class="form-input" type="number" id="dbh1_e" value="200" onchange="fdraw_box1cell()">
             <div class="col-label">vh2</div>
             <input class="form-input" type="number" id="dbh2_s" value="100" onchange="fdraw_box1cell()">
             <input class="form-input" type="number" id="dbh2_e" value="100" onchange="fdraw_box1cell()">
-            <div class="col-label">rwt <span style="color:#94a3b8;font-size:11px;">(0=없음)</span></div>
+            <div class="col-label">rwt <span style="color:#94a3b8;font-size:10px;">(0=없음)</span></div>
             <input class="form-input" type="number" id="drwt_s" value="300" onchange="fdraw_box1cell()">
             <input class="form-input" type="number" id="drwt_e" value="300" onchange="fdraw_box1cell()">
-            <div class="col-label">rwtin <span style="color:#94a3b8;font-size:11px;">(0=없음)</span></div>
+
+            <div class="col-label">rwtin <span style="color:#94a3b8;font-size:10px;">(0=없음)</span></div>
             <input class="form-input" type="number" id="drwtin_s" value="200" onchange="fdraw_box1cell()">
             <input class="form-input" type="number" id="drwtin_e" value="200" onchange="fdraw_box1cell()">
-            <div class="col-label">rb <span style="color:#94a3b8;font-size:11px;">(0=없음)</span></div>
+            <div class="col-label">rb <span style="color:#94a3b8;font-size:10px;">(0=없음)</span></div>
             <input class="form-input" type="number" id="drb_s" value="400" onchange="fdraw_box1cell()">
             <input class="form-input" type="number" id="drb_e" value="400" onchange="fdraw_box1cell()">
             <div class="col-label">sl_tl (%)</div>
             <input class="form-input" type="number" id="dsltl_s" value="-2" onchange="fdraw_box1cell()">
             <input class="form-input" type="number" id="dsltl_e" value="-2" onchange="fdraw_box1cell()">
+
             <div class="col-label">sl_tr (%)</div>
             <input class="form-input" type="number" id="dsltr_s" value="5" onchange="fdraw_box1cell()">
             <input class="form-input" type="number" id="dsltr_e" value="5" onchange="fdraw_box1cell()">
@@ -881,9 +896,9 @@ session_start();
             <input class="form-input" type="number" id="dslb_s" value="3" onchange="fdraw_box1cell()">
             <input class="form-input" type="number" id="dslb_e" value="3" onchange="fdraw_box1cell()">
             <div class="col-label">Seg Length</div>
-            <input class="form-input" type="number" id="dseg_leng" value="5000" onchange="fdraw_box1cell()">
-            <button class="btn-generate" onclick="odxf_box1cell.download('Box1Cell.dxf')" style="margin:0;width:100%;"><i class="bi bi-download"></i> DXF DOWNLOAD</button>
+            <input class="form-input" type="number" id="dseg_leng" value="5000" onchange="fdraw_box1cell()" style="grid-column:span 2;">
           </div>
+          <button class="btn-generate" onclick="odxf_box1cell.download('Box1Cell.dxf')" style="width:100%;margin-top:16px;"><i class="bi bi-download"></i> DXF DOWNLOAD</button>
         </div>
       </div>
 

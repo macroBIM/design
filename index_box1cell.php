@@ -583,8 +583,9 @@ session_start();
             <input class="form-input" type="number" id="dchb_e" value="20" onchange="fdraw_ibeam()">
             <div class="col-label">Beam Length</div>
             <input class="form-input" type="number" id="dseg_leng" value="500" onchange="fdraw_ibeam()" style="grid-column:span 5;">
+
+            <button class="btn-generate" onclick="odxf_ibeam.download('IBeam.dxf')" style="grid-column:7 / 10;margin:8px 0 0 0;justify-content:center;"><i class="bi bi-download"></i> DXF DOWNLOAD</button>
           </div>
-          <button class="btn-generate" onclick="odxf_ibeam.download('IBeam.dxf')" style="width:100%;margin-top:16px;"><i class="bi bi-download"></i> DXF DOWNLOAD</button>
         </div>
       </div>
 
@@ -905,8 +906,9 @@ session_start();
             <input class="form-input" type="number" id="dslb_e" value="3" onchange="fdraw_box1cell()">
             <div class="col-label">Seg Length</div>
             <input class="form-input" type="number" id="dseg_leng" value="5000" onchange="fdraw_box1cell()" style="grid-column:span 2;">
+
+            <button class="btn-generate" onclick="odxf_box1cell.download('Box1Cell.dxf')" style="grid-column:7 / 10;margin:8px 0 0 0;justify-content:center;"><i class="bi bi-download"></i> DXF DOWNLOAD</button>
           </div>
-          <button class="btn-generate" onclick="odxf_box1cell.download('Box1Cell.dxf')" style="width:100%;margin-top:16px;"><i class="bi bi-download"></i> DXF DOWNLOAD</button>
         </div>
       </div>
 

@@ -206,11 +206,11 @@ session_start();
     background:#1e293b;border-radius:10px;overflow:hidden;
     min-height:560px;
   }
-  #hsecplot,#channelplot,#spliceplot,#liftinglugplot{
+  #spliceplot,#liftinglugplot{
     width:100%;height:560px;background:#000;border-radius:10px;
     cursor:grab;
   }
-  #ibeamplot,#box1cellplot{
+  #hsecplot,#channelplot,#ibeamplot,#box1cellplot{
     width:100%;background:#000;border-radius:10px;
     cursor:grab;
   }
@@ -231,6 +231,13 @@ session_start();
   .form-grid-9col .col-header{font-size:11px;font-weight:700;color:#2563eb;text-align:center;padding-bottom:4px;border-bottom:1px solid #e2e8f0;}
   .form-grid-9col .col-header.var-header{text-align:left;}
   .form-grid-9col .form-input{padding:8px 8px;font-size:12.5px;}
+
+  /* ── HSEC / CHANNEL / LIFTINGLUG 6-COLUMN GRID (3 pairs of Variable/Value per row) ── */
+  .form-grid-6col{display:grid;grid-template-columns:130px 1fr 130px 1fr 130px 1fr;gap:8px 12px;align-items:center;}
+  .form-grid-6col .col-label{font-size:12px;font-weight:600;color:#0f172a;}
+  .form-grid-6col .col-header{font-size:11px;font-weight:700;color:#2563eb;text-align:center;padding-bottom:4px;border-bottom:1px solid #e2e8f0;}
+  .form-grid-6col .col-header.var-header{text-align:left;}
+  .form-grid-6col .form-input{padding:8px 10px;font-size:12.5px;}
 
   /* ── LOADING / ERROR ── */
   .loading-row{text-align:center;padding:40px 20px !important;color:#94a3b8;}
@@ -257,6 +264,8 @@ session_start();
 <script src="https://unpkg.com/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 <script src="https://macrobim.github.io/macroBIM/bim_box1cell_3d.js"></script>
 <script src="https://macrobim.github.io/macroBIM/bim_ibeam_3d.js"></script>
+<script src="https://macrobim.github.io/macroBIM/bim_hsection_3d.js"></script>
+<script src="https://macrobim.github.io/macroBIM/bim_channel_3d.js"></script>
 
 <!-- ═══════ EXTERNAL PAGE SCRIPTS (GitHub) ═══════ -->
 <script src="https://macrobim.github.io/design/rebartable_claude.js"></script>
@@ -378,58 +387,55 @@ session_start();
       따라서 <template> 안에 보관하고(템플릿 내부는 getElementById 에 잡히지 않음)
       메뉴 클릭 시 해당 폼 하나만 마운트한다.
     -->
+    <!-- ── HSECTION TEMPLATE (box1cell 패턴: 6-col Variable/Value + 3D/2D Viewport) ── -->
     <template id="tpl-draw-hsection">
-      <!-- INPUT CARD -->
       <div class="draw-card">
-        <div class="draw-card-header">
-          <div class="draw-card-title">Dimension (mm)</div>
-          <div class="draw-card-desc">Input H-beam cross-section parameters</div>
+        <div class="draw-card-header" style="display:flex;justify-content:space-between;align-items:center;">
+          <div>
+            <div class="draw-card-title">Dimension (mm)</div>
+            <div class="draw-card-desc">Input H-beam cross-section parameters</div>
+          </div>
         </div>
         <div class="draw-card-body">
           <div style="margin-bottom:20px;">
             <div class="form-label" style="margin-bottom:6px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;">Batch Input (CSV) <span style="font-weight:400;text-transform:none;letter-spacing:0;color:#94a3b8;">— 1줄: H,Bt,Bb,tw,tft,tfb,R / 2줄: L</span></div>
-            <textarea class="form-input" id="sUserText" rows="2" style="width:100%;resize:vertical;" placeholder="300,300,300,10,15,15,19&#10;500" onchange="putParams_hsection('sUserText'); fdraw_hsection();">300,300,300,10,15,15,19
+            <textarea class="form-input" id="sUserText" rows="2" style="width:100%;resize:vertical;font-size:12px;" onchange="putParams_hsection('sUserText'); fdraw_hsection();">300,300,300,10,15,15,19
 500</textarea>
           </div>
-          <div class="form-grid">
-            <div class="form-group">
-              <label class="form-label">H Beam Height</label>
-              <input class="form-input" type="number" id="dsech" value="300" onchange="fdraw_hsection()">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Top Flange Width</label>
-              <input class="form-input" type="number" id="dbt" value="300" onchange="fdraw_hsection()">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Bottom Flange Width</label>
-              <input class="form-input" type="number" id="dbb" value="300" onchange="fdraw_hsection()">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Web Thickness</label>
-              <input class="form-input" type="number" id="dtw" value="10" onchange="fdraw_hsection()">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Top Flange Thickness</label>
-              <input class="form-input" type="number" id="dttf" value="15" onchange="fdraw_hsection()">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Bottom Flange Thickness</label>
-              <input class="form-input" type="number" id="dtbf" value="15" onchange="fdraw_hsection()">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Radius on Web <span>(R=0 if no need)</span></label>
-              <input class="form-input" type="number" id="dradius" value="19" onchange="fdraw_hsection()">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Beam Length</label>
-              <input class="form-input" type="number" id="dseg_leng" value="500" onchange="fdraw_hsection()">
-            </div>
+
+          <div class="form-grid-6col" style="margin-bottom:12px;">
+            <div class="col-header var-header">Variable</div>
+            <div class="col-header">Value</div>
+            <div class="col-header var-header">Variable</div>
+            <div class="col-header">Value</div>
+            <div class="col-header var-header">Variable</div>
+            <div class="col-header">Value</div>
           </div>
-          <button class="btn-generate" onclick="odxf_hsec.download('Hsection.dxf')"><i class="bi bi-download"></i> DXF DOWNLOAD</button>
+          <div class="form-grid-6col">
+            <div class="col-label">H (height)</div>
+            <input class="form-input" type="number" id="dsech" value="300" onchange="fdraw_hsection()">
+            <div class="col-label">Bt (top flange)</div>
+            <input class="form-input" type="number" id="dbt" value="300" onchange="fdraw_hsection()">
+            <div class="col-label">Bb (bot flange)</div>
+            <input class="form-input" type="number" id="dbb" value="300" onchange="fdraw_hsection()">
+
+            <div class="col-label">tw (web)</div>
+            <input class="form-input" type="number" id="dtw" value="10" onchange="fdraw_hsection()">
+            <div class="col-label">tft (top flange t)</div>
+            <input class="form-input" type="number" id="dttf" value="15" onchange="fdraw_hsection()">
+            <div class="col-label">tbf (bot flange t)</div>
+            <input class="form-input" type="number" id="dtbf" value="15" onchange="fdraw_hsection()">
+
+            <div class="col-label">R <span style="color:#94a3b8;font-size:10px;">(0=없음)</span></div>
+            <input class="form-input" type="number" id="dradius" value="19" onchange="fdraw_hsection()">
+            <div class="col-label">Beam Length</div>
+            <input class="form-input" type="number" id="dseg_leng" value="500" onchange="fdraw_hsection()">
+
+            <button class="btn-generate" onclick="odxf_hsec.download('Hsection.dxf')" style="grid-column:5 / 7;margin:0;justify-content:center;"><i class="bi bi-download"></i> DXF DOWNLOAD</button>
+          </div>
         </div>
       </div>
 
-      <!-- DRAWING CARD -->
       <div class="draw-card">
         <div class="draw-card-header">
           <div class="draw-card-title">Drawing View <span style="font-weight:400;color:#94a3b8;font-size:12px;">(Synchronized Zoom / Pan)</span></div>
@@ -441,54 +447,53 @@ session_start();
       </div>
     </template>
 
+    <!-- ── CHANNEL TEMPLATE (box1cell 패턴: 6-col Variable/Value + 3D/2D Viewport) ── -->
     <template id="tpl-draw-channel">
-      <!-- INPUT CARD -->
       <div class="draw-card">
-        <div class="draw-card-header">
-          <div class="draw-card-title">Dimension (mm)</div>
-          <div class="draw-card-desc">Input channel cross-section parameters</div>
+        <div class="draw-card-header" style="display:flex;justify-content:space-between;align-items:center;">
+          <div>
+            <div class="draw-card-title">Dimension (mm)</div>
+            <div class="draw-card-desc">Input channel cross-section parameters</div>
+          </div>
         </div>
         <div class="draw-card-body">
           <div style="margin-bottom:20px;">
             <div class="form-label" style="margin-bottom:6px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;">Batch Input (CSV) <span style="font-weight:400;text-transform:none;letter-spacing:0;color:#94a3b8;">— 1줄: H,B,tw,tf,Rw,Rf / 2줄: L</span></div>
-            <textarea class="form-input" id="sUserText" rows="2" style="width:100%;resize:vertical;" placeholder="300,90,12,16,19,9.5&#10;500" onchange="putParams_channel('sUserText'); fdraw_channel();">300,90,12,16,19,9.5
+            <textarea class="form-input" id="sUserText" rows="2" style="width:100%;resize:vertical;font-size:12px;" onchange="putParams_channel('sUserText'); fdraw_channel();">300,90,12,16,19,9.5
 500</textarea>
           </div>
-          <div class="form-grid">
-            <div class="form-group">
-              <label class="form-label">Channel Height</label>
-              <input class="form-input" type="number" id="dsech" value="300" onchange="fdraw_channel()">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Channel Width</label>
-              <input class="form-input" type="number" id="db" value="90" onchange="fdraw_channel()">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Web Thickness</label>
-              <input class="form-input" type="number" id="dtw" value="12" onchange="fdraw_channel()">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Flange Thickness</label>
-              <input class="form-input" type="number" id="dtf" value="16" onchange="fdraw_channel()">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Radius on Web <span>(R=0 if no need)</span></label>
-              <input class="form-input" type="number" id="drw" value="19" onchange="fdraw_channel()">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Radius on Flange <span>(R=0 if no need)</span></label>
-              <input class="form-input" type="number" id="drf" value="9.5" onchange="fdraw_channel()">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Channel Length</label>
-              <input class="form-input" type="number" id="dseg_leng" value="500" onchange="fdraw_channel()">
-            </div>
+
+          <div class="form-grid-6col" style="margin-bottom:12px;">
+            <div class="col-header var-header">Variable</div>
+            <div class="col-header">Value</div>
+            <div class="col-header var-header">Variable</div>
+            <div class="col-header">Value</div>
+            <div class="col-header var-header">Variable</div>
+            <div class="col-header">Value</div>
           </div>
-          <button class="btn-generate" onclick="odxf_channel.download('Channel.dxf')"><i class="bi bi-download"></i> DXF DOWNLOAD</button>
+          <div class="form-grid-6col">
+            <div class="col-label">H (height)</div>
+            <input class="form-input" type="number" id="dsech" value="300" onchange="fdraw_channel()">
+            <div class="col-label">B (width)</div>
+            <input class="form-input" type="number" id="db" value="90" onchange="fdraw_channel()">
+            <div class="col-label">tw (web)</div>
+            <input class="form-input" type="number" id="dtw" value="12" onchange="fdraw_channel()">
+
+            <div class="col-label">tf (flange)</div>
+            <input class="form-input" type="number" id="dtf" value="16" onchange="fdraw_channel()">
+            <div class="col-label">Rw <span style="color:#94a3b8;font-size:10px;">(0=없음)</span></div>
+            <input class="form-input" type="number" id="drw" value="19" onchange="fdraw_channel()">
+            <div class="col-label">Rf <span style="color:#94a3b8;font-size:10px;">(0=없음)</span></div>
+            <input class="form-input" type="number" id="drf" value="9.5" onchange="fdraw_channel()">
+
+            <div class="col-label">Channel Length</div>
+            <input class="form-input" type="number" id="dseg_leng" value="500" onchange="fdraw_channel()">
+            <div></div><div></div>
+            <button class="btn-generate" onclick="odxf_channel.download('Channel.dxf')" style="grid-column:5 / 7;margin:0;justify-content:center;"><i class="bi bi-download"></i> DXF DOWNLOAD</button>
+          </div>
         </div>
       </div>
 
-      <!-- DRAWING CARD -->
       <div class="draw-card">
         <div class="draw-card-header">
           <div class="draw-card-title">Drawing View <span style="font-weight:400;color:#94a3b8;font-size:12px;">(Synchronized Zoom / Pan)</span></div>

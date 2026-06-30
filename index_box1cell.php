@@ -248,28 +248,28 @@ session_start();
 
 <!-- ═══════ DRAWING ENGINE (macroBIM, GitHub Pages) ═══════ -->
 <script src="https://unpkg.com/konva@9/konva.min.js"></script>
-<script src="https://macrobim.github.io/macroBIM/konvaviewer.js"></script>
-<script src="https://macrobim.github.io/macroBIM/bim_plotly_geo.js"></script>
-<script src="https://macrobim.github.io/macroBIM/bim_dxf.js"></script>
-<script src="https://macrobim.github.io/macroBIM/geomath.js"></script>
-<script src="https://macrobim.github.io/macroBIM/bim_hsection.js"></script>
-<script src="https://macrobim.github.io/macroBIM/bim_channel.js"></script>
-<script src="https://macrobim.github.io/macroBIM/bim_ibeam.js"></script>
-<script src="https://macrobim.github.io/macroBIM/bim_boltsplice.js"></script>
-<script src="https://macrobim.github.io/macroBIM/bim_liftinglug.js"></script>
-<script src="https://macrobim.github.io/macroBIM/bim_box1cell.js"></script>
+<script src="https://macrobim.github.io/macroBIM/konvaviewer.js?v=<?php echo $_BIM_V; ?>"></script>
+<script src="https://macrobim.github.io/macroBIM/bim_plotly_geo.js?v=<?php echo $_BIM_V; ?>"></script>
+<script src="https://macrobim.github.io/macroBIM/bim_dxf.js?v=<?php echo $_BIM_V; ?>"></script>
+<script src="https://macrobim.github.io/macroBIM/geomath.js?v=<?php echo $_BIM_V; ?>"></script>
+<script src="https://macrobim.github.io/macroBIM/bim_hsection.js?v=<?php echo $_BIM_V; ?>"></script>
+<script src="https://macrobim.github.io/macroBIM/bim_channel.js?v=<?php echo $_BIM_V; ?>"></script>
+<script src="https://macrobim.github.io/macroBIM/bim_ibeam.js?v=<?php echo $_BIM_V; ?>"></script>
+<script src="https://macrobim.github.io/macroBIM/bim_boltsplice.js?v=<?php echo $_BIM_V; ?>"></script>
+<script src="https://macrobim.github.io/macroBIM/bim_liftinglug.js?v=<?php echo $_BIM_V; ?>"></script>
+<script src="https://macrobim.github.io/macroBIM/bim_box1cell.js?v=<?php echo $_BIM_V; ?>"></script>
 
 <!-- ═══════ THREE.js for 3D Box Girder & I-Beam ═══════ -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://unpkg.com/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
-<script src="https://macrobim.github.io/macroBIM/bim_box1cell_3d.js"></script>
-<script src="https://macrobim.github.io/macroBIM/bim_ibeam_3d.js"></script>
-<script src="https://macrobim.github.io/macroBIM/bim_hsection_3d.js"></script>
-<script src="https://macrobim.github.io/macroBIM/bim_channel_3d.js"></script>
+<script src="https://macrobim.github.io/macroBIM/bim_box1cell_3d.js?v=<?php echo $_BIM_V; ?>"></script>
+<script src="https://macrobim.github.io/macroBIM/bim_ibeam_3d.js?v=<?php echo $_BIM_V; ?>"></script>
+<script src="https://macrobim.github.io/macroBIM/bim_hsection_3d.js?v=<?php echo $_BIM_V; ?>"></script>
+<script src="https://macrobim.github.io/macroBIM/bim_channel_3d.js?v=<?php echo $_BIM_V; ?>"></script>
 
 <!-- ═══════ EXTERNAL PAGE SCRIPTS (GitHub) ═══════ -->
-<script src="https://macrobim.github.io/design/rebartable_claude.js"></script>
-<script src="https://macrobim.github.io/design/steelsection_claude.js"></script>
+<script src="https://macrobim.github.io/design/rebartable_claude.js?v=<?php echo $_BIM_V; ?>"></script>
+<script src="https://macrobim.github.io/design/steelsection_claude.js?v=<?php echo $_BIM_V; ?>"></script>
 
 </head>
 <body>

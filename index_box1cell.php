@@ -228,7 +228,7 @@ session_start();
   .stat-icon.green{background:#ecfdf5;color:#10b981;}
   @media(max-width:720px){.stat-grid{grid-template-columns:1fr;}}
 
-  /* ── BOX1CELL 9-COLUMN GRID (3 pairs of Variable/Begin/End per row) ── */
+  /* ── BOX1CELL 9-COLUMN GRID (3 pairs of Variable/Front/Back per row) ── */
   .form-grid-9col{display:grid;grid-template-columns:80px 1fr 1fr 80px 1fr 1fr 80px 1fr 1fr;gap:8px 10px;align-items:center;}
   .form-grid-9col .col-label{font-size:12px;font-weight:600;color:#0f172a;}
   .form-grid-9col .col-header{font-size:11px;font-weight:700;color:#2563eb;text-align:center;padding-bottom:4px;border-bottom:1px solid #e2e8f0;}
@@ -514,13 +514,13 @@ session_start();
       <div id="mount-draw-ibeam"></div>
     </div>
 
-    <!-- ── IBEAM TEMPLATE (box1cell 패턴: 9-col Begin/End + 3D/2D Viewport) ── -->
+    <!-- ── IBEAM TEMPLATE (box1cell 패턴: 9-col Front/Back + 3D/2D Viewport) ── -->
     <template id="tpl-draw-ibeam">
       <div class="draw-card">
         <div class="draw-card-header" style="display:flex;justify-content:space-between;align-items:center;">
           <div>
             <div class="draw-card-title">Dimension (mm)</div>
-            <div class="draw-card-desc">Input I-beam (plate girder) cross-section parameters (Begin / End)</div>
+            <div class="draw-card-desc">Input I-beam (plate girder) cross-section parameters (Front / Back)</div>
           </div>
           <button class="btn-generate" onclick="document.getElementById('ibeam_guide_img').style.display=document.getElementById('ibeam_guide_img').style.display==='none'?'block':'none'" style="margin:0;font-size:12px;padding:6px 14px;"><i class="bi bi-image"></i> VIEW GUIDE</button>
         </div>
@@ -529,7 +529,7 @@ session_start();
         </div>
         <div class="draw-card-body">
           <div style="margin-bottom:20px;">
-            <div class="form-label" style="margin-bottom:6px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;">Batch Input (CSV) <span style="font-weight:400;text-transform:none;letter-spacing:0;color:#94a3b8;">— 1줄: Begin / 2줄: End / 3줄: Beam Length</span></div>
+            <div class="form-label" style="margin-bottom:6px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;">Batch Input (CSV) <span style="font-weight:400;text-transform:none;letter-spacing:0;color:#94a3b8;">— 1줄: Front / 2줄: Back / 3줄: Beam Length</span></div>
             <textarea class="form-input" id="sUserText" rows="4" style="width:100%;resize:vertical;font-size:12px;" onchange="putParams_ibeam('sUserText'); fdraw_ibeam();">1500,1235,985,85,45,135,140,160,50,200,100,50,20
 1500,1235,985,85,45,135,140,160,50,200,100,50,20
 500</textarea>
@@ -537,14 +537,14 @@ session_start();
 
           <div class="form-grid-9col" style="margin-bottom:12px;">
             <div class="col-header var-header">Variable</div>
-            <div class="col-header">Begin</div>
-            <div class="col-header">End</div>
+            <div class="col-header">Front</div>
+            <div class="col-header">Back</div>
             <div class="col-header var-header">Variable</div>
-            <div class="col-header">Begin</div>
-            <div class="col-header">End</div>
+            <div class="col-header">Front</div>
+            <div class="col-header">Back</div>
             <div class="col-header var-header">Variable</div>
-            <div class="col-header">Begin</div>
-            <div class="col-header">End</div>
+            <div class="col-header">Front</div>
+            <div class="col-header">Back</div>
           </div>
           <div class="form-grid-9col">
             <div class="col-label">h</div>
@@ -777,7 +777,7 @@ session_start();
         <div class="draw-card-header" style="display:flex;justify-content:space-between;align-items:center;">
           <div>
             <div class="draw-card-title">Dimension (mm)</div>
-            <div class="draw-card-desc">Input 1-Cell Box section parameters (Begin / End)</div>
+            <div class="draw-card-desc">Input 1-Cell Box section parameters (Front / Back)</div>
           </div>
           <button class="btn-generate" onclick="document.getElementById('box1cell_guide_img').style.display=document.getElementById('box1cell_guide_img').style.display==='none'?'block':'none'" style="margin:0;font-size:12px;padding:6px 14px;"><i class="bi bi-image"></i> VIEW GUIDE</button>
         </div>
@@ -786,7 +786,7 @@ session_start();
         </div>
         <div class="draw-card-body">
           <div style="margin-bottom:20px;">
-            <div class="form-label" style="margin-bottom:6px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;">Batch Input (CSV) <span style="font-weight:400;text-transform:none;letter-spacing:0;color:#94a3b8;">— 1줄: Begin / 2줄: End / 3줄: Seg Length</span></div>
+            <div class="form-label" style="margin-bottom:6px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;">Batch Input (CSV) <span style="font-weight:400;text-transform:none;letter-spacing:0;color:#94a3b8;">— 1줄: Front / 2줄: Back / 3줄: Seg Length</span></div>
             <textarea class="form-input" id="sUserText" rows="4" style="width:100%;resize:vertical;font-size:12px;" onchange="putParams_box1cell('sUserText'); fdraw_box1cell();">6600,12000,6000,1500,1500,1500,300,300,600,600,300,300,840,500,200,200,100,300,200,400,-2,5,3
 8000,12000,6000,1500,1500,1500,300,300,600,600,300,300,840,500,200,200,100,300,200,400,-2,5,3
 5000</textarea>
@@ -794,14 +794,14 @@ session_start();
 
           <div class="form-grid-9col" style="margin-bottom:12px;">
             <div class="col-header var-header">Variable</div>
-            <div class="col-header">Begin</div>
-            <div class="col-header">End</div>
+            <div class="col-header">Front</div>
+            <div class="col-header">Back</div>
             <div class="col-header var-header">Variable</div>
-            <div class="col-header">Begin</div>
-            <div class="col-header">End</div>
+            <div class="col-header">Front</div>
+            <div class="col-header">Back</div>
             <div class="col-header var-header">Variable</div>
-            <div class="col-header">Begin</div>
-            <div class="col-header">End</div>
+            <div class="col-header">Front</div>
+            <div class="col-header">Back</div>
           </div>
           <div class="form-grid-9col">
             <div class="col-label">h</div>

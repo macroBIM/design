@@ -624,106 +624,76 @@ session_start();
       <div id="mount-draw-box1cell"></div>
     </div>
 
+    <!-- ── SPLICE TEMPLATE (compact 6-col: 3 pairs of Label/Value per row) ── -->
     <template id="tpl-draw-splice">
-      <!-- INPUT CARD -->
       <div class="draw-card">
-        <div class="draw-card-header">
-          <div class="draw-card-title">Dimension (mm)</div>
-          <div class="draw-card-desc">H-beam, splice plates &amp; bolt layout</div>
+        <div class="draw-card-header" style="display:flex;justify-content:space-between;align-items:center;">
+          <div>
+            <div class="draw-card-title">Dimension (mm)</div>
+            <div class="draw-card-desc">H-beam, splice plates &amp; bolt layout</div>
+          </div>
         </div>
         <div class="draw-card-body">
-          <div style="margin-bottom:20px;">
+          <div style="margin-bottom:16px;">
             <div class="form-label" style="margin-bottom:6px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;">Batch Input (CSV) <span style="font-weight:400;text-transform:none;letter-spacing:0;color:#94a3b8;">— 1줄: H형강 / 2줄: 플레이트 / 3줄: 볼트</span></div>
-            <textarea class="form-input" id="sUserText" rows="3" style="width:100%;resize:vertical;" placeholder="H형강&#10;플레이트&#10;볼트" onchange="putParams_boltsplice('sUserText'); fdraw_boltsplice();">300,300,300,10,15,15,18
+            <textarea class="form-input" id="sUserText" rows="3" style="width:100%;resize:vertical;font-size:12px;" onchange="putParams_boltsplice('sUserText'); fdraw_boltsplice();">300,300,300,10,15,15,18
 280,300,10,110,300,5,220,280,10,110,300,5,280,300,10
 5,12,8,30,10,80,10,5,12,10,60,10,0,10,5,12,8,30,10,80,10</textarea>
           </div>
 
-          <div class="form-label" style="margin:4px 0 10px;font-size:12px;font-weight:700;color:#2563eb;">1) H Beam</div>
-          <div class="form-grid">
-            <div class="form-group">
-              <label class="form-label">Height</label>
-              <input class="form-input" type="number" id="dsech" value="300" onchange="fdraw_boltsplice()">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Top Flange Width</label>
-              <input class="form-input" type="number" id="dbt" value="300" onchange="fdraw_boltsplice()">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Bottom Flange Width</label>
-              <input class="form-input" type="number" id="dbb" value="300" onchange="fdraw_boltsplice()">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Web Thickness</label>
-              <input class="form-input" type="number" id="dtw" value="10" onchange="fdraw_boltsplice()">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Top Flange Thickness</label>
-              <input class="form-input" type="number" id="dttf" value="15" onchange="fdraw_boltsplice()">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Bottom Flange Thickness</label>
-              <input class="form-input" type="number" id="dtbf" value="15" onchange="fdraw_boltsplice()">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Fillet Radius <span>(R=0 if no need)</span></label>
-              <input class="form-input" type="number" id="dradius" value="18" onchange="fdraw_boltsplice()">
-            </div>
+          <div class="form-label" style="margin:4px 0 8px;font-size:12px;font-weight:700;color:#2563eb;">1) H Beam</div>
+          <div class="form-grid-6col" style="margin-bottom:14px;">
+            <div class="col-label">Height</div>
+            <input class="form-input" type="number" id="dsech" value="300" onchange="fdraw_boltsplice()">
+            <div class="col-label">Top Flange W</div>
+            <input class="form-input" type="number" id="dbt" value="300" onchange="fdraw_boltsplice()">
+            <div class="col-label">Bot Flange W</div>
+            <input class="form-input" type="number" id="dbb" value="300" onchange="fdraw_boltsplice()">
+
+            <div class="col-label">Web Thick</div>
+            <input class="form-input" type="number" id="dtw" value="10" onchange="fdraw_boltsplice()">
+            <div class="col-label">Top Flange t</div>
+            <input class="form-input" type="number" id="dttf" value="15" onchange="fdraw_boltsplice()">
+            <div class="col-label">Bot Flange t</div>
+            <input class="form-input" type="number" id="dtbf" value="15" onchange="fdraw_boltsplice()">
+
+            <div class="col-label">Fillet R <span style="color:#94a3b8;font-size:10px;">(0=없음)</span></div>
+            <input class="form-input" type="number" id="dradius" value="18" onchange="fdraw_boltsplice()">
           </div>
 
-          <div class="form-label" style="margin:18px 0 10px;font-size:12px;font-weight:700;color:#2563eb;">2) Splice Plate <span style="font-weight:400;color:#94a3b8;">(Width, Length, Thick)</span></div>
-          <div class="form-grid">
-            <div class="form-group full">
-              <label class="form-label">Top Plate</label>
-              <input class="form-input" type="text" id="splt" value="280,300,10" onchange="fdraw_boltsplice()">
-            </div>
-            <div class="form-group full">
-              <label class="form-label">Top Inner Plate</label>
-              <input class="form-input" type="text" id="splti" value="110,300,5" onchange="fdraw_boltsplice()">
-            </div>
-            <div class="form-group full">
-              <label class="form-label">Web Plate</label>
-              <input class="form-input" type="text" id="splw" value="220,280,10" onchange="fdraw_boltsplice()">
-            </div>
-            <div class="form-group full">
-              <label class="form-label">Bottom Inner Plate</label>
-              <input class="form-input" type="text" id="splbi" value="110,300,5" onchange="fdraw_boltsplice()">
-            </div>
-            <div class="form-group full">
-              <label class="form-label">Bottom Plate</label>
-              <input class="form-input" type="text" id="splb" value="280,300,10" onchange="fdraw_boltsplice()">
-            </div>
+          <div class="form-label" style="margin:4px 0 8px;font-size:12px;font-weight:700;color:#2563eb;">2) Splice Plate <span style="font-weight:400;color:#94a3b8;">(Width, Length, Thick)</span></div>
+          <div class="form-grid-6col" style="margin-bottom:14px;">
+            <div class="col-label">Top Plate</div>
+            <input class="form-input" type="text" id="splt" value="280,300,10" onchange="fdraw_boltsplice()">
+            <div class="col-label">Top Inner</div>
+            <input class="form-input" type="text" id="splti" value="110,300,5" onchange="fdraw_boltsplice()">
+            <div class="col-label">Web Plate</div>
+            <input class="form-input" type="text" id="splw" value="220,280,10" onchange="fdraw_boltsplice()">
+
+            <div class="col-label">Bot Inner</div>
+            <input class="form-input" type="text" id="splbi" value="110,300,5" onchange="fdraw_boltsplice()">
+            <div class="col-label">Bot Plate</div>
+            <input class="form-input" type="text" id="splb" value="280,300,10" onchange="fdraw_boltsplice()">
           </div>
 
-          <div class="form-label" style="margin:18px 0 10px;font-size:12px;font-weight:700;color:#2563eb;">3) Bolt Layout <span style="font-weight:400;color:#94a3b8;">(Dia, Long N, Trans N / Space: In, Out, In, Out)</span></div>
-          <div class="form-grid">
-            <div class="form-group full">
-              <label class="form-label">Top Plate Bolt</label>
-              <input class="form-input" type="text" id="slayt" value="5,12,8" onchange="fdraw_boltsplice()">
-            </div>
-            <div class="form-group full">
-              <label class="form-label">Top Plate Bolt Space</label>
-              <input class="form-input" type="text" id="slaytsp" value="30,10,80,10" onchange="fdraw_boltsplice()">
-            </div>
-            <div class="form-group full">
-              <label class="form-label">Web Plate Bolt</label>
-              <input class="form-input" type="text" id="slayw" value="5,12,10" onchange="fdraw_boltsplice()">
-            </div>
-            <div class="form-group full">
-              <label class="form-label">Web Plate Bolt Space <span>(In, Out, 0, Out)</span></label>
-              <input class="form-input" type="text" id="slaywsp" value="60,10,0,10" onchange="fdraw_boltsplice()">
-            </div>
-            <div class="form-group full">
-              <label class="form-label">Bottom Plate Bolt</label>
-              <input class="form-input" type="text" id="slayb" value="5,12,8" onchange="fdraw_boltsplice()">
-            </div>
-            <div class="form-group full">
-              <label class="form-label">Bottom Plate Bolt Space</label>
-              <input class="form-input" type="text" id="slaybsp" value="30,10,80,10" onchange="fdraw_boltsplice()">
-            </div>
-          </div>
+          <div class="form-label" style="margin:4px 0 8px;font-size:12px;font-weight:700;color:#2563eb;">3) Bolt Layout <span style="font-weight:400;color:#94a3b8;">(Dia, Long N, Trans N / Space: In, Out, In, Out)</span></div>
+          <div class="form-grid-6col">
+            <div class="col-label">Top Bolt</div>
+            <input class="form-input" type="text" id="slayt" value="5,12,8" onchange="fdraw_boltsplice()">
+            <div class="col-label">Top Space</div>
+            <input class="form-input" type="text" id="slaytsp" value="30,10,80,10" onchange="fdraw_boltsplice()">
+            <div class="col-label">Web Bolt</div>
+            <input class="form-input" type="text" id="slayw" value="5,12,10" onchange="fdraw_boltsplice()">
 
-          <button class="btn-generate" onclick="odxf_boltsplice.download('BoltSplice.dxf')"><i class="bi bi-download"></i> DXF DOWNLOAD</button>
+            <div class="col-label">Web Space <span style="color:#94a3b8;font-size:10px;">(I,O,0,O)</span></div>
+            <input class="form-input" type="text" id="slaywsp" value="60,10,0,10" onchange="fdraw_boltsplice()">
+            <div class="col-label">Bot Bolt</div>
+            <input class="form-input" type="text" id="slayb" value="5,12,8" onchange="fdraw_boltsplice()">
+            <div class="col-label">Bot Space</div>
+            <input class="form-input" type="text" id="slaybsp" value="30,10,80,10" onchange="fdraw_boltsplice()">
+
+            <button class="btn-generate" onclick="odxf_boltsplice.download('BoltSplice.dxf')" style="grid-column:5 / 7;margin:8px 0 0 0;justify-content:center;"><i class="bi bi-download"></i> DXF DOWNLOAD</button>
+          </div>
         </div>
       </div>
 

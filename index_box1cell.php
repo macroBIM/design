@@ -213,7 +213,7 @@ session_start();
     width:100%;height:560px;background:#000;border-radius:10px;
     cursor:grab;
   }
-  #hsecplot,#channelplot,#ibeamplot,#box1cellplot,#liftinglugplot{
+  #hsecplot,#channelplot,#ibeamplot,#box1cellplot,#liftinglugplot,#rectplot{
     width:100%;background:#000;border-radius:10px;
     cursor:grab;
   }
@@ -261,6 +261,7 @@ session_start();
 <script src="https://macrobim.github.io/macroBIM/bim_boltsplice.js?v=<?php echo $_BIM_V; ?>"></script>
 <script src="https://macrobim.github.io/macroBIM/bim_liftinglug.js?v=<?php echo $_BIM_V; ?>"></script>
 <script src="https://macrobim.github.io/macroBIM/bim_box1cell.js?v=<?php echo $_BIM_V; ?>"></script>
+<script src="https://macrobim.github.io/macroBIM/bim_rect.js?v=<?php echo $_BIM_V; ?>"></script>
 
 <!-- ═══════ THREE.js for 3D Box Girder & I-Beam ═══════ -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -270,6 +271,7 @@ session_start();
 <script src="https://macrobim.github.io/macroBIM/bim_hsection_3d.js?v=<?php echo $_BIM_V; ?>"></script>
 <script src="https://macrobim.github.io/macroBIM/bim_channel_3d.js?v=<?php echo $_BIM_V; ?>"></script>
 <script src="https://macrobim.github.io/macroBIM/bim_liftinglug_3d.js?v=<?php echo $_BIM_V; ?>"></script>
+<script src="https://macrobim.github.io/macroBIM/bim_rect_3d.js?v=<?php echo $_BIM_V; ?>"></script>
 
 <!-- ═══════ EXTERNAL PAGE SCRIPTS (GitHub) ═══════ -->
 <script src="https://macrobim.github.io/design/rebartable_claude.js?v=<?php echo $_BIM_V; ?>"></script>
@@ -299,6 +301,7 @@ session_start();
       <a href="#" data-page="draw-splice">Splice</a>
       <a href="#" data-page="draw-liftinglug">Lifting Lug</a>
       <a href="#" data-page="draw-box1cell">BOX1CELL</a>
+      <a href="#" data-page="draw-rect">Rect</a>
     </div>
   </div>
 </nav>
@@ -620,6 +623,13 @@ session_start();
       <div id="mount-draw-liftinglug"></div>
     </div>
 
+    <!-- ── RECT ── -->
+    <div class="page-view" id="page-draw-rect">
+      <h1 class="page-heading">Rect Section Drawing</h1>
+      <div class="breadcrumb"><a href="#">Home</a> / <a href="#">Drawings</a> / <span>Rect</span></div>
+      <div id="mount-draw-rect"></div>
+    </div>
+
     <!-- ── BOX1CELL ── -->
     <div class="page-view" id="page-draw-box1cell">
       <h1 class="page-heading">BOX 1-Cell Drawing</h1>
@@ -899,6 +909,68 @@ session_start();
       </div>
     </template>
 
+    <!-- ── RECT TEMPLATE (6-col + hollow/solid option + 3D/2D Viewport) ── -->
+    <template id="tpl-draw-rect">
+      <div class="draw-card">
+        <div class="draw-card-header" style="display:flex;justify-content:space-between;align-items:center;">
+          <div>
+            <div class="draw-card-title">Dimension (mm)</div>
+            <div class="draw-card-desc">Input rectangular cross-section parameters</div>
+          </div>
+        </div>
+        <div class="draw-card-body">
+          <div style="margin-bottom:20px;">
+            <div class="form-label" style="margin-bottom:6px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;">Batch Input (CSV) <span style="font-weight:400;text-transform:none;letter-spacing:0;color:#94a3b8;">— 1줄: H,B,h,b,hollow(1/0) / 2줄: L</span></div>
+            <textarea class="form-input" id="sUserText" rows="2" style="width:100%;resize:vertical;font-size:12px;" onchange="putParams_rect('sUserText'); fdraw_rect();">400,300,300,200,1
+1000</textarea>
+          </div>
+
+          <div class="form-grid-6col" style="margin-bottom:12px;">
+            <div class="col-header var-header">Variable</div>
+            <div class="col-header">Value</div>
+            <div class="col-header var-header">Variable</div>
+            <div class="col-header">Value</div>
+            <div class="col-header var-header">Variable</div>
+            <div class="col-header">Value</div>
+          </div>
+          <div class="form-grid-6col">
+            <div class="col-label">H (outer height)</div>
+            <input class="form-input" type="number" id="drect_H" value="400" onchange="fdraw_rect()">
+            <div class="col-label">B (outer width)</div>
+            <input class="form-input" type="number" id="drect_B" value="300" onchange="fdraw_rect()">
+            <div class="col-label">h (inner height)</div>
+            <input class="form-input" type="number" id="drect_h" value="300" onchange="fdraw_rect()">
+
+            <div class="col-label">b (inner width)</div>
+            <input class="form-input" type="number" id="drect_b" value="200" onchange="fdraw_rect()">
+            <div class="col-label">Section Length</div>
+            <input class="form-input" type="number" id="dseg_leng" value="1000" onchange="fdraw_rect()">
+            <div class="col-label" style="display:flex;align-items:center;gap:8px;">
+              <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;">
+                <input type="checkbox" id="drect_hollow" checked onchange="fdraw_rect()" style="width:16px;height:16px;accent-color:#2563eb;">
+                Hollow (중공)
+              </label>
+            </div>
+            <div></div>
+
+            <div></div><div></div>
+            <div></div><div></div>
+            <button class="btn-generate" onclick="odxf_rect.download('Rect.dxf')" style="grid-column:5 / 7;margin:0;justify-content:center;"><i class="bi bi-download"></i> DXF DOWNLOAD</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="draw-card">
+        <div class="draw-card-header">
+          <div class="draw-card-title">Drawing View <span style="font-weight:400;color:#94a3b8;font-size:12px;">(Synchronized Zoom / Pan)</span></div>
+          <button class="btn-generate" onclick="fdraw_rect()" style="margin-top:0;"><i class="bi bi-arrow-repeat"></i> REGEN</button>
+        </div>
+        <div class="drawing-viewport">
+          <div id="rectplot"></div>
+        </div>
+      </div>
+    </template>
+
   </div>
 </div>
 
@@ -923,11 +995,12 @@ function showPage(pageId){
   if(pageId==='draw-splice'){mountDrawing('splice'); if(typeof fdraw_boltsplice==='function') fdraw_boltsplice();}
   if(pageId==='draw-liftinglug'){mountDrawing('liftinglug'); if(typeof fdraw_liftinglug==='function') fdraw_liftinglug();}
   if(pageId==='draw-box1cell'){mountDrawing('box1cell'); if(typeof fdraw_box1cell==='function') fdraw_box1cell();}
+  if(pageId==='draw-rect'){mountDrawing('rect'); if(typeof fdraw_rect==='function') fdraw_rect();}
 }
 
 /* ═══════ 작도 폼 마운트 (한 번에 하나만 DOM 에 존재 → ID 충돌 방지) ═══════ */
 function mountDrawing(kind){
-  ['hsection','channel','ibeam','splice','liftinglug','box1cell'].forEach(function(k){
+  ['hsection','channel','ibeam','splice','liftinglug','box1cell','rect'].forEach(function(k){
     if(k!==kind){
       var other=document.getElementById('mount-draw-'+k);
       if(other) other.innerHTML='';

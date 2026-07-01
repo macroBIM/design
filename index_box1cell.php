@@ -79,6 +79,9 @@ session_start();
 	// DB 연결 종료
 	$conn->close();
 
+	// 캐시 무효화용 버전 (macroBIM JS ?v= 뒤에 붙음)
+	$_BIM_V = time();
+
 ?>
 
 <!DOCTYPE html>

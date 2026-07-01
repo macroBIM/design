@@ -206,11 +206,11 @@ session_start();
     background:#1e293b;border-radius:10px;overflow:hidden;
     min-height:560px;
   }
-  #spliceplot,#liftinglugplot{
+  #spliceplot{
     width:100%;height:560px;background:#000;border-radius:10px;
     cursor:grab;
   }
-  #hsecplot,#channelplot,#ibeamplot,#box1cellplot{
+  #hsecplot,#channelplot,#ibeamplot,#box1cellplot,#liftinglugplot{
     width:100%;background:#000;border-radius:10px;
     cursor:grab;
   }
@@ -266,6 +266,7 @@ session_start();
 <script src="https://macrobim.github.io/macroBIM/bim_ibeam_3d.js?v=<?php echo $_BIM_V; ?>"></script>
 <script src="https://macrobim.github.io/macroBIM/bim_hsection_3d.js?v=<?php echo $_BIM_V; ?>"></script>
 <script src="https://macrobim.github.io/macroBIM/bim_channel_3d.js?v=<?php echo $_BIM_V; ?>"></script>
+<script src="https://macrobim.github.io/macroBIM/bim_liftinglug_3d.js?v=<?php echo $_BIM_V; ?>"></script>
 
 <!-- ═══════ EXTERNAL PAGE SCRIPTS (GitHub) ═══════ -->
 <script src="https://macrobim.github.io/design/rebartable_claude.js?v=<?php echo $_BIM_V; ?>"></script>
@@ -738,57 +739,54 @@ session_start();
       </div>
     </template>
 
+    <!-- ── LIFTING LUG TEMPLATE (box1cell 패턴: 6-col + 3D/2D Viewport) ── -->
     <template id="tpl-draw-liftinglug">
-      <!-- INPUT CARD -->
       <div class="draw-card">
-        <div class="draw-card-header">
-          <div class="draw-card-title">Dimension (mm)</div>
-          <div class="draw-card-desc">Input lifting lug parameters</div>
+        <div class="draw-card-header" style="display:flex;justify-content:space-between;align-items:center;">
+          <div>
+            <div class="draw-card-title">Dimension (mm)</div>
+            <div class="draw-card-desc">Input lifting lug parameters</div>
+          </div>
         </div>
         <div class="draw-card-body">
           <div style="margin-bottom:20px;">
             <div class="form-label" style="margin-bottom:6px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;">Batch Input (CSV) <span style="font-weight:400;text-transform:none;letter-spacing:0;color:#94a3b8;">— lugW,lugH,baseH,outerR,innerR,padeyeR,lugT,padeyeT</span></div>
-            <textarea class="form-input" id="sUserText" rows="2" style="width:100%;resize:vertical;" placeholder="120,120,30,40,10,30,20,30" onchange="putParams_liftinglug('sUserText'); fdraw_liftinglug();">120,120,30,40,10,30,20,30</textarea>
+            <textarea class="form-input" id="sUserText" rows="2" style="width:100%;resize:vertical;font-size:12px;" onchange="putParams_liftinglug('sUserText'); fdraw_liftinglug();">120,120,30,40,10,30,20,30</textarea>
           </div>
-          <div class="form-grid">
-            <div class="form-group">
-              <label class="form-label">LUG Width</label>
-              <input class="form-input" type="number" id="lugW" value="120" onchange="fdraw_liftinglug()">
-            </div>
-            <div class="form-group">
-              <label class="form-label">LUG Height</label>
-              <input class="form-input" type="number" id="lugH" value="120" onchange="fdraw_liftinglug()">
-            </div>
-            <div class="form-group">
-              <label class="form-label">BASE Height</label>
-              <input class="form-input" type="number" id="baseH" value="30" onchange="fdraw_liftinglug()">
-            </div>
-            <div class="form-group">
-              <label class="form-label">LUG Radius</label>
-              <input class="form-input" type="number" id="outerR" value="40" onchange="fdraw_liftinglug()">
-            </div>
-            <div class="form-group">
-              <label class="form-label">INNER Hole Radius</label>
-              <input class="form-input" type="number" id="innerR" value="10" onchange="fdraw_liftinglug()">
-            </div>
-            <div class="form-group">
-              <label class="form-label">PADEYE Radius</label>
-              <input class="form-input" type="number" id="padeyeR" value="30" onchange="fdraw_liftinglug()">
-            </div>
-            <div class="form-group">
-              <label class="form-label">LUG Thickness</label>
-              <input class="form-input" type="number" id="lugT" value="20" onchange="fdraw_liftinglug()">
-            </div>
-            <div class="form-group">
-              <label class="form-label">PADEYE Thickness</label>
-              <input class="form-input" type="number" id="padeyeT" value="30" onchange="fdraw_liftinglug()">
-            </div>
+
+          <div class="form-grid-6col" style="margin-bottom:12px;">
+            <div class="col-header var-header">Variable</div>
+            <div class="col-header">Value</div>
+            <div class="col-header var-header">Variable</div>
+            <div class="col-header">Value</div>
+            <div class="col-header var-header">Variable</div>
+            <div class="col-header">Value</div>
           </div>
-          <button class="btn-generate" onclick="odxf_lug.download('LiftingLug.dxf')"><i class="bi bi-download"></i> DXF DOWNLOAD</button>
+          <div class="form-grid-6col">
+            <div class="col-label">lugW (width)</div>
+            <input class="form-input" type="number" id="lugW" value="120" onchange="fdraw_liftinglug()">
+            <div class="col-label">lugH (height)</div>
+            <input class="form-input" type="number" id="lugH" value="120" onchange="fdraw_liftinglug()">
+            <div class="col-label">baseH</div>
+            <input class="form-input" type="number" id="baseH" value="30" onchange="fdraw_liftinglug()">
+
+            <div class="col-label">outerR</div>
+            <input class="form-input" type="number" id="outerR" value="40" onchange="fdraw_liftinglug()">
+            <div class="col-label">innerR (hole)</div>
+            <input class="form-input" type="number" id="innerR" value="10" onchange="fdraw_liftinglug()">
+            <div class="col-label">padeyeR</div>
+            <input class="form-input" type="number" id="padeyeR" value="30" onchange="fdraw_liftinglug()">
+
+            <div class="col-label">lugT (thick)</div>
+            <input class="form-input" type="number" id="lugT" value="20" onchange="fdraw_liftinglug()">
+            <div class="col-label">padeyeT (thick)</div>
+            <input class="form-input" type="number" id="padeyeT" value="30" onchange="fdraw_liftinglug()">
+
+            <button class="btn-generate" onclick="odxf_lug.download('LiftingLug.dxf')" style="grid-column:5 / 7;margin:0;justify-content:center;"><i class="bi bi-download"></i> DXF DOWNLOAD</button>
+          </div>
         </div>
       </div>
 
-      <!-- DRAWING CARD -->
       <div class="draw-card">
         <div class="draw-card-header">
           <div class="draw-card-title">Drawing View <span style="font-weight:400;color:#94a3b8;font-size:12px;">(Synchronized Zoom / Pan)</span></div>

@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>macroBIM - New Sections Test</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.3/font/bootstrap-icons.min.css">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;background:#f0f2f5;color:#444;display:flex;height:100vh;overflow:hidden;font-size:14px;padding:16px;gap:16px;}
+#sidebar{width:270px;min-width:270px;background:#fff;border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.06);display:flex;flex-direction:column;overflow-y:auto;overflow-x:hidden;}
+#sidebar::-webkit-scrollbar{width:4px;}
+#sidebar::-webkit-scrollbar-thumb{background:#ddd;border-radius:4px;}
+.sidebar-header{display:flex;align-items:center;gap:12px;padding:20px 20px 16px;}
+.logo-info .name{font-size:15px;font-weight:700;color:#0f172a;}
+.nav-menu{padding:4px 12px;flex:1;}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 12px;font-size:13.5px;font-weight:500;color:#64748b;cursor:pointer;border-radius:6px;margin-bottom:1px;text-decoration:none;transition:all .15s;}
+.nav-item:hover{background:#f1f5f9;color:#334155;}
+.nav-item.active{background:#eff6ff;color:#2563eb;}
+.nav-item i{font-size:17px;width:22px;text-align:center;flex-shrink:0;}
+.nav-sub{padding-left:22px;}
+.nav-sub a{display:flex;align-items:center;gap:8px;padding:7px 12px;font-size:13px;font-weight:400;color:#94a3b8;text-decoration:none;border-radius:6px;transition:all .15s;position:relative;}
+.nav-sub a::before{content:'';width:5px;height:5px;border-radius:50%;background:#cbd5e1;flex-shrink:0;transition:background .15s;}
+.nav-sub a:hover{color:#334155;}
+.nav-sub a:hover::before{background:#64748b;}
+.nav-sub a.active{color:#2563eb;font-weight:500;}
+.nav-sub a.active::before{background:#2563eb;}
+#main{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+.content-wrap{flex:1;overflow-y:auto;background:#fff;border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.06);padding:24px;}
+.content-wrap::-webkit-scrollbar{width:6px;}
+.content-wrap::-webkit-scrollbar-thumb{background:#ddd;border-radius:4px;}
+.page-view{display:none;}
+.page-view.active{display:block;}
+.page-heading{font-size:22px;font-weight:700;color:#0f172a;margin-bottom:4px;}
+.breadcrumb{font-size:13px;color:#94a3b8;margin-bottom:24px;}
+.breadcrumb a{color:#94a3b8;text-decoration:none;}
+.breadcrumb span{color:#64748b;}
+.draw-card{background:#fff;border-radius:10px;border:1px solid #e2e8f0;margin-bottom:20px;overflow:hidden;}
+.draw-card-header{display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid #e2e8f0;}
+.draw-card-title{font-size:15px;font-weight:600;color:#0f172a;}
+.draw-card-desc{font-size:12.5px;color:#94a3b8;}
+.draw-card-body{padding:20px;}
+.form-label{font-size:13px;font-weight:600;color:#0f172a;}
+.form-label span{font-weight:400;color:#94a3b8;}
+.form-input{padding:10px 14px;border:1px solid #e2e8f0;border-radius:8px;font-size:13.5px;font-family:inherit;color:#334155;transition:border-color .15s,box-shadow .15s;outline:none;background:#fff;}
+.form-input:focus{border-color:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,.1);}
+.btn-generate{display:inline-flex;align-items:center;gap:8px;padding:10px 24px;border:none;border-radius:8px;cursor:pointer;font-size:13.5px;font-weight:600;font-family:inherit;background:#1e293b;color:#fff;transition:background .15s;margin-top:8px;}
+.btn-generate:hover{background:#334155;}
+.drawing-viewport{background:#1e293b;border-radius:10px;overflow:hidden;min-height:560px;}
+#circleplot,#octagonplot,#trackplot{width:100%;background:#000;border-radius:10px;cursor:grab;}
+.form-grid-9col{display:grid;grid-template-columns:80px 1fr 1fr 80px 1fr 1fr 80px 1fr 1fr;gap:8px 10px;align-items:center;}
+.form-grid-9col .col-label{font-size:12px;font-weight:600;color:#0f172a;}
+.form-grid-9col .col-header{font-size:11px;font-weight:700;color:#2563eb;text-align:center;padding-bottom:4px;border-bottom:1px solid #e2e8f0;}
+.form-grid-9col .col-header.var-header{text-align:left;}
+.form-grid-9col .form-input{padding:8px 8px;font-size:12.5px;}
+</style>
+
+<!-- Drawing Engine -->
+<script src="https://unpkg.com/konva@9/konva.min.js"></script>
+<script src="https://macrobim.github.io/macroBIM/konvaviewer.js"></script>
+<script src="https://macrobim.github.io/macroBIM/bim_plotly_geo.js"></script>
+<script src="https://macrobim.github.io/macroBIM/bim_dxf.js"></script>
+<script src="https://macrobim.github.io/macroBIM/geomath.js"></script>
+
+<!-- New Section Modules (local) -->
+<script src="../macroBIM/bim_circle.js"></script>
+<script src="../macroBIM/bim_octagon.js"></script>
+<script src="../macroBIM/bim_track.js"></script>
+
+<!-- THREE.js -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://unpkg.com/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script src="../macroBIM/bim_circle_3d.js"></script>
+<script src="../macroBIM/bim_octagon_3d.js"></script>
+<script src="../macroBIM/bim_track_3d.js"></script>
+
+</head>
+<body>
+
+<nav id="sidebar">
+  <div class="sidebar-header"><div class="logo-info"><div class="name">TEST - New Sections</div></div></div>
+  <div class="nav-menu">
+    <div class="nav-sub">
+      <a href="#" class="active" data-page="draw-circle">Circle (원형)</a>
+      <a href="#" data-page="draw-octagon">Octagon (팔각형)</a>
+      <a href="#" data-page="draw-track">Track (트랙형)</a>
+    </div>
+  </div>
+</nav>
+
+<div id="main">
+  <div class="content-wrap">
+
+    <!-- CIRCLE -->
+    <div class="page-view active" id="page-draw-circle">
+      <h1 class="page-heading">Circle Section Drawing</h1>
+      <div class="breadcrumb"><a href="#">Home</a> / <a href="#">Drawings</a> / <span>Circle</span></div>
+      <div id="mount-draw-circle"></div>
+    </div>
+
+    <!-- OCTAGON -->
+    <div class="page-view" id="page-draw-octagon">
+      <h1 class="page-heading">Octagon Section Drawing</h1>
+      <div class="breadcrumb"><a href="#">Home</a> / <a href="#">Drawings</a> / <span>Octagon</span></div>
+      <div id="mount-draw-octagon"></div>
+    </div>
+
+    <!-- TRACK -->
+    <div class="page-view" id="page-draw-track">
+      <h1 class="page-heading">Track Section Drawing</h1>
+      <div class="breadcrumb"><a href="#">Home</a> / <a href="#">Drawings</a> / <span>Track</span></div>
+      <div id="mount-draw-track"></div>
+    </div>
+
+    <!-- ── CIRCLE TEMPLATE ── -->
+    <template id="tpl-draw-circle">
+      <div class="draw-card">
+        <div class="draw-card-header" style="display:flex;justify-content:space-between;align-items:center;">
+          <div>
+            <div class="draw-card-title">Dimension (mm)</div>
+            <div class="draw-card-desc">Input circular cross-section parameters (Front / Back)</div>
+          </div>
+        </div>
+        <div class="draw-card-body">
+          <div style="margin-bottom:20px;">
+            <div class="form-label" style="margin-bottom:6px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;">Batch Input (CSV) <span style="font-weight:400;text-transform:none;letter-spacing:0;color:#94a3b8;">&mdash; 1줄: D_s,d_s,D_e,d_e,hollow(1/0) / 2줄: L</span></div>
+            <textarea class="form-input" id="sUserText" rows="2" style="width:100%;resize:vertical;font-size:12px;" onchange="putParams_circle('sUserText'); fdraw_circle();">500,400,500,400,1
+1000</textarea>
+          </div>
+          <div class="form-grid-9col" style="margin-bottom:12px;">
+            <div class="col-header var-header">Variable</div><div class="col-header">Front</div><div class="col-header">Back</div>
+            <div class="col-header var-header">Variable</div><div class="col-header">Front</div><div class="col-header">Back</div>
+            <div class="col-header var-header">Variable</div><div class="col-header">Front</div><div class="col-header">Back</div>
+          </div>
+          <div class="form-grid-9col">
+            <div class="col-label">D (outer)</div>
+            <input class="form-input" type="number" id="dcircle_D_s" value="500" onchange="fdraw_circle()">
+            <input class="form-input" type="number" id="dcircle_D_e" value="500" onchange="fdraw_circle()">
+            <div class="col-label">d (inner)</div>
+            <input class="form-input" type="number" id="dcircle_d_s" value="400" onchange="fdraw_circle()">
+            <input class="form-input" type="number" id="dcircle_d_e" value="400" onchange="fdraw_circle()">
+            <div class="col-label">Seg Length</div>
+            <input class="form-input" type="number" id="dseg_leng" value="1000" onchange="fdraw_circle()" style="grid-column:span 2;">
+
+            <div class="col-label" style="display:flex;align-items:center;gap:8px;">
+              <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;">
+                <input type="checkbox" id="dcircle_hollow" checked onchange="fdraw_circle()" style="width:16px;height:16px;accent-color:#2563eb;">
+                Hollow
+              </label>
+            </div><div></div><div></div>
+            <div></div><div></div><div></div>
+            <button class="btn-generate" onclick="odxf_circle.download('Circle.dxf')" style="grid-column:7 / 10;margin:0;justify-content:center;"><i class="bi bi-download"></i> DXF DOWNLOAD</button>
+          </div>
+        </div>
+      </div>
+      <div class="draw-card">
+        <div class="draw-card-header">
+          <div class="draw-card-title">Drawing View <span style="font-weight:400;color:#94a3b8;font-size:12px;">(Synchronized Zoom / Pan)</span></div>
+          <button class="btn-generate" onclick="fdraw_circle()" style="margin-top:0;"><i class="bi bi-arrow-repeat"></i> REGEN</button>
+        </div>
+        <div class="drawing-viewport"><div id="circleplot"></div></div>
+      </div>
+    </template>
+
+    <!-- ── OCTAGON TEMPLATE ── -->
+    <template id="tpl-draw-octagon">
+      <div class="draw-card">
+        <div class="draw-card-header" style="display:flex;justify-content:space-between;align-items:center;">
+          <div>
+            <div class="draw-card-title">Dimension (mm)</div>
+            <div class="draw-card-desc">Input octagon cross-section parameters (Front / Back)</div>
+          </div>
+        </div>
+        <div class="draw-card-body">
+          <div style="margin-bottom:20px;">
+            <div class="form-label" style="margin-bottom:6px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;">Batch Input (CSV) <span style="font-weight:400;text-transform:none;letter-spacing:0;color:#94a3b8;">&mdash; 1줄: H1,H2,B1,B2,h1,h2,b1,b2 (Begin), same (End), hollow / 2줄: L</span></div>
+            <textarea class="form-input" id="sUserText" rows="2" style="width:100%;resize:vertical;font-size:12px;" onchange="putParams_octagon('sUserText'); fdraw_octagon();">300,100,400,100,200,60,300,60,300,100,400,100,200,60,300,60,1
+1000</textarea>
+          </div>
+          <div class="form-grid-9col" style="margin-bottom:12px;">
+            <div class="col-header var-header">Variable</div><div class="col-header">Front</div><div class="col-header">Back</div>
+            <div class="col-header var-header">Variable</div><div class="col-header">Front</div><div class="col-header">Back</div>
+            <div class="col-header var-header">Variable</div><div class="col-header">Front</div><div class="col-header">Back</div>
+          </div>
+          <div class="form-grid-9col">
+            <div class="col-label">H1 (mid h)</div>
+            <input class="form-input" type="number" id="doct_H1_s" value="300" onchange="fdraw_octagon()">
+            <input class="form-input" type="number" id="doct_H1_e" value="300" onchange="fdraw_octagon()">
+            <div class="col-label">H2 (chamfer h)</div>
+            <input class="form-input" type="number" id="doct_H2_s" value="100" onchange="fdraw_octagon()">
+            <input class="form-input" type="number" id="doct_H2_e" value="100" onchange="fdraw_octagon()">
+            <div class="col-label">B1 (mid w)</div>
+            <input class="form-input" type="number" id="doct_B1_s" value="400" onchange="fdraw_octagon()">
+            <input class="form-input" type="number" id="doct_B1_e" value="400" onchange="fdraw_octagon()">
+
+            <div class="col-label">B2 (chamfer w)</div>
+            <input class="form-input" type="number" id="doct_B2_s" value="100" onchange="fdraw_octagon()">
+            <input class="form-input" type="number" id="doct_B2_e" value="100" onchange="fdraw_octagon()">
+            <div class="col-label">h1 (inner mid)</div>
+            <input class="form-input" type="number" id="doct_h1_s" value="200" onchange="fdraw_octagon()">
+            <input class="form-input" type="number" id="doct_h1_e" value="200" onchange="fdraw_octagon()">
+            <div class="col-label">h2 (inner ch)</div>
+            <input class="form-input" type="number" id="doct_h2_s" value="60" onchange="fdraw_octagon()">
+            <input class="form-input" type="number" id="doct_h2_e" value="60" onchange="fdraw_octagon()">
+
+            <div class="col-label">b1 (inner mid)</div>
+            <input class="form-input" type="number" id="doct_b1_s" value="300" onchange="fdraw_octagon()">
+            <input class="form-input" type="number" id="doct_b1_e" value="300" onchange="fdraw_octagon()">
+            <div class="col-label">b2 (inner ch)</div>
+            <input class="form-input" type="number" id="doct_b2_s" value="60" onchange="fdraw_octagon()">
+            <input class="form-input" type="number" id="doct_b2_e" value="60" onchange="fdraw_octagon()">
+            <div class="col-label">Seg Length</div>
+            <input class="form-input" type="number" id="dseg_leng" value="1000" onchange="fdraw_octagon()" style="grid-column:span 2;">
+
+            <div class="col-label" style="display:flex;align-items:center;gap:8px;">
+              <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;">
+                <input type="checkbox" id="doct_hollow" checked onchange="fdraw_octagon()" style="width:16px;height:16px;accent-color:#2563eb;">
+                Hollow
+              </label>
+            </div><div></div><div></div>
+            <div></div><div></div><div></div>
+            <button class="btn-generate" onclick="odxf_octagon.download('Octagon.dxf')" style="grid-column:7 / 10;margin:0;justify-content:center;"><i class="bi bi-download"></i> DXF DOWNLOAD</button>
+          </div>
+        </div>
+      </div>
+      <div class="draw-card">
+        <div class="draw-card-header">
+          <div class="draw-card-title">Drawing View <span style="font-weight:400;color:#94a3b8;font-size:12px;">(Synchronized Zoom / Pan)</span></div>
+          <button class="btn-generate" onclick="fdraw_octagon()" style="margin-top:0;"><i class="bi bi-arrow-repeat"></i> REGEN</button>
+        </div>
+        <div class="drawing-viewport"><div id="octagonplot"></div></div>
+      </div>
+    </template>
+
+    <!-- ── TRACK TEMPLATE ── -->
+    <template id="tpl-draw-track">
+      <div class="draw-card">
+        <div class="draw-card-header" style="display:flex;justify-content:space-between;align-items:center;">
+          <div>
+            <div class="draw-card-title">Dimension (mm)</div>
+            <div class="draw-card-desc">Input track (stadium) cross-section parameters (Front / Back)</div>
+          </div>
+        </div>
+        <div class="draw-card-body">
+          <div style="margin-bottom:20px;">
+            <div class="form-label" style="margin-bottom:6px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;">Batch Input (CSV) <span style="font-weight:400;text-transform:none;letter-spacing:0;color:#94a3b8;">&mdash; 1줄: B_s,D_s,d_s,B_e,D_e,d_e,hollow(1/0) / 2줄: L</span></div>
+            <textarea class="form-input" id="sUserText" rows="2" style="width:100%;resize:vertical;font-size:12px;" onchange="putParams_track('sUserText'); fdraw_track();">600,400,300,600,400,300,1
+1000</textarea>
+          </div>
+          <div class="form-grid-9col" style="margin-bottom:12px;">
+            <div class="col-header var-header">Variable</div><div class="col-header">Front</div><div class="col-header">Back</div>
+            <div class="col-header var-header">Variable</div><div class="col-header">Front</div><div class="col-header">Back</div>
+            <div class="col-header var-header">Variable</div><div class="col-header">Front</div><div class="col-header">Back</div>
+          </div>
+          <div class="form-grid-9col">
+            <div class="col-label">B (width)</div>
+            <input class="form-input" type="number" id="dtrack_B_s" value="600" onchange="fdraw_track()">
+            <input class="form-input" type="number" id="dtrack_B_e" value="600" onchange="fdraw_track()">
+            <div class="col-label">D (height)</div>
+            <input class="form-input" type="number" id="dtrack_D_s" value="400" onchange="fdraw_track()">
+            <input class="form-input" type="number" id="dtrack_D_e" value="400" onchange="fdraw_track()">
+            <div class="col-label">d (inner h)</div>
+            <input class="form-input" type="number" id="dtrack_d_s" value="300" onchange="fdraw_track()">
+            <input class="form-input" type="number" id="dtrack_d_e" value="300" onchange="fdraw_track()">
+
+            <div class="col-label">Seg Length</div>
+            <input class="form-input" type="number" id="dseg_leng" value="1000" onchange="fdraw_track()" style="grid-column:span 2;">
+            <div class="col-label" style="display:flex;align-items:center;gap:8px;">
+              <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;">
+                <input type="checkbox" id="dtrack_hollow" checked onchange="fdraw_track()" style="width:16px;height:16px;accent-color:#2563eb;">
+                Hollow
+              </label>
+            </div><div></div><div></div>
+            <div></div><div></div><div></div>
+            <div></div><div></div><div></div>
+            <button class="btn-generate" onclick="odxf_track.download('Track.dxf')" style="grid-column:7 / 10;margin:0;justify-content:center;"><i class="bi bi-download"></i> DXF DOWNLOAD</button>
+          </div>
+        </div>
+      </div>
+      <div class="draw-card">
+        <div class="draw-card-header">
+          <div class="draw-card-title">Drawing View <span style="font-weight:400;color:#94a3b8;font-size:12px;">(Synchronized Zoom / Pan)</span></div>
+          <button class="btn-generate" onclick="fdraw_track()" style="margin-top:0;"><i class="bi bi-arrow-repeat"></i> REGEN</button>
+        </div>
+        <div class="drawing-viewport"><div id="trackplot"></div></div>
+      </div>
+    </template>
+
+  </div>
+</div>
+
+<script>
+function showPage(pageId) {
+  document.querySelectorAll('.page-view').forEach(function(p) { p.classList.remove('active'); });
+  var t = document.getElementById('page-' + pageId);
+  if (t) t.classList.add('active');
+  document.querySelectorAll('.nav-sub a').forEach(function(s) { s.classList.remove('active'); });
+  var sb = document.querySelector('.nav-sub a[data-page="' + pageId + '"]');
+  if (sb) sb.classList.add('active');
+
+  if (pageId === 'draw-circle') { mountDrawing('circle'); if (typeof fdraw_circle === 'function') fdraw_circle(); }
+  if (pageId === 'draw-octagon') { mountDrawing('octagon'); if (typeof fdraw_octagon === 'function') fdraw_octagon(); }
+  if (pageId === 'draw-track') { mountDrawing('track'); if (typeof fdraw_track === 'function') fdraw_track(); }
+}
+
+function mountDrawing(kind) {
+  ['circle', 'octagon', 'track'].forEach(function(k) {
+    if (k !== kind) {
+      var other = document.getElementById('mount-draw-' + k);
+      if (other) other.innerHTML = '';
+    }
+  });
+  var mount = document.getElementById('mount-draw-' + kind);
+  if (mount && !mount.firstElementChild) {
+    var tpl = document.getElementById('tpl-draw-' + kind);
+    if (tpl) mount.appendChild(tpl.content.cloneNode(true));
+  }
+}
+
+document.querySelectorAll('.nav-sub a[data-page]').forEach(function(el) {
+  el.addEventListener('click', function(e) {
+    e.preventDefault();
+    showPage(this.getAttribute('data-page'));
+  });
+});
+
+// Auto-mount circle on load
+showPage('draw-circle');
+</script>
+
+</body>
+</html>

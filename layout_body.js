@@ -113,7 +113,7 @@ function initLayout(phpData) {
     + '</div>';
 
     var root = document.getElementById('app-root');
-    root.style.cssText = 'display:flex;height:100%;width:100%;gap:16px;';
+    root.style.cssText = 'display:flex;flex:1;height:100%;min-height:0;gap:16px;overflow:hidden;';
     root.innerHTML = html;
 
     _createTemplates();

@@ -125,7 +125,7 @@ body{font-family:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;ba
   width:100%;height:560px;background:#000;border-radius:10px;
   cursor:grab;
 }
-#hsecplot,#channelplot,#ibeamplot,#box1cellplot,#liftinglugplot,#rectplot{
+#hsecplot,#channelplot,#ibeamplot,#box1cellplot,#liftinglugplot,#rectplot,#circleplot,#octagonplot,#trackplot{
   width:100%;background:#000;border-radius:10px;
   cursor:grab;
 }

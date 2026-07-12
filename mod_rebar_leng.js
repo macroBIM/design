@@ -16,38 +16,36 @@ var mod_rebar_leng = new function(){
 
 		var	shtml	=	"";
 
-		shtml += "	<div>";
-		shtml += "	<h3>";
-		shtml += "	<span class='text' style='border:none; text-align:left;'> <b>Specification</b> </span>";
- 		shtml += "		<input style='width:50px;' type='radio' id = 'gujo' name = 'standard' value = 'gujo' 	onclick = 'mod_rebar_leng.execute()' checked='checked' /><label for='gujo'>콘크리트 구조기준 2012</label>";
-		shtml += "		<input style='width:50px;' type='radio' id = 'doro' name = 'standard' value = 'doro' 	onclick = 'mod_rebar_leng.execute()'/><label for='doro'>도로교 설계기준 2016</label>";
-		shtml += "	</h3>";
-		shtml += "	<h3>";
-		shtml += "	<span class='text' style='border:none; text-align:left;'> <b>Rebar Type</b> </span>";
- 		shtml += "		<input style='width:50px;' type='radio' id = 'KS' 	name = 'rebartype' value = 'KS' 	onclick = 'mod_rebar_leng.execute()' checked='checked' /><label for='KS'>KS D 3504</label>";
-		shtml += "		<input style='width:50px;' type='radio' id = 'ASTM' name = 'rebartype' value = 'ASTM' 	onclick = 'mod_rebar_leng.execute()'/><label for='ASTM'>ASTM A615</label>";
-		shtml += "		<input style='width:50px;' type='radio' id = 'BS' 	name = 'rebartype' value = 'BS' 	onclick = 'mod_rebar_leng.execute()'/><label for='BS'>BS 4449</label>";
-		shtml += "	</h3>";
-		shtml += "	</div>";
+		/* ── 기준 / 철근 규격 선택 카드 ── */
+		shtml += "<div class='draw-card'>";
+		shtml += "  <div class='draw-card-header'><div><div class='draw-card-title'>철근 정착 · 겹침이음 길이</div><div class='draw-card-desc'>설계기준과 철근 규격을 선택하세요</div></div></div>";
+		shtml += "  <div class='draw-card-body'>";
+		shtml += "    <div class='rl-row'><div class='rl-lbl'>설계기준</div><div class='rl-opts'>";
+		shtml += "      <label><input type='radio' id='gujo' name='standard' value='gujo' checked onclick='mod_rebar_leng.execute()'>콘크리트구조기준 2012</label>";
+		shtml += "      <label><input type='radio' id='doro' name='standard' value='doro' onclick='mod_rebar_leng.execute()'>도로교 설계기준 2016</label>";
+		shtml += "    </div></div>";
+		shtml += "    <div class='rl-row'><div class='rl-lbl'>철근 규격</div><div class='rl-opts'>";
+		shtml += "      <label><input type='radio' id='KS' name='rebartype' value='KS' checked onclick='mod_rebar_leng.execute()'>KS D 3504</label>";
+		shtml += "      <label><input type='radio' id='ASTM' name='rebartype' value='ASTM' onclick='mod_rebar_leng.execute()'>ASTM A615</label>";
+		shtml += "      <label><input type='radio' id='BS' name='rebartype' value='BS' onclick='mod_rebar_leng.execute()'>BS 4449</label>";
+		shtml += "    </div></div>";
+		shtml += "  </div>";
+		shtml += "</div>";
 
-		shtml += "	<div id='input' style='width:100%'>";
-		shtml += "	</div>";
+		/* ── 입력 폼 ── */
+		shtml += "<div id='input'></div>";
 
-		shtml += "	<div id='anchor' style='width:100%; text-align : center; '>";
-		shtml += "	<h3 style = 'text-align : center;'>";
-		shtml += "		<span class='text' style='border:none; text-align:left; width : 250px;' id='cap1'> << 정착장 계산 결과 >> </span>";
-		shtml += "	</h3>";
-		shtml += "		<table id='tabanc' >	";
-		shtml += "		</table>	";
-		shtml += "	</div>";
+		/* ── 결과표 : 정착장 ── */
+		shtml += "<div id='anchor' class='table-card'>";
+		shtml += "  <div class='table-card-header'><div class='table-card-title' id='cap1'>정착장 계산 결과</div><div class='table-card-desc'>단위: mm</div></div>";
+		shtml += "  <div style='overflow-x:auto;'><table id='tabanc' class='ea-table striped rebar'></table></div>";
+		shtml += "</div>";
 
-		shtml += "	<div id='lab' style='width:100%;  text-align : center;'>";
-		shtml += "	<h3 style = 'text-align : center;'>";
-		shtml += "		<span class='text' style='border:none; text-align:left; width : 250px;' id='cap2'> << 겹이음 계산 결과 >> </span>";
-		shtml += "	</h3>";
-		shtml += "		<table id='tablab' >	";
-		shtml += "		</table>	";
-		shtml += "	</div>";
+		/* ── 결과표 : 겹이음 ── */
+		shtml += "<div id='lab' class='table-card'>";
+		shtml += "  <div class='table-card-header'><div class='table-card-title' id='cap2'>겹이음 계산 결과</div><div class='table-card-desc'>단위: mm</div></div>";
+		shtml += "  <div style='overflow-x:auto;'><table id='tablab' class='ea-table striped rebar'></table></div>";
+		shtml += "</div>";
 
         otarget.innerHTML	=	shtml;
 
@@ -84,23 +82,19 @@ var mod_rebar_leng = new function(){
 
 			odiv_input.innerHTML = mod_rebar_leng.html_gujo2012();
 
-			mod_rebar_leng.calc_gujo2012();
+			document.getElementById("cap1").innerHTML = "정착장 계산 결과";
+			document.getElementById("cap2").innerHTML = "겹이음 계산 결과";
+			document.getElementById("lab").style.display = "";
 
-			document.getElementById("cap1").innerHTML = "<< 정착장 계산 결과 >>";
-			document.getElementById("cap2").innerHTML = "<< 겹이음 계산 결과 >>";
+			mod_rebar_leng.calc_gujo2012();
 
 
 		} else if( document.getElementById("doro").checked ){
 
-			document.getElementById("cap1").innerHTML = "<< 정착장/겹이음 계산 결과 >>";
-			document.getElementById("cap2").innerHTML = "";
-
 			odiv_input.innerHTML = mod_rebar_leng.html_doro2016();
 
-			// calc fctk ( f_ck 는 fctm = 0.30 f_ck^(2/3) 유효범위인 50 MPa 로 제한 )
-			var dfck_disp = Math.min( document.getElementById("fck").value * 1.0, 50.0 );
-
-			document.getElementById("fctk").innerHTML = (mod_concrete.fctk( dfck_disp )).toLocaleString(undefined, {minimumFractionDigits: 3});
+			document.getElementById("cap1").innerHTML = "정착장 / 겹이음 계산 결과";
+			document.getElementById("lab").style.display = "none";	// 도로교는 통합표 1개
 
 			mod_rebar_leng.calc_doro2016();
 
@@ -111,28 +105,27 @@ var mod_rebar_leng = new function(){
 
 	this.html_gujo2012 = function(){
 
-		var shtml = '';
+		var s = '';
 
-		shtml += "</br>";
-		shtml += "<h3>";
-		shtml += "	<span class='eq200' >Conc. f<sub>ck</sub></span> <INPUT id='fck'  value='50' onchange='mod_rebar_leng.calc_gujo2012()'></INPUT> <SPAN class='unit' >Mpa</SPAN>";
-		shtml += "	<span class='eq200' >Rebar CTC</span> <INPUT id='ctc'  value='125' onchange='mod_rebar_leng.calc_gujo2012()'></INPUT> <SPAN class='unit' >mm</SPAN>";
-		shtml += "</h3>";
-		shtml += "<h3>";
-		shtml += "	<span class='eq200' >Rebar. f<sub>y</sub></span> <INPUT id='fy'  value='400' onchange='mod_rebar_leng.calc_gujo2012()'></INPUT> <SPAN class='unit' >Mpa</SPAN>";
-		shtml += "	<span class='eq200' >Conc Cover</span> 	<INPUT id='cover'  value='50' onchange='mod_rebar_leng.calc_gujo2012()'></INPUT> <SPAN class='unit' >mm</SPAN>";
-		shtml += "</h3>";
-		shtml += "<h3>";
-		shtml += "	<span class='eq200' >횡철근지수, K<sub>tr</sub></span> <INPUT id='ktr'  value='0.0' onchange='mod_rebar_leng.calc_gujo2012()'></INPUT> <SPAN class='unit' ></SPAN>";
-		shtml += "	<span class='eq200' >경량 콘크리트, &lambda;</span> 	<INPUT id='lamda'  value='1.0' onchange='mod_rebar_leng.calc_gujo2012()'></INPUT> <SPAN class='unit' ></SPAN>";
-		shtml += "</h3>";
-		shtml += "<h3>";
-		shtml += "	<span class='text' style='border:none; text-align:left;'> 계산방법 </span>";
- 		shtml += "		<input style='width:50px;' type='radio' id = 'equ' name = 'way' value = 'equ' 	onclick = 'mod_rebar_leng.calc_gujo2012()' checked='checked' /><label for='equ'>계산식</label>";
-		shtml += "		<input style='width:50px;' type='radio' id = 'fac' name = 'way' value = 'fac' 	onclick = 'mod_rebar_leng.calc_gujo2012()'/><label for='fac'>보정계수</label>";
-		shtml += "</h3>";
+		s += "<div class='draw-card'>";
+		s += "  <div class='draw-card-header'><div><div class='draw-card-title'>입력값 &mdash; 콘크리트구조기준 2012</div><div class='draw-card-desc'>재료 · 기하 및 계산방법</div></div></div>";
+		s += "  <div class='draw-card-body'>";
+		s += "    <div class='form-grid-6col'>";
+		s += "      <div class='col-label'>Conc. f<sub>ck</sub> (MPa)</div><input class='form-input' id='fck' value='50' onchange='mod_rebar_leng.calc_gujo2012()'>";
+		s += "      <div class='col-label'>Rebar CTC (mm)</div><input class='form-input' id='ctc' value='125' onchange='mod_rebar_leng.calc_gujo2012()'>";
+		s += "      <div class='col-label'>Rebar f<sub>y</sub> (MPa)</div><input class='form-input' id='fy' value='400' onchange='mod_rebar_leng.calc_gujo2012()'>";
+		s += "      <div class='col-label'>Conc. Cover (mm)</div><input class='form-input' id='cover' value='50' onchange='mod_rebar_leng.calc_gujo2012()'>";
+		s += "      <div class='col-label'>횡철근지수 K<sub>tr</sub></div><input class='form-input' id='ktr' value='0.0' onchange='mod_rebar_leng.calc_gujo2012()'>";
+		s += "      <div class='col-label'>경량계수 &lambda;</div><input class='form-input' id='lamda' value='1.0' onchange='mod_rebar_leng.calc_gujo2012()'>";
+		s += "    </div>";
+		s += "    <div class='rl-row' style='margin-top:14px;'><div class='rl-lbl'>계산방법</div><div class='rl-opts'>";
+		s += "      <label><input type='radio' id='equ' name='way' value='equ' checked onclick='mod_rebar_leng.calc_gujo2012()'>계산식 (정밀)</label>";
+		s += "      <label><input type='radio' id='fac' name='way' value='fac' onclick='mod_rebar_leng.calc_gujo2012()'>보정계수 (간편)</label>";
+		s += "    </div></div>";
+		s += "  </div>";
+		s += "</div>";
 
-		return shtml;
+		return s;
 
 	}
 
@@ -317,58 +310,31 @@ var mod_rebar_leng = new function(){
 
 		var shtml;
 
-		shtml  = "<thead>	";
-		shtml += "	<tr >	";
-
-		shtml += "		<th style='width:100px;'>철근호칭</th>";
-		shtml += "		<th style='width:100px;'>철근직경</th>";
-
-		shtml += "		<th style='width:100px;' colspan='3'>인장철근</th>";
-        //shtml += "		<th style='width:100px;'>기타철근</th>";
-        //shtml += "		<th style='width:100px;'>표준갈고리</th>";
-        shtml += "		<th style='width:100px;'>압축철근</th>";
-		shtml += "	</tr>	";
-
-		shtml += "	<tr >	";
-
-		shtml += "		<th style='width:100px;'></th>";
-		shtml += "		<th style='width:100px;'></th>";
-
-		shtml += "		<th style='width:100px;'>상부철근</th>";
-        shtml += "		<th style='width:100px;'>기타철근</th>";
-        shtml += "		<th style='width:100px;'>표준갈고리</th>";
-        shtml += "		<th style='width:100px;'></th>";
-		shtml += "	</tr>	";
-
-		shtml += "	<tr >	";
-		//	UNIT INPUT
-		shtml += "		<th > -</th>";
-        shtml += "		<th > mm</th>";
-
-		shtml += "		<th > mm</th>";
-		shtml += "		<th > mm</th>";
-		shtml += "		<th > mm</th>";
-		shtml += "		<th > mm</th>";
-
-		shtml += "	</tr>	";
-		shtml += "</thead>	";
-		shtml += "<tbody>	";
-		shtml += "</tbody>	";
+		shtml  = "<thead>";
+		shtml += "	<tr>";
+		shtml += "		<th rowspan='2'>철근호칭</th>";
+		shtml += "		<th rowspan='2'>철근직경<br>(mm)</th>";
+		shtml += "		<th colspan='3'>인장 정착길이 (mm)</th>";
+		shtml += "		<th rowspan='2'>압축 정착<br>(mm)</th>";
+		shtml += "	</tr>";
+		shtml += "	<tr>";
+		shtml += "		<th>상부철근</th>";
+		shtml += "		<th>기타철근</th>";
+		shtml += "		<th>표준갈고리</th>";
+		shtml += "	</tr>";
+		shtml += "</thead>";
+		shtml += "<tbody></tbody>";
 
 		var otable = document.getElementById( starget );
 		otable.innerHTML = shtml;
+		var otbody = otable.tBodies[0];
 
-		var itable_row;
-		var irow, orow;
+		var orow;
 		var ocell;
 
 		for( var i=0; i < arebar.length; i++){
 
-			itable_row = otable.rows.length;
-			otable.insertRow( itable_row );
-
-			irow = otable.rows.length - 1;
-			orow = otable.rows[irow];
+			orow = otbody.insertRow(-1);
 			// 철근 번호
 			ocell = orow.insertCell(0);
 			ocell.innerHTML = arebar[i][0];
@@ -396,56 +362,30 @@ var mod_rebar_leng = new function(){
 
 		var shtml;
 
-		shtml  = "<thead>	";
-		shtml += "	<tr >	";
-
-		shtml += "		<th style='width:100px;'>철근호칭</th>";
-		shtml += "		<th style='width:100px;'>철근직경</th>";
-
-		shtml += "		<th style='width:100px;' colspan='2'>인장철근</th>";
-        //shtml += "		<th style='width:100px;'>기타철근</th>";
-        //shtml += "		<th style='width:100px;'>표준갈고리</th>";
-        shtml += "		<th style='width:100px;'>압축철근</th>";
-		shtml += "	</tr>	";
-
-		shtml += "	<tr >	";
-
-		shtml += "		<th style='width:100px;'></th>";
-		shtml += "		<th style='width:100px;'></th>";
-
-		shtml += "		<th style='width:100px;'>A급이음</th>";
-        shtml += "		<th style='width:100px;'>B급이음</th>";
-        shtml += "		<th style='width:100px;'></th>";
-		shtml += "	</tr>	";
-
-		shtml += "	<tr >	";
-		//	UNIT INPUT
-		shtml += "		<th > -</th>";
-        shtml += "		<th > mm</th>";
-
-		shtml += "		<th > mm</th>";
-		shtml += "		<th > mm</th>";
-		shtml += "		<th > mm</th>";
-
-		shtml += "	</tr>	";
-		shtml += "</thead>	";
-		shtml += "<tbody>	";
-		shtml += "</tbody>	";
+		shtml  = "<thead>";
+		shtml += "	<tr>";
+		shtml += "		<th rowspan='2'>철근호칭</th>";
+		shtml += "		<th rowspan='2'>철근직경<br>(mm)</th>";
+		shtml += "		<th colspan='2'>인장 겹침이음 (mm)</th>";
+		shtml += "		<th rowspan='2'>압축 겹침<br>(mm)</th>";
+		shtml += "	</tr>";
+		shtml += "	<tr>";
+		shtml += "		<th>A급 이음</th>";
+		shtml += "		<th>B급 이음</th>";
+		shtml += "	</tr>";
+		shtml += "</thead>";
+		shtml += "<tbody></tbody>";
 
 		var otable = document.getElementById( starget );
 		otable.innerHTML = shtml;
+		var otbody = otable.tBodies[0];
 
-		var itable_row;
-		var irow, orow;
+		var orow;
 		var ocell;
 
 		for( var i=0; i < arebar.length; i++){
 
-			itable_row = otable.rows.length;
-			otable.insertRow( itable_row );
-
-			irow = otable.rows.length - 1;
-			orow = otable.rows[irow];
+			orow = otbody.insertRow(-1);
 			// 철근 번호
 			ocell = orow.insertCell(0);
 			ocell.innerHTML = arebar[i][0];
@@ -470,70 +410,67 @@ var mod_rebar_leng = new function(){
 
 	this.html_doro2016 = function(){
 
-		var shtml = '';
+		var s = '';
 
-		shtml += "</br>";
-		shtml += "<h3>";
-		shtml += "	<span class='eq200' >Conc. f<sub>ck</sub></span> <INPUT id='fck'  value='50' onchange ='mod_rebar_leng.calc_doro2016()'></INPUT> <SPAN class='unit' >Mpa</SPAN>";
-		shtml += "	<span class='eq200' >Rebar CTC</span> <INPUT id='ctc'  value='125' onchange ='mod_rebar_leng.calc_doro2016()'></INPUT> <SPAN class='unit' >mm</SPAN>";
-		shtml += "</h3>";
-		shtml += "<h3>";
-		shtml += "	<span class='eq200' >철근설계응력 &sigma;<sub>sd</sub></span> <INPUT id='sigma'  value='400' onchange ='mod_rebar_leng.calc_doro2016()'></INPUT> <SPAN class='unit' >Mpa</SPAN>";
-		shtml += "	<span class='eq200' >Conc. Cover</span> 	<INPUT id='cover'  value='50' onchange ='mod_rebar_leng.calc_doro2016()'></INPUT> <SPAN class='unit' >mm</SPAN>";
-		shtml += "</h3>";
-		shtml += "<h3>";
-		shtml += "</h3>";
+		s += "<div class='draw-card'>";
+		s += "  <div class='draw-card-header'><div><div class='draw-card-title'>입력값 &mdash; 도로교 설계기준 2016 (한계상태)</div><div class='draw-card-desc'>재료 · 기하 및 정착 · 겹침 계수</div></div></div>";
+		s += "  <div class='draw-card-body'>";
 
+		/* 재료 / 기하 */
+		s += "    <div class='form-grid-6col'>";
+		s += "      <div class='col-label'>Conc. f<sub>ck</sub> (MPa)</div><input class='form-input' id='fck' value='50' onchange='mod_rebar_leng.calc_doro2016()'>";
+		s += "      <div class='col-label'>Rebar CTC (mm)</div><input class='form-input' id='ctc' value='125' onchange='mod_rebar_leng.calc_doro2016()'>";
+		s += "      <div class='col-label'>철근설계응력 &sigma;<sub>sd</sub> (MPa)</div><input class='form-input' id='sigma' value='400' onchange='mod_rebar_leng.calc_doro2016()'>";
+		s += "      <div class='col-label'>Conc. Cover (mm)</div><input class='form-input' id='cover' value='50' onchange='mod_rebar_leng.calc_doro2016()'>";
+		s += "      <div class='col-label'>콘크리트재료계수 &phi;<sub>c</sub></div><input class='form-input' id='phic' value='0.65' onchange='mod_rebar_leng.calc_doro2016()'>";
+		s += "      <div class='col-label'>기준인장강도 f<sub>ctk</sub> (MPa)</div><div class='rl-readonly'><span id='fctk' class='fctk-val'></span> <span class='rl-hint'>= 0.21 f<sub>ck</sub><sup>2/3</sup></span></div>";
+		s += "    </div>";
 
-		shtml += "<h3>";
-		shtml += "	<span class='eq200' >콘크리트재료계수, &phi;<sub>c</sub></span> <INPUT id='phic'  value='0.65' onchange ='mod_rebar_leng.calc_doro2016()'></INPUT> <SPAN class='unit' ></SPAN>";
-		shtml += "</h3>";
-		shtml += "<h3>";
-		shtml += "	<span class='eq200' >콘크리트기준인장강도, f<sub>ctk</sub></span> <span id='fctk'  class='text'></span> <SPAN class='unit' >Mpa</SPAN>";
-		shtml += "  , where f<sub>ctk</sub> = 0.21 (f<sub>ck</sub>)<sup>2/3</sup>";
-		shtml += "</h3>";
-		shtml += "<h3>";
-		shtml += "	<span class='eq200' >철근 부착조건 계수, &eta;<sub>1</sub></span>";
- 		shtml += "		<input style='width:50px;' type='radio' id = 'good' name = 'eta1' value = '1.0' checked='checked' onclick ='mod_rebar_leng.calc_doro2016()' /><label for='good'>양호 (1.0)</label>";
-		shtml += "		<input style='width:50px;' type='radio' id = 'bad' name = 'eta1' value = '0.7' onclick ='mod_rebar_leng.calc_doro2016()' /><label for='bad'>그외/슬립폼 (0.7)</label>";
-		shtml += "</h3>";
+		/* 계수 */
+		s += "    <div class='rl-sec-title'>정착 · 겹침 계수</div>";
 
-		shtml += "<h3>";
-		shtml += "	<span class='eq200' >횡철근 구속 계수, &alpha;<sub>3</sub></span>";
-		shtml += "	<span class='eq200' >K</span> ";
- 		shtml += "		<input style='width:50px;' type='radio' id = 'a3k1' name = 'k' value = '0.1'  onclick ='mod_rebar_leng.calc_doro2016()'/><label for='a3k1'>0.1</label>";
-		shtml += "		<input style='width:50px;' type='radio' id = 'a3k2' name = 'k' value = '0.05' onclick ='mod_rebar_leng.calc_doro2016()'/><label for='a3k2'>0.05</label>";
-		shtml += "		<input style='width:50px;' type='radio' id = 'a3k3' name = 'k' value = '0.0'  checked='checked' onclick ='mod_rebar_leng.calc_doro2016()'/><label for='a3k3'>0.0</label>";
-		shtml += "</h3>";
-		shtml += "<h3>";
-		shtml += "	<span class='eq200' ></span>";
-		shtml += "	<span class='eq200' >&lambda; = (&Sigma;A<sub>st</sub> &nbsp;-&nbsp; &Sigma;A<sub>st,min</sub>) / As</span> <INPUT id='lambda'  value='0.0' onchange ='mod_rebar_leng.calc_doro2016()'></INPUT> <SPAN class='unit' ></SPAN>";
-		shtml += "</h3>";
+		s += "    <div class='rl-row'><div class='rl-lbl'>부착조건 &eta;<sub>1</sub></div><div class='rl-opts'>";
+		s += "      <label><input type='radio' id='good' name='eta1' value='1.0' checked onclick='mod_rebar_leng.calc_doro2016()'>양호 (1.0)</label>";
+		s += "      <label><input type='radio' id='bad' name='eta1' value='0.7' onclick='mod_rebar_leng.calc_doro2016()'>그외/슬립폼 (0.7)</label>";
+		s += "    </div></div>";
 
-		shtml += "<h3>";
-		shtml += "	<span class='eq200' >횡방향 압력 계수, &alpha;<sub>5</sub></span>";
-		shtml += "	<span class='eq200' >횡방향 압력, p</span> <INPUT id='p'  value='0.0' onchange ='mod_rebar_leng.calc_doro2016()'></INPUT> <SPAN class='unit' >Mpa</SPAN>";
-		shtml += "</h3>";
-		shtml += "<h3>";
-		shtml += "	<span class='eq200' >정착부 형상계수(그외열), &alpha;<sub>1</sub></span>";
-		shtml += "		<input style='width:50px;' type='radio' id = 'a6c4' name = 'alp6' value = '1.0' onclick = 'mod_rebar_leng.calc_doro2016()' checked='checked' /><label for='a6c4'>직선/기타 1.0</label>";
- 		shtml += "		<input style='width:50px;' type='radio' id = 'a6c1' name = 'alp6' value = '0.7' onclick = 'mod_rebar_leng.calc_doro2016()' /><label for='a6c1'>표준갈고리/구부림 0.7</label>";
-		shtml += "		<input style='width:50px;' type='radio' id = 'a6c2' name = 'alp6' value = '0.5' onclick = 'mod_rebar_leng.calc_doro2016()' /><label for='a6c2'>0.5</label>";
- 		shtml += "		<input style='width:50px;' type='radio' id = 'a6c3' name = 'alp6' value = '0.4' onclick = 'mod_rebar_leng.calc_doro2016()' /><label for='a6c3'>0.4</label>";
-		shtml += "</h3>";
-		shtml += "<h3>";
-		shtml += "	<span class='eq200' >겹침이음된 철근비 계수, &alpha;<sub>6</sub></span>";
-		shtml += "		<input style='width:50px;' type='radio' id = 'a6lapc1' name = 'alp6lap' value = '1.00' onclick = 'mod_rebar_leng.calc_doro2016()' checked='checked' /><label for='a6lapc1'>1.0 (<25%)</label>";
- 		shtml += "		<input style='width:50px;' type='radio' id = 'a6lapc2' name = 'alp6lap' value = '1.15' onclick = 'mod_rebar_leng.calc_doro2016()' /><label for='a6lapc2'>1.15 (33%)</label>";
-		shtml += "		<input style='width:50px;' type='radio' id = 'a6lapc3' name = 'alp6lap' value = '1.40' onclick = 'mod_rebar_leng.calc_doro2016()' /><label for='a6lapc3'>1.4 (50%)</label>";
- 		shtml += "		<input style='width:50px;' type='radio' id = 'a6lapc4' name = 'alp6lap' value = '1.50' onclick = 'mod_rebar_leng.calc_doro2016()' /><label for='a6lapc4'>1.5 (>50%)</label>";
-		shtml += "</h3>";
-		shtml += "<h3>";
-		shtml += "	<span class='eq200' >필요 철근 단면적, A<sub>s,req</sub></span> 	<INPUT id='asreq'  value='1' onchange ='mod_rebar_leng.calc_doro2016()'></INPUT> <SPAN class='unit' >mm<sup>2</sup></SPAN>";
-		shtml += "	<span class='eq200' >사용 철근 단면적, A<sub>s,prov</sub></span> 	<INPUT id='asprov'  value='1' onchange ='mod_rebar_leng.calc_doro2016()'></INPUT> <SPAN class='unit' >mm<sup>2</sup></SPAN>";
-		shtml += "</h3>";
+		s += "    <div class='rl-row'><div class='rl-lbl'>횡철근구속 &alpha;<sub>3</sub> (K)</div><div class='rl-opts'>";
+		s += "      <label><input type='radio' id='a3k1' name='k' value='0.1' onclick='mod_rebar_leng.calc_doro2016()'>0.1</label>";
+		s += "      <label><input type='radio' id='a3k2' name='k' value='0.05' onclick='mod_rebar_leng.calc_doro2016()'>0.05</label>";
+		s += "      <label><input type='radio' id='a3k3' name='k' value='0.0' checked onclick='mod_rebar_leng.calc_doro2016()'>0.0</label>";
+		s += "      <span class='rl-hint'>&lambda; = (&Sigma;A<sub>st</sub> &minus; &Sigma;A<sub>st,min</sub>) / A<sub>s</sub></span>";
+		s += "      <input id='lambda' value='0.0' onchange='mod_rebar_leng.calc_doro2016()'>";
+		s += "    </div></div>";
 
-		return shtml;
+		s += "    <div class='rl-row'><div class='rl-lbl'>횡방향압력 &alpha;<sub>5</sub></div><div class='rl-opts'>";
+		s += "      <span class='rl-hint'>p (MPa)</span><input id='p' value='0.0' onchange='mod_rebar_leng.calc_doro2016()'>";
+		s += "    </div></div>";
+
+		s += "    <div class='rl-row'><div class='rl-lbl'>정착부형상 &alpha;<sub>1</sub> (그외열)</div><div class='rl-opts'>";
+		s += "      <label><input type='radio' id='a6c4' name='alp6' value='1.0' checked onclick='mod_rebar_leng.calc_doro2016()'>직선/기타 1.0</label>";
+		s += "      <label><input type='radio' id='a6c1' name='alp6' value='0.7' onclick='mod_rebar_leng.calc_doro2016()'>갈고리/구부림 0.7</label>";
+		s += "      <label><input type='radio' id='a6c2' name='alp6' value='0.5' onclick='mod_rebar_leng.calc_doro2016()'>0.5</label>";
+		s += "      <label><input type='radio' id='a6c3' name='alp6' value='0.4' onclick='mod_rebar_leng.calc_doro2016()'>0.4</label>";
+		s += "    </div></div>";
+
+		s += "    <div class='rl-row'><div class='rl-lbl'>겹침철근비 &alpha;<sub>6</sub></div><div class='rl-opts'>";
+		s += "      <label><input type='radio' id='a6lapc1' name='alp6lap' value='1.00' checked onclick='mod_rebar_leng.calc_doro2016()'>1.0 (&lt;25%)</label>";
+		s += "      <label><input type='radio' id='a6lapc2' name='alp6lap' value='1.15' onclick='mod_rebar_leng.calc_doro2016()'>1.15 (33%)</label>";
+		s += "      <label><input type='radio' id='a6lapc3' name='alp6lap' value='1.40' onclick='mod_rebar_leng.calc_doro2016()'>1.4 (50%)</label>";
+		s += "      <label><input type='radio' id='a6lapc4' name='alp6lap' value='1.50' onclick='mod_rebar_leng.calc_doro2016()'>1.5 (&gt;50%)</label>";
+		s += "    </div></div>";
+
+		/* 겹침이음 철근량 */
+		s += "    <div class='form-grid-6col' style='margin-top:14px;'>";
+		s += "      <div class='col-label'>필요철근량 A<sub>s,req</sub> (mm²)</div><input class='form-input' id='asreq' value='1' onchange='mod_rebar_leng.calc_doro2016()'>";
+		s += "      <div class='col-label'>사용철근량 A<sub>s,prov</sub> (mm²)</div><input class='form-input' id='asprov' value='1' onchange='mod_rebar_leng.calc_doro2016()'>";
+		s += "      <div></div><div></div>";
+		s += "    </div>";
+
+		s += "  </div>";
+		s += "</div>";
+
+		return s;
 
 	}
 
@@ -546,6 +483,8 @@ var mod_rebar_leng = new function(){
         dfck    = document.getElementById("fck").value * 1.0;
         dfck    = Math.min(dfck, 50.0);
 		dfctk 	= mod_concrete.fctk( dfck );
+		// f_ctk 표시값 갱신
+		document.getElementById("fctk").innerHTML = dfctk.toLocaleString(undefined, {minimumFractionDigits: 3});
         dphic   = document.getElementById("phic").value * 1.0;
         dctc    = document.getElementById("ctc").value * 1.0;
         dcover  = document.getElementById("cover").value * 1.0;
@@ -694,61 +633,33 @@ var mod_rebar_leng = new function(){
 
 		var shtml;
 
-		shtml  = "<thead>	";
-		shtml += "	<tr >	";
-
-		shtml += "		<th style='width:100px;'>철근호칭</th>";
-		shtml += "		<th style='width:100px;'>철근직경</th>";
-		shtml += "		<th style='width:100px;'>정착부형태</th>";
-
-		shtml += "		<th style='width:100px;' colspan='2'>정착장</th>";
-        //shtml += "		<th style='width:100px;'>기타철근</th>";
-        //shtml += "		<th style='width:100px;'>표준갈고리</th>";
-        shtml += "		<th style='width:100px;'>겹이음</th>";
-		shtml += "	</tr>	";
-
-		shtml += "	<tr >	";
-
-		shtml += "		<th style='width:100px;'></th>";
-		shtml += "		<th style='width:100px;'></th>";
-		shtml += "		<th style='width:100px;'></th>";
-
-		shtml += "		<th style='width:100px;'>인장측</th>";
-        shtml += "		<th style='width:100px;'>압축측</th>";
-        shtml += "		<th style='width:100px;'></th>";
-		shtml += "	</tr>	";
-
-		shtml += "	<tr >	";
-		//	UNIT INPUT
-		shtml += "		<th >-</th>";
-        shtml += "		<th >mm</th>";
-		shtml += "		<th >-</th>";
-
-		shtml += "		<th >mm</th>";
-		shtml += "		<th >mm</th>";
-		shtml += "		<th >mm</th>";
-
-		shtml += "	</tr>	";
-		shtml += "</thead>	";
-		shtml += "<tbody>	";
-		shtml += "</tbody>	";
+		shtml  = "<thead>";
+		shtml += "	<tr>";
+		shtml += "		<th rowspan='2'>철근호칭</th>";
+		shtml += "		<th rowspan='2'>철근직경<br>(mm)</th>";
+		shtml += "		<th rowspan='2'>정착부<br>형태</th>";
+		shtml += "		<th colspan='2'>정착길이 (mm)</th>";
+		shtml += "		<th rowspan='2'>겹이음<br>(mm)</th>";
+		shtml += "	</tr>";
+		shtml += "	<tr>";
+		shtml += "		<th>인장측</th>";
+		shtml += "		<th>압축측</th>";
+		shtml += "	</tr>";
+		shtml += "</thead>";
+		shtml += "<tbody></tbody>";
 
 		var otable = document.getElementById( starget );
 		otable.innerHTML = shtml;
+		var otbody = otable.tBodies[0];
 
-		var itable_row;
-		var irow, orow;
+		var orow;
 		var ocell;
 
 		for( var i = 0; i < arebar.length; i++){
 
 			for( var j = 0; j < 2; j++){
 
-				itable_row = otable.rows.length;
-				otable.insertRow( itable_row );
-
-				irow = otable.rows.length - 1;
-				orow = otable.rows[irow];
+				orow = otbody.insertRow(-1);
 				// 철근 번호
 				ocell = orow.insertCell(0);
 				ocell.innerHTML = arebar[i][0];

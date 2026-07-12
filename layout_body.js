@@ -1,8 +1,7 @@
 /*
     layout_body.js — <body> 내부 HTML 레이아웃 (검증 완료본 / index.html 용)
     GitHub에서 관리, PHP에서 로드하여 innerHTML로 주입
-    - 검증 완료 기능만 포함: Tables / Drawings
-    - (개발 중인 Code>Rebar Anchorage·Splice 는 layout_body_test.js 에만 존재)
+    - 포함 기능: Tables / Code(Rebar Anchorage·Splice) / Drawings
 */
 function initLayout(phpData) {
     var visits = phpData && phpData.visits ? Number(phpData.visits).toLocaleString() : '0';
@@ -19,6 +18,10 @@ function initLayout(phpData) {
     + '    <div class="nav-sub" id="tables-sub">'
     + '      <a href="#" data-page="rebar">Rebar Tables</a>'
     + '      <a href="#" data-page="steel">Steel Section Tables</a>'
+    + '    </div>'
+    + '    <a class="nav-item" href="#" id="codeToggle"><i class="bi bi-calculator"></i> Code <span class="arrow">&#8250;</span></a>'
+    + '    <div class="nav-sub" id="code-sub">'
+    + '      <a href="#" data-page="rebarleng">Rebar Anchorage / Splice</a>'
     + '    </div>'
     + '    <a class="nav-item" href="#" id="drawingsToggle"><i class="bi bi-card-image"></i> Drawings <span class="arrow">&#8250;</span></a>'
     + '    <div class="nav-sub" id="drawings-sub">'
@@ -103,6 +106,26 @@ function initLayout(phpData) {
     + '          <tbody id="steel-tbody"><tr><td colspan="20" class="loading-row"><span class="spinner"></span> Loading section data...</td></tr></tbody>'
     + '        </table>'
     + '      </div>'
+    + '    </div>'
+
+    /* ── CODE : REBAR ANCHORAGE / SPLICE ── */
+    + '    <div class="page-view" id="page-rebarleng">'
+    + '      <style>'
+    + '        #mount-rebarleng .rl-row{display:flex;align-items:center;flex-wrap:wrap;gap:6px 16px;padding:9px 0;border-bottom:1px solid #f1f5f9;}'
+    + '        #mount-rebarleng .rl-row:last-child{border-bottom:none;}'
+    + '        #mount-rebarleng .rl-lbl{font-size:12px;font-weight:600;color:#0f172a;min-width:190px;}'
+    + '        #mount-rebarleng .rl-opts{display:flex;flex-wrap:wrap;gap:6px 16px;align-items:center;}'
+    + '        #mount-rebarleng .rl-opts label{display:inline-flex;align-items:center;gap:5px;font-size:13px;font-weight:500;color:#334155;cursor:pointer;margin:0;}'
+    + '        #mount-rebarleng .rl-opts input[type=radio]{accent-color:#2563eb;width:15px;height:15px;cursor:pointer;margin:0;}'
+    + '        #mount-rebarleng .rl-opts input[type=number],#mount-rebarleng .rl-opts input:not([type]){width:80px;padding:5px 8px;border:1px solid #cbd5e1;border-radius:6px;font-size:12.5px;}'
+    + '        #mount-rebarleng .rl-sec-title{font-size:12px;font-weight:700;color:#2563eb;margin:16px 0 6px;}'
+    + '        #mount-rebarleng .rl-hint{color:#94a3b8;font-size:12px;}'
+    + '        #mount-rebarleng .rl-readonly{display:flex;align-items:center;gap:8px;}'
+    + '        #mount-rebarleng .fctk-val{font-weight:700;color:#2563eb;font-size:13.5px;}'
+    + '      </style>'
+    + '      <h1 class="page-heading">Rebar Anchorage / Splice Length</h1>'
+    + '      <div class="breadcrumb"><a href="#">Home</a> / <a href="#">Code</a> / <span>Anchorage / Splice</span></div>'
+    + '      <div id="mount-rebarleng"></div>'
     + '    </div>'
 
     /* ── DRAWING PAGES ── */
@@ -530,6 +553,10 @@ function _bindNavigation() {
         if (topItem) topItem.classList.add('active');
 
         if (pageId === 'rebar' && !window._rebarLoaded) { loadRebarTables(); window._rebarLoaded = true; }
+        if (pageId === 'rebarleng' && !window._rebarLengLoaded) {
+            if (typeof mod_rebar_leng !== 'undefined') { mod_rebar_leng.init('mount-rebarleng'); window._rebarLengLoaded = true; }
+            else { document.getElementById('mount-rebarleng').innerHTML = '<p style="color:#b91c1c;padding:16px;">mod_rebar_leng.js / mod_rebar.js / mod_concrete.js 스크립트가 로드되지 않았습니다.</p>'; }
+        }
         if (pageId === 'steel' && !window._steelLoaded) { selectSection('hsection'); window._steelLoaded = true; }
         if (pageId === 'draw-hsection') { mountDrawing('hsection'); if (typeof fdraw_hsection === 'function') fdraw_hsection(); }
         if (pageId === 'draw-channel') { mountDrawing('channel'); if (typeof fdraw_channel === 'function') fdraw_channel(); }
@@ -561,6 +588,9 @@ function _bindNavigation() {
 
     document.getElementById('tablesToggle').addEventListener('click', function(e) {
         e.preventDefault(); this.classList.toggle('open'); document.getElementById('tables-sub').classList.toggle('show');
+    });
+    document.getElementById('codeToggle').addEventListener('click', function(e) {
+        e.preventDefault(); this.classList.toggle('open'); document.getElementById('code-sub').classList.toggle('show');
     });
     document.getElementById('drawingsToggle').addEventListener('click', function(e) {
         e.preventDefault(); this.classList.toggle('open'); document.getElementById('drawings-sub').classList.toggle('show');

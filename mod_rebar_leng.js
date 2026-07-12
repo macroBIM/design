@@ -111,10 +111,10 @@ var mod_rebar_leng = new function(){
 		s += "  <div class='draw-card-header'><div><div class='draw-card-title'>입력값 &mdash; 콘크리트구조기준 2012·2021 공통</div></div></div>";
 		s += "  <div class='draw-card-body'>";
 		s += "    <div class='form-grid-6col'>";
-		s += "      <div class='col-label'>Conc. f<sub>ck</sub> (MPa)</div><input class='form-input' id='fck' value='50' onchange='mod_rebar_leng.calc_gujo2012()'>";
+		s += "      <div class='col-label'>f<sub>ck</sub> (MPa)</div><input class='form-input' id='fck' value='50' onchange='mod_rebar_leng.calc_gujo2012()'>";
 		s += "      <div class='col-label'>Rebar CTC (mm)</div><input class='form-input' id='ctc' value='125' onchange='mod_rebar_leng.calc_gujo2012()'>";
 		s += "      <div class='col-label'>Rebar f<sub>y</sub> (MPa)</div><input class='form-input' id='fy' value='400' onchange='mod_rebar_leng.calc_gujo2012()'>";
-		s += "      <div class='col-label'>Conc. Cover (mm)</div><input class='form-input' id='cover' value='50' onchange='mod_rebar_leng.calc_gujo2012()'>";
+		s += "      <div class='col-label'>Cover (mm)</div><input class='form-input' id='cover' value='50' onchange='mod_rebar_leng.calc_gujo2012()'>";
 		s += "      <div class='col-label'>횡철근지수 K<sub>tr</sub></div><input class='form-input' id='ktr' value='0.0' onchange='mod_rebar_leng.calc_gujo2012()'>";
 		s += "      <div class='col-label'>경량계수 &lambda;</div><input class='form-input' id='lamda' value='1.0' onchange='mod_rebar_leng.calc_gujo2012()'>";
 		s += "    </div>";
@@ -418,10 +418,10 @@ var mod_rebar_leng = new function(){
 
 		/* 재료 / 기하 */
 		s += "    <div class='form-grid-6col'>";
-		s += "      <div class='col-label'>Conc. f<sub>ck</sub> (MPa)</div><input class='form-input' id='fck' value='50' onchange='mod_rebar_leng.calc_doro2016()'>";
+		s += "      <div class='col-label'>f<sub>ck</sub> (MPa)</div><input class='form-input' id='fck' value='50' onchange='mod_rebar_leng.calc_doro2016()'>";
 		s += "      <div class='col-label'>Rebar CTC (mm)</div><input class='form-input' id='ctc' value='125' onchange='mod_rebar_leng.calc_doro2016()'>";
 		s += "      <div class='col-label'>철근설계응력 &sigma;<sub>sd</sub> (MPa)</div><input class='form-input' id='sigma' value='400' onchange='mod_rebar_leng.calc_doro2016()'>";
-		s += "      <div class='col-label'>Conc. Cover (mm)</div><input class='form-input' id='cover' value='50' onchange='mod_rebar_leng.calc_doro2016()'>";
+		s += "      <div class='col-label'>Cover (mm)</div><input class='form-input' id='cover' value='50' onchange='mod_rebar_leng.calc_doro2016()'>";
 		s += "      <div class='col-label'>콘크리트재료계수 &phi;<sub>c</sub></div><input class='form-input' id='phic' value='0.65' onchange='mod_rebar_leng.calc_doro2016()'>";
 		s += "      <div class='col-label'>기준인장강도 f<sub>ctk</sub> (MPa)</div><div class='rl-readonly'><span id='fctk' class='fctk-val'></span> <span class='rl-hint'>= 0.21 f<sub>ck</sub><sup>2/3</sup></span></div>";
 		s += "    </div>";

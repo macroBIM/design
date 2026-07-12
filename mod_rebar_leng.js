@@ -43,7 +43,7 @@ var mod_rebar_leng = new function(){
 
 		/* ── 결과표 : 겹이음 ── */
 		shtml += "<div id='lab' class='table-card'>";
-		shtml += "  <div class='table-card-header'><div class='table-card-title' id='cap2'>겹이음 계산 결과</div><div class='table-card-desc'>단위: mm</div></div>";
+		shtml += "  <div class='table-card-header'><div class='table-card-title' id='cap2'>겹이음 계산 결과</div><div class='table-card-desc'>단위: mm · D35 초과 철근은 인장 겹침이음 불가</div></div>";
 		shtml += "  <div style='overflow-x:auto;'><table id='tablab' class='ea-table striped rebar'></table></div>";
 		shtml += "</div>";
 
@@ -393,12 +393,12 @@ var mod_rebar_leng = new function(){
 			ocell = orow.insertCell(1);
 			ocell.innerHTML = arebar[i][1];
 
-			// A급이음
+			// A급이음 ( D35 초과 철근은 인장 겹침이음 불가 → 0 이면 "불가" 표시 )
 			ocell = orow.insertCell(2);
-			ocell.innerHTML = lstag[i].toLocaleString(undefined, {minimumFractionDigits: 0});
+			ocell.innerHTML = ( lstag[i] > 0 ) ? lstag[i].toLocaleString(undefined, {minimumFractionDigits: 0}) : "<span style='color:#94a3b8;'>불가</span>";
 			// B급이음
 			ocell = orow.insertCell(3);
-			ocell.innerHTML = lstagb[i].toLocaleString(undefined, {minimumFractionDigits: 0});
+			ocell.innerHTML = ( lstagb[i] > 0 ) ? lstagb[i].toLocaleString(undefined, {minimumFractionDigits: 0}) : "<span style='color:#94a3b8;'>불가</span>";
 			// 압축철근
 			ocell = orow.insertCell(4);
 			ocell.innerHTML = lstagc[i].toLocaleString(undefined, {minimumFractionDigits: 0});

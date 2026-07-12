@@ -1,7 +1,7 @@
 /*
     layout_body.js — <body> 내부 HTML 레이아웃 (검증 완료본 / index.html 용)
     GitHub에서 관리, PHP에서 로드하여 innerHTML로 주입
-    - 포함 기능: Tables / Code(Rebar Anchorage·Splice) / Drawings
+    - 포함 기능: Tables(Rebar·Steel·Bend Radius) / Code(Rebar Anchorage·Splice) / Drawings
 */
 function initLayout(phpData) {
     var visits = phpData && phpData.visits ? Number(phpData.visits).toLocaleString() : '0';
@@ -18,6 +18,7 @@ function initLayout(phpData) {
     + '    <div class="nav-sub" id="tables-sub">'
     + '      <a href="#" data-page="rebar">Rebar Tables</a>'
     + '      <a href="#" data-page="steel">Steel Section Tables</a>'
+    + '      <a href="#" data-page="bendradius">Rebar Bend Radius</a>'
     + '    </div>'
     + '    <a class="nav-item" href="#" id="codeToggle"><i class="bi bi-calculator"></i> Code <span class="arrow">&#8250;</span></a>'
     + '    <div class="nav-sub" id="code-sub">'
@@ -105,6 +106,46 @@ function initLayout(phpData) {
     + '          <thead id="steel-thead"></thead>'
     + '          <tbody id="steel-tbody"><tr><td colspan="20" class="loading-row"><span class="spinner"></span> Loading section data...</td></tr></tbody>'
     + '        </table>'
+    + '      </div>'
+    + '    </div>'
+
+    /* ── TABLES : REBAR BEND RADIUS ── */
+    + '    <div class="page-view" id="page-bendradius">'
+    + '      <h1 class="page-heading">Rebar Bend Radius</h1>'
+    + '      <div class="breadcrumb"><a href="#">Home</a> / <a href="#">Tables</a> / <span>Bend Radius</span></div>'
+    + '      <div class="table-card">'
+    + '        <div class="table-card-header"><div class="table-card-title">Main Bars (Standard Hooks)</div><div class="table-card-desc">Min. inside bend <b>diameter</b> ( parenthesis = radius )</div></div>'
+    + '        <div style="overflow-x:auto;"><table class="ea-table striped rebar">'
+    + '          <thead>'
+    + '            <tr><th rowspan="2">Bar Size</th><th colspan="2">ACI-based</th><th colspan="2">Eurocode-based (LSD)</th></tr>'
+    + '            <tr><th>KDS 14 20 50<br><span style="color:#94a3b8;font-size:11px;font-weight:400;">Concrete Structures (KR)</span></th><th>AASHTO LRFD<br><span style="color:#94a3b8;font-size:11px;font-weight:400;">Highway Bridge (US)</span></th><th>KDS 24 14 21<br><span style="color:#94a3b8;font-size:11px;font-weight:400;">Highway Bridge (KR)</span></th><th>EN 1992-1-1<br><span style="color:#94a3b8;font-size:11px;font-weight:400;">Eurocode 2 (EU)</span></th></tr>'
+    + '          </thead>'
+    + '          <tbody>'
+    + '            <tr><td>D16 &amp; smaller<br><span style="color:#94a3b8;font-size:11px;">#5 / &le;16mm</span></td><td>6d<sub>b</sub> (3d<sub>b</sub>)</td><td>6d<sub>b</sub> (3d<sub>b</sub>)</td><td>4d<sub>b</sub> (2d<sub>b</sub>)</td><td>4d<sub>b</sub> (2d<sub>b</sub>)</td></tr>'
+    + '            <tr><td>D19 ~ D25<br><span style="color:#94a3b8;font-size:11px;">#6~8 / 20~25mm</span></td><td>6d<sub>b</sub> (3d<sub>b</sub>)</td><td>6d<sub>b</sub> (3d<sub>b</sub>)</td><td>7d<sub>b</sub> (3.5d<sub>b</sub>)</td><td>7d<sub>b</sub> (3.5d<sub>b</sub>)</td></tr>'
+    + '            <tr><td>D29 ~ D35<br><span style="color:#94a3b8;font-size:11px;">#9~11 / 28~32mm</span></td><td>8d<sub>b</sub> (4d<sub>b</sub>)</td><td>8d<sub>b</sub> (4d<sub>b</sub>)</td><td>7d<sub>b</sub> (3.5d<sub>b</sub>)</td><td>7d<sub>b</sub> (3.5d<sub>b</sub>)</td></tr>'
+    + '            <tr><td>D38 &amp; larger<br><span style="color:#94a3b8;font-size:11px;">#14~ / 40mm~</span></td><td>10d<sub>b</sub> (5d<sub>b</sub>)</td><td>10d<sub>b</sub> (5d<sub>b</sub>)</td><td>7d<sub>b</sub> (3.5d<sub>b</sub>)</td><td>7d<sub>b</sub> (3.5d<sub>b</sub>)</td></tr>'
+    + '          </tbody>'
+    + '        </table></div>'
+    + '      </div>'
+    + '      <div class="table-card">'
+    + '        <div class="table-card-header"><div class="table-card-title">Shear Reinforcement (Stirrups / Ties)</div><div class="table-card-desc">Min. inside bend <b>diameter</b> ( parenthesis = radius )</div></div>'
+    + '        <div style="overflow-x:auto;"><table class="ea-table striped rebar">'
+    + '          <thead>'
+    + '            <tr><th rowspan="2">Bar Size</th><th colspan="2">ACI-based</th><th colspan="2">Eurocode-based (LSD)</th></tr>'
+    + '            <tr><th>KDS 14 20 50<br><span style="color:#94a3b8;font-size:11px;font-weight:400;">Concrete Structures (KR)</span></th><th>AASHTO LRFD<br><span style="color:#94a3b8;font-size:11px;font-weight:400;">Highway Bridge (US)</span></th><th>KDS 24 14 21<br><span style="color:#94a3b8;font-size:11px;font-weight:400;">Highway Bridge (KR)</span></th><th>EN 1992-1-1<br><span style="color:#94a3b8;font-size:11px;font-weight:400;">Eurocode 2 (EU)</span></th></tr>'
+    + '          </thead>'
+    + '          <tbody>'
+    + '            <tr><td>D16 &amp; smaller<br><span style="color:#94a3b8;font-size:11px;">#5 / &le;16mm</span></td><td>4d<sub>b</sub> (2d<sub>b</sub>)</td><td>4d<sub>b</sub> (2d<sub>b</sub>)</td><td>4d<sub>b</sub> (2d<sub>b</sub>)</td><td>4d<sub>b</sub> (2d<sub>b</sub>)</td></tr>'
+    + '            <tr><td>D19 ~ D25<br><span style="color:#94a3b8;font-size:11px;">#6~8 / 20~25mm</span></td><td>6d<sub>b</sub> (3d<sub>b</sub>)</td><td>6d<sub>b</sub> (3d<sub>b</sub>)</td><td>7d<sub>b</sub> (3.5d<sub>b</sub>)</td><td>7d<sub>b</sub> (3.5d<sub>b</sub>)</td></tr>'
+    + '          </tbody>'
+    + '        </table></div>'
+    + '      </div>'
+    + '      <div style="font-size:12px;color:#64748b;line-height:1.7;padding:2px 4px;">'
+    + '        &bull; Values are the minimum inside bend <b>diameter</b>; the value in parenthesis is the <b>radius</b> (diameter / 2).<br>'
+    + '        &bull; ACI-based codes (KDS 14 20 50 &middot; AASHTO) vary by bar size; Eurocode-based codes (KDS 24 14 21 &middot; EN 1992-1-1) use &le;16 / &gt;16 mm diameter.<br>'
+    + '        &bull; US (#) and EU (mm) designations are approximate references only.<br>'
+    + '        &bull; Eurocode / bridge values are mandrel diameters to avoid bar damage (EN 1992 Table 8.1N); larger mandrels may be required when checking concrete bearing inside the bend.'
     + '      </div>'
     + '    </div>'
 

@@ -393,12 +393,12 @@ var mod_rebar_leng = new function(){
 			ocell = orow.insertCell(1);
 			ocell.innerHTML = arebar[i][1];
 
-			// A급이음 ( D35 초과 철근은 인장 겹침이음 불가 → 0 이면 "불가" 표시 )
+			// A급이음 ( D35 초과 철근은 인장 겹침이음 금지 → 0 이면 "겹이음 금지" 표시 )
 			ocell = orow.insertCell(2);
-			ocell.innerHTML = ( lstag[i] > 0 ) ? lstag[i].toLocaleString(undefined, {minimumFractionDigits: 0}) : "<span style='color:#94a3b8;'>불가</span>";
+			ocell.innerHTML = ( lstag[i] > 0 ) ? lstag[i].toLocaleString(undefined, {minimumFractionDigits: 0}) : "<span style='color:#94a3b8;'>겹이음 금지</span>";
 			// B급이음
 			ocell = orow.insertCell(3);
-			ocell.innerHTML = ( lstagb[i] > 0 ) ? lstagb[i].toLocaleString(undefined, {minimumFractionDigits: 0}) : "<span style='color:#94a3b8;'>불가</span>";
+			ocell.innerHTML = ( lstagb[i] > 0 ) ? lstagb[i].toLocaleString(undefined, {minimumFractionDigits: 0}) : "<span style='color:#94a3b8;'>겹이음 금지</span>";
 			// 압축철근
 			ocell = orow.insertCell(4);
 			ocell.innerHTML = lstagc[i].toLocaleString(undefined, {minimumFractionDigits: 0});

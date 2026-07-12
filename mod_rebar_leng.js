@@ -21,7 +21,7 @@ var mod_rebar_leng = new function(){
 		shtml += "  <div class='draw-card-header'><div><div class='draw-card-title'>철근 정착 · 겹침이음 길이</div></div></div>";
 		shtml += "  <div class='draw-card-body'>";
 		shtml += "    <div class='rl-row'><div class='rl-lbl'>설계기준</div><div class='rl-opts'>";
-		shtml += "      <label><input type='radio' id='gujo' name='standard' value='gujo' checked onclick='mod_rebar_leng.execute()'>콘크리트구조기준 2012</label>";
+		shtml += "      <label><input type='radio' id='gujo' name='standard' value='gujo' checked onclick='mod_rebar_leng.execute()'>콘크리트구조기준 2012·2021 공통</label>";
 		shtml += "      <label><input type='radio' id='doro' name='standard' value='doro' onclick='mod_rebar_leng.execute()'>도로교 설계기준 2016</label>";
 		shtml += "    </div></div>";
 		shtml += "    <div class='rl-row'><div class='rl-lbl'>철근 규격</div><div class='rl-opts'>";
@@ -108,7 +108,7 @@ var mod_rebar_leng = new function(){
 		var s = '';
 
 		s += "<div class='draw-card'>";
-		s += "  <div class='draw-card-header'><div><div class='draw-card-title'>입력값 &mdash; 콘크리트구조기준 2012</div></div></div>";
+		s += "  <div class='draw-card-header'><div><div class='draw-card-title'>입력값 &mdash; 콘크리트구조기준 2012·2021 공통</div></div></div>";
 		s += "  <div class='draw-card-body'>";
 		s += "    <div class='form-grid-6col'>";
 		s += "      <div class='col-label'>Conc. f<sub>ck</sub> (MPa)</div><input class='form-input' id='fck' value='50' onchange='mod_rebar_leng.calc_gujo2012()'>";

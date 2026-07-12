@@ -1,7 +1,8 @@
 /*
     layout_body.js — <body> 내부 HTML 레이아웃 (검증 완료본 / index.html 용)
     GitHub에서 관리, PHP에서 로드하여 innerHTML로 주입
-    - layout_body_test.js 와 기능 동일: Tables / Code(Rebar Anchorage·Splice) / Drawings
+    - 검증 완료 기능만 포함: Tables / Drawings
+    - (개발 중인 Code>Rebar Anchorage·Splice 는 layout_body_test.js 에만 존재)
 */
 function initLayout(phpData) {
     var visits = phpData && phpData.visits ? Number(phpData.visits).toLocaleString() : '0';
@@ -18,10 +19,6 @@ function initLayout(phpData) {
     + '    <div class="nav-sub" id="tables-sub">'
     + '      <a href="#" data-page="rebar">Rebar Tables</a>'
     + '      <a href="#" data-page="steel">Steel Section Tables</a>'
-    + '    </div>'
-    + '    <a class="nav-item" href="#" id="codeToggle"><i class="bi bi-calculator"></i> Code <span class="arrow">&#8250;</span></a>'
-    + '    <div class="nav-sub" id="code-sub">'
-    + '      <a href="#" data-page="rebarleng">Rebar Anchorage / Splice</a>'
     + '    </div>'
     + '    <a class="nav-item" href="#" id="drawingsToggle"><i class="bi bi-card-image"></i> Drawings <span class="arrow">&#8250;</span></a>'
     + '    <div class="nav-sub" id="drawings-sub">'
@@ -106,23 +103,6 @@ function initLayout(phpData) {
     + '          <tbody id="steel-tbody"><tr><td colspan="20" class="loading-row"><span class="spinner"></span> Loading section data...</td></tr></tbody>'
     + '        </table>'
     + '      </div>'
-    + '    </div>'
-
-    /* ── CODE : REBAR ANCHORAGE / SPLICE ── */
-    + '    <div class="page-view" id="page-rebarleng">'
-    + '      <style>'
-    + '        #mount-rebarleng table{border-collapse:collapse;margin:12px auto;font-size:13px;background:#fff;}'
-    + '        #mount-rebarleng th,#mount-rebarleng td{border:1px solid #d0d7de;padding:6px 10px;text-align:center;}'
-    + '        #mount-rebarleng thead th{background:#f1f5f9;font-weight:600;}'
-    + '        #mount-rebarleng h3{margin:12px 0;font-size:14px;font-weight:600;}'
-    + '        #mount-rebarleng .eq200{display:inline-block;min-width:200px;font-weight:500;}'
-    + '        #mount-rebarleng .unit{color:#64748b;margin:0 16px 0 4px;}'
-    + '        #mount-rebarleng input[type=text],#mount-rebarleng input:not([type]){width:90px;padding:3px 6px;border:1px solid #cbd5e1;border-radius:4px;}'
-    + '        #mount-rebarleng label{margin-right:14px;cursor:pointer;}'
-    + '      </style>'
-    + '      <h1 class="page-heading">Rebar Anchorage / Splice Length</h1>'
-    + '      <div class="breadcrumb"><a href="#">Home</a> / <a href="#">Code</a> / <span>Anchorage / Splice</span></div>'
-    + '      <div class="table-card"><div class="draw-card-body"><div id="mount-rebarleng"></div></div></div>'
     + '    </div>'
 
     /* ── DRAWING PAGES ── */
@@ -550,10 +530,6 @@ function _bindNavigation() {
         if (topItem) topItem.classList.add('active');
 
         if (pageId === 'rebar' && !window._rebarLoaded) { loadRebarTables(); window._rebarLoaded = true; }
-        if (pageId === 'rebarleng' && !window._rebarLengLoaded) {
-            if (typeof mod_rebar_leng !== 'undefined') { mod_rebar_leng.init('mount-rebarleng'); window._rebarLengLoaded = true; }
-            else { document.getElementById('mount-rebarleng').innerHTML = '<p style="color:#b91c1c;padding:16px;">mod_rebar_leng.js / mod_rebar.js / mod_concrete.js 스크립트가 로드되지 않았습니다.</p>'; }
-        }
         if (pageId === 'steel' && !window._steelLoaded) { selectSection('hsection'); window._steelLoaded = true; }
         if (pageId === 'draw-hsection') { mountDrawing('hsection'); if (typeof fdraw_hsection === 'function') fdraw_hsection(); }
         if (pageId === 'draw-channel') { mountDrawing('channel'); if (typeof fdraw_channel === 'function') fdraw_channel(); }
@@ -585,9 +561,6 @@ function _bindNavigation() {
 
     document.getElementById('tablesToggle').addEventListener('click', function(e) {
         e.preventDefault(); this.classList.toggle('open'); document.getElementById('tables-sub').classList.toggle('show');
-    });
-    document.getElementById('codeToggle').addEventListener('click', function(e) {
-        e.preventDefault(); this.classList.toggle('open'); document.getElementById('code-sub').classList.toggle('show');
     });
     document.getElementById('drawingsToggle').addEventListener('click', function(e) {
         e.preventDefault(); this.classList.toggle('open'); document.getElementById('drawings-sub').classList.toggle('show');

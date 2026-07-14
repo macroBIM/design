@@ -36,6 +36,10 @@ function initLayout(phpData) {
     + '      <a href="#" data-page="draw-octagon">Octagon</a>'
     + '      <a href="#" data-page="draw-track">Track</a>'
     + '    </div>'
+    + '    <a class="nav-item" href="#" id="retainingToggle"><i class="bi bi-bricks"></i> Retaining Wall <span class="arrow">&#8250;</span></a>'
+    + '    <div class="nav-sub" id="retaining-sub">'
+    + '      <a href="#" data-page="draw-gravitywall">Gravity Wall</a>'
+    + '    </div>'
     + '  </div>'
     + '</nav>'
 
@@ -179,6 +183,7 @@ function initLayout(phpData) {
     + '    <div class="page-view" id="page-draw-circle"><h1 class="page-heading">Circle Section Drawing</h1><div class="breadcrumb"><a href="#">Home</a> / <a href="#">Drawings</a> / <span>Circle</span></div><div id="mount-draw-circle"></div></div>'
     + '    <div class="page-view" id="page-draw-octagon"><h1 class="page-heading">Octagon Section Drawing</h1><div class="breadcrumb"><a href="#">Home</a> / <a href="#">Drawings</a> / <span>Octagon</span></div><div id="mount-draw-octagon"></div></div>'
     + '    <div class="page-view" id="page-draw-track"><h1 class="page-heading">Track Section Drawing</h1><div class="breadcrumb"><a href="#">Home</a> / <a href="#">Drawings</a> / <span>Track</span></div><div id="mount-draw-track"></div></div>'
+    + '    <div class="page-view" id="page-draw-gravitywall"><h1 class="page-heading">Gravity Wall Layout</h1><div class="breadcrumb"><a href="#">Home</a> / <a href="#">Retaining Wall</a> / <span>Gravity Wall</span></div><div id="mount-draw-gravitywall"></div></div>'
 
     + '  </div>'
     + '</div>';
@@ -608,11 +613,24 @@ function _bindNavigation() {
         if (pageId === 'draw-circle') { mountDrawing('circle'); if (typeof fdraw_circle === 'function') fdraw_circle(); }
         if (pageId === 'draw-octagon') { mountDrawing('octagon'); if (typeof fdraw_octagon === 'function') fdraw_octagon(); }
         if (pageId === 'draw-track') { mountDrawing('track'); if (typeof fdraw_track === 'function') fdraw_track(); }
+        if (pageId === 'draw-gravitywall') { mountDrawing('gravitywall'); ensureGravityWall(); }
     }
     window.showPage = showPage;
 
+    // Gravity wall module (bim_gravitywall.js) may not be in the page's script list — load on demand.
+    function ensureGravityWall() {
+        if (typeof fdraw_gravitywall === 'function') { fdraw_gravitywall('mount-draw-gravitywall'); return; }
+        if (window._gwLoading) return;
+        window._gwLoading = true;
+        var sc = document.createElement('script');
+        sc.src = 'https://macrobim.github.io/macroBIM/bim_gravitywall.js';
+        sc.onload = function () { window._gwLoading = false; if (typeof fdraw_gravitywall === 'function') fdraw_gravitywall('mount-draw-gravitywall'); };
+        sc.onerror = function () { window._gwLoading = false; var m = document.getElementById('mount-draw-gravitywall'); if (m) m.innerHTML = '<p style="color:#b91c1c;padding:16px;">bim_gravitywall.js failed to load.</p>'; };
+        document.head.appendChild(sc);
+    }
+
     function mountDrawing(kind) {
-        ['hsection','channel','ibeam','splice','liftinglug','box1cell','rect','circle','octagon','track'].forEach(function(k) {
+        ['hsection','channel','ibeam','splice','liftinglug','box1cell','rect','circle','octagon','track','gravitywall'].forEach(function(k) {
             if (k !== kind) {
                 var other = document.getElementById('mount-draw-' + k);
                 if (other) other.innerHTML = '';
@@ -634,6 +652,9 @@ function _bindNavigation() {
     });
     document.getElementById('drawingsToggle').addEventListener('click', function(e) {
         e.preventDefault(); this.classList.toggle('open'); document.getElementById('drawings-sub').classList.toggle('show');
+    });
+    document.getElementById('retainingToggle').addEventListener('click', function(e) {
+        e.preventDefault(); this.classList.toggle('open'); document.getElementById('retaining-sub').classList.toggle('show');
     });
     document.querySelectorAll('.nav-item[data-page]').forEach(function(el) {
         el.addEventListener('click', function(e) { e.preventDefault(); showPage(this.getAttribute('data-page')); });

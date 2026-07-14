@@ -262,6 +262,7 @@ session_start();
 <script src="https://macrobim.github.io/macroBIM/bim_liftinglug.js?v=<?php echo $_BIM_V; ?>"></script>
 <script src="https://macrobim.github.io/macroBIM/bim_box1cell.js?v=<?php echo $_BIM_V; ?>"></script>
 <script src="https://macrobim.github.io/macroBIM/bim_rect.js?v=<?php echo $_BIM_V; ?>"></script>
+<script src="https://macrobim.github.io/macroBIM/bim_gravitywall.js?v=<?php echo $_BIM_V; ?>"></script>
 
 <!-- ═══════ THREE.js for 3D Box Girder & I-Beam ═══════ -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>

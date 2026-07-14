@@ -623,7 +623,7 @@ function _bindNavigation() {
         if (window._gwLoading) return;
         window._gwLoading = true;
         var sc = document.createElement('script');
-        sc.src = 'https://macrobim.github.io/macroBIM/bim_gravitywall.js?v=2';
+        sc.src = 'https://macrobim.github.io/macroBIM/bim_gravitywall.js?v=3';
         sc.onload = function () { window._gwLoading = false; if (typeof fdraw_gravitywall === 'function') fdraw_gravitywall('mount-draw-gravitywall'); };
         sc.onerror = function () { window._gwLoading = false; var m = document.getElementById('mount-draw-gravitywall'); if (m) m.innerHTML = '<p style="color:#b91c1c;padding:16px;">bim_gravitywall.js failed to load.</p>'; };
         document.head.appendChild(sc);

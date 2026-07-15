@@ -693,7 +693,7 @@ function _bindNavigation() {
         if (window._hsecTestLoading) return;
         window._hsecTestLoading = true;
         var sc = document.createElement('script');
-        sc.src = 'https://macrobim.github.io/macroBIM/bim_hsection_test.js?v=5';
+        sc.src = 'https://macrobim.github.io/macroBIM/bim_hsection_test.js?v=6';
         sc.onload = function () { window._hsecTestLoaded = true; window._hsecTestLoading = false; if (cb) cb(); };
         sc.onerror = function () { window._hsecTestLoading = false; if (typeof fdraw_hsection === 'function') fdraw_hsection(); };
         document.head.appendChild(sc);

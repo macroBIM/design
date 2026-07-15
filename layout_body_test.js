@@ -208,7 +208,7 @@ function _createTemplates() {
         '<style>'
       + '.hs-root{--dim:#2563eb;--muted:#64748b;--line:#cbd5e1;--hair:#e2e8f0;--panel:#fff;--chip:#f1f5f9;--ink:#182430;color:var(--ink);font-family:ui-sans-serif,system-ui,-apple-system,\'Segoe UI\',Roboto,sans-serif;}'
       + '.hs-root *{box-sizing:border-box}'
-      + '.hs-grid{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:20px;align-items:start}'
+      + '.hs-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start}'
       + '@media(max-width:900px){.hs-grid{grid-template-columns:1fr}}'
       + '.hs-card{background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:hidden}'
       + '.hs-hd{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;padding:9px 14px;border-bottom:1px solid var(--hair);background:var(--chip)}'
@@ -693,7 +693,7 @@ function _bindNavigation() {
         if (window._hsecTestLoading) return;
         window._hsecTestLoading = true;
         var sc = document.createElement('script');
-        sc.src = 'https://macrobim.github.io/macroBIM/bim_hsection_test.js?v=2';
+        sc.src = 'https://macrobim.github.io/macroBIM/bim_hsection_test.js?v=3';
         sc.onload = function () { window._hsecTestLoaded = true; window._hsecTestLoading = false; if (cb) cb(); };
         sc.onerror = function () { window._hsecTestLoading = false; if (typeof fdraw_hsection === 'function') fdraw_hsection(); };
         document.head.appendChild(sc);

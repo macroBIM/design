@@ -268,36 +268,64 @@ function _createTemplates() {
 
     /* ── CHANNEL ── */
     _addTemplate(root, 'tpl-draw-channel',
-        '<div class="draw-card">'
-      + '  <div class="draw-card-header" style="display:flex;justify-content:space-between;align-items:center;"><div><div class="draw-card-title">Dimension (mm)</div><div class="draw-card-desc">Input channel cross-section parameters</div></div></div>'
-      + '  <div class="draw-card-body">'
-      + '    <div style="margin-bottom:20px;">'
-      + '      <div class="form-label" style="margin-bottom:6px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;">Batch Input (CSV) <span style="font-weight:400;text-transform:none;letter-spacing:0;color:#94a3b8;">&mdash; 1줄: H,B,tw,tf,Rw,Rf / 2줄: L</span></div>'
-      + '      <textarea class="form-input" id="sUserText" rows="2" style="width:100%;resize:vertical;font-size:12px;" onchange="putParams_channel(\'sUserText\'); fdraw_channel();">300,90,12,16,19,9.5\n500</textarea>'
-      + '    </div>'
-      + '    <div class="form-grid-6col" style="margin-bottom:12px;">'
-      + '      <div class="col-header var-header">Variable</div><div class="col-header">Value</div>'
-      + '      <div class="col-header var-header">Variable</div><div class="col-header">Value</div>'
-      + '      <div class="col-header var-header">Variable</div><div class="col-header">Value</div>'
-      + '    </div>'
-      + '    <div class="form-grid-6col">'
-      + '      <div class="col-label">H (height)</div><input class="form-input" type="number" id="dsech" value="300" onchange="fdraw_channel()">'
-      + '      <div class="col-label">B (width)</div><input class="form-input" type="number" id="db" value="90" onchange="fdraw_channel()">'
-      + '      <div class="col-label">tw (web)</div><input class="form-input" type="number" id="dtw" value="12" onchange="fdraw_channel()">'
-      + '      <div class="col-label">tf (flange)</div><input class="form-input" type="number" id="dtf" value="16" onchange="fdraw_channel()">'
-      + '      <div class="col-label">Rw <span style="color:#94a3b8;font-size:10px;">(0=없음)</span></div><input class="form-input" type="number" id="drw" value="19" onchange="fdraw_channel()">'
-      + '      <div class="col-label">Rf <span style="color:#94a3b8;font-size:10px;">(0=없음)</span></div><input class="form-input" type="number" id="drf" value="9.5" onchange="fdraw_channel()">'
-      + '      <div class="col-label">Channel Length</div><input class="form-input" type="number" id="dseg_leng" value="500" onchange="fdraw_channel()">'
-      + '      <div></div><div></div>'
-      + '      <button class="btn-generate" onclick="odxf_channel.download(\'Channel.dxf\')" style="grid-column:5 / 7;margin:0;justify-content:center;"><i class="bi bi-download"></i> DXF DOWNLOAD</button>'
+        '<style>'
+      + '.hs-root{--dim:#2563eb;--muted:#64748b;--line:#cbd5e1;--hair:#e2e8f0;--panel:#fff;--chip:#f1f5f9;--ink:#182430;color:var(--ink);font-family:ui-sans-serif,system-ui,-apple-system,\'Segoe UI\',Roboto,sans-serif;}'
+      + '.hs-root *{box-sizing:border-box}'
+      + '.hs-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start}'
+      + '@media(max-width:900px){.hs-grid{grid-template-columns:1fr}}'
+      + '.hs-card{background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:hidden}'
+      + '.hs-hd{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;padding:9px 14px;border-bottom:1px solid var(--hair);background:var(--chip)}'
+      + '.hs-ttl{font-size:11px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;color:var(--muted)}'
+      + '.hs-inputs{padding:14px}'
+      + '.hs-inrow{display:grid;grid-template-columns:1fr auto;align-items:center;gap:8px;padding:5px 0;border-bottom:1px dashed var(--hair)}'
+      + '.hs-inrow:last-child{border-bottom:0}'
+      + '.hs-inrow label{font-size:13px;display:flex;align-items:baseline;gap:8px;margin:0}'
+      + '.hs-inrow .var{font-weight:600;color:var(--dim);min-width:40px;display:inline-block;font-family:ui-monospace,Menlo,Consolas,monospace}'
+      + '.hs-inrow .desc{color:var(--muted);font-size:12px}'
+      + '.hs-inrow input{width:120px;text-align:right;padding:5px 8px;border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--ink);font-size:13px}'
+      + '.hs-inrow input:focus{outline:2px solid var(--dim);outline-offset:1px;border-color:var(--dim)}'
+      + '.hs-unit{color:var(--muted);font-size:11px;margin-left:6px}'
+      + '.hs-btn{font:inherit;font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#fff;background:var(--dim);border:1px solid var(--dim);border-radius:6px;padding:5px 12px;cursor:pointer}'
+      + '.hs-btn:hover{filter:brightness(1.1)}'
+      + '.hs-vbtn{padding:5px 10px;border:1px solid #cbd5e1;background:#eef2f6;color:#475569;cursor:pointer;border-radius:6px;font-size:11px;font-weight:700}'
+      + '.hs-batch-wrap{padding:0 0 10px;margin-bottom:8px;border-bottom:1px dashed var(--hair)}'
+      + '.hs-batch-lbl{font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin-bottom:5px}'
+      + '.hs-batch-hint{font-weight:400;text-transform:none;letter-spacing:0;color:var(--dim);font-family:ui-monospace,Menlo,Consolas,monospace;font-size:10px}'
+      + '.hs-batch{width:100%;resize:none;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;line-height:1.5;padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--ink)}'
+      + '.hs-plot #channelplot{width:100%}'
+      + '</style>'
+      + '<div class="hs-root"><div class="hs-grid">'
+      + '  <div class="hs-card">'
+      + '    <div class="hs-hd"><span class="hs-ttl">Layout</span>'
+      + '      <span id="chan-viewbar" style="display:flex;gap:4px;flex-wrap:wrap;align-items:center;">'
+      + '        <button type="button" class="hs-vbtn" data-cview="front" onclick="chan_setview(\'front\')" style="background:#2563eb;color:#fff;border-color:#2563eb;">Front</button>'
+      + '        <button type="button" class="hs-vbtn" data-cview="back" onclick="chan_setview(\'back\')">Back</button>'
+      + '        <button type="button" class="hs-vbtn" data-cview="left" onclick="chan_setview(\'left\')">Left</button>'
+      + '        <button type="button" class="hs-vbtn" data-cview="center" onclick="chan_setview(\'center\')">Center</button>'
+      + '        <button type="button" class="hs-vbtn" data-cview="right" onclick="chan_setview(\'right\')">Right</button>'
+      + '        <button type="button" class="hs-vbtn" data-cview="top" onclick="chan_setview(\'top\')">Top</button>'
+      + '        <button type="button" class="hs-vbtn" data-cview="bottom" onclick="chan_setview(\'bottom\')">Bottom</button>'
+      + '        <button type="button" class="hs-vbtn" data-cview="3d" onclick="chan_setview(\'3d\')">3D</button>'
+      + '        <button type="button" class="hs-btn" onclick="fdraw_channel()"><i class="bi bi-arrow-repeat"></i> Regen</button>'
+      + '      </span></div>'
+      + '    <div class="hs-plot"><div id="channelplot"></div></div>'
+      + '  </div>'
+      + '  <div class="hs-card">'
+      + '    <div class="hs-hd"><span class="hs-ttl">Dimension Input &mdash; live redraw on edit</span>'
+      + '      <button type="button" class="hs-btn" onclick="odxf_channel.download(\'Channel.dxf\')">DXF out</button></div>'
+      + '    <div class="hs-inputs">'
+      + '      <div class="hs-batch-wrap"><div class="hs-batch-lbl">Batch Input (CSV) <span class="hs-batch-hint">line1: H,B,tw,tf,Rw,Rf &nbsp;/&nbsp; line2: L</span></div>'
+      + '        <textarea class="hs-batch" id="sUserText" rows="2" spellcheck="false" onchange="putParams_channel(\'sUserText\'); fdraw_channel();">300,90,12,16,19,9.5\n500</textarea></div>'
+      + '      <div class="hs-inrow"><label><span class="var">H</span><span class="desc">Section height</span></label><span><input type="number" id="dsech" value="300" onchange="fdraw_channel()"><span class="hs-unit">mm</span></span></div>'
+      + '      <div class="hs-inrow"><label><span class="var">B</span><span class="desc">Flange width</span></label><span><input type="number" id="db" value="90" onchange="fdraw_channel()"><span class="hs-unit">mm</span></span></div>'
+      + '      <div class="hs-inrow"><label><span class="var">tw</span><span class="desc">Web thickness</span></label><span><input type="number" id="dtw" value="12" onchange="fdraw_channel()"><span class="hs-unit">mm</span></span></div>'
+      + '      <div class="hs-inrow"><label><span class="var">tf</span><span class="desc">Flange thickness</span></label><span><input type="number" id="dtf" value="16" onchange="fdraw_channel()"><span class="hs-unit">mm</span></span></div>'
+      + '      <div class="hs-inrow"><label><span class="var">Rw</span><span class="desc">Inner fillet radius (0 = none)</span></label><span><input type="number" id="drw" value="19" onchange="fdraw_channel()"><span class="hs-unit">mm</span></span></div>'
+      + '      <div class="hs-inrow"><label><span class="var">Rf</span><span class="desc">Flange-tip fillet radius (0 = none)</span></label><span><input type="number" id="drf" value="9.5" onchange="fdraw_channel()"><span class="hs-unit">mm</span></span></div>'
+      + '      <div class="hs-inrow"><label><span class="var">L</span><span class="desc">Channel length</span></label><span><input type="number" id="dseg_leng" value="500" onchange="fdraw_channel()"><span class="hs-unit">mm</span></span></div>'
       + '    </div>'
       + '  </div>'
-      + '</div>'
-      + '<div class="draw-card">'
-      + '  <div class="draw-card-header"><div class="draw-card-title">Drawing View <span style="font-weight:400;color:#94a3b8;font-size:12px;">(Synchronized Zoom / Pan)</span></div>'
-      + '  <button class="btn-generate" onclick="fdraw_channel()" style="margin-top:0;"><i class="bi bi-arrow-repeat"></i> REGEN</button></div>'
-      + '  <div class="drawing-viewport"><div id="channelplot"></div></div>'
-      + '</div>'
+      + '</div></div>'
     );
 
     /* ── IBEAM ── */
@@ -636,7 +664,7 @@ function _bindNavigation() {
         }
         if (pageId === 'steel' && !window._steelLoaded) { selectSection('hsection'); window._steelLoaded = true; }
         if (pageId === 'draw-hsection') { mountDrawing('hsection'); ensureHsectionTest(function(){ if (typeof fdraw_hsection === 'function') fdraw_hsection(); }); }
-        if (pageId === 'draw-channel') { mountDrawing('channel'); if (typeof fdraw_channel === 'function') fdraw_channel(); }
+        if (pageId === 'draw-channel') { mountDrawing('channel'); ensureChannelTest(function(){ if (typeof fdraw_channel === 'function') fdraw_channel(); }); }
         if (pageId === 'draw-ibeam') { mountDrawing('ibeam'); if (typeof fdraw_ibeam === 'function') fdraw_ibeam(); }
         if (pageId === 'draw-splice') { mountDrawing('splice'); if (typeof fdraw_boltsplice === 'function') fdraw_boltsplice(); }
         if (pageId === 'draw-liftinglug') { mountDrawing('liftinglug'); if (typeof fdraw_liftinglug === 'function') fdraw_liftinglug(); }
@@ -696,6 +724,18 @@ function _bindNavigation() {
         sc.src = 'https://macrobim.github.io/macroBIM/bim_hsection_test.js?v=6';
         sc.onload = function () { window._hsecTestLoaded = true; window._hsecTestLoading = false; if (cb) cb(); };
         sc.onerror = function () { window._hsecTestLoading = false; if (typeof fdraw_hsection === 'function') fdraw_hsection(); };
+        document.head.appendChild(sc);
+    }
+
+    // Channel TEST build (bim_channel_test.js) — overrides fdraw_channel for the header-driven single view.
+    function ensureChannelTest(cb) {
+        if (window._chanTestLoaded) { if (cb) cb(); return; }
+        if (window._chanTestLoading) return;
+        window._chanTestLoading = true;
+        var sc = document.createElement('script');
+        sc.src = 'https://macrobim.github.io/macroBIM/bim_channel_test.js?v=1';
+        sc.onload = function () { window._chanTestLoaded = true; window._chanTestLoading = false; if (cb) cb(); };
+        sc.onerror = function () { window._chanTestLoading = false; if (typeof fdraw_channel === 'function') fdraw_channel(); };
         document.head.appendChild(sc);
     }
 

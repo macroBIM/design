@@ -1,7 +1,7 @@
 /*
     layout_body.js — <body> 내부 HTML 레이아웃 (검증 완료본 / index.html 용)
     GitHub에서 관리, PHP에서 로드하여 innerHTML로 주입
-    - 포함 기능: Tables(Rebar·Steel·Bend Radius) / Code(Rebar Anchorage·Splice) / Drawings / Retaining Wall(Gravity)
+    - 포함 기능: Tables(Rebar·Steel·Bend Radius) / Code(Rebar Anchorage·Splice) / Drawings / Retaining Wall(Gravity·Inverted-T)
 */
 function initLayout(phpData) {
     var visits = phpData && phpData.visits ? Number(phpData.visits).toLocaleString() : '0';
@@ -40,6 +40,7 @@ function initLayout(phpData) {
     + '    <a class="nav-item" href="#" id="retainingToggle"><i class="bi bi-bricks"></i> Retaining Wall <span class="arrow">&#8250;</span></a>'
     + '    <div class="nav-sub" id="retaining-sub">'
     + '      <a href="#" data-page="draw-gravitywall">Gravity Wall</a>'
+    + '      <a href="#" data-page="draw-invtwall">Inverted-T Wall</a>'
     + '    </div>'
     + '  </div>'
     + '</nav>'
@@ -185,6 +186,7 @@ function initLayout(phpData) {
     + '    <div class="page-view" id="page-draw-octagon"><h1 class="page-heading">Octagon Section Drawing</h1><div class="breadcrumb"><a href="#">Home</a> / <a href="#">Drawings</a> / <span>Octagon</span></div><div id="mount-draw-octagon"></div></div>'
     + '    <div class="page-view" id="page-draw-track"><h1 class="page-heading">Track Section Drawing</h1><div class="breadcrumb"><a href="#">Home</a> / <a href="#">Drawings</a> / <span>Track</span></div><div id="mount-draw-track"></div></div>'
     + '    <div class="page-view" id="page-draw-gravitywall"><h1 class="page-heading">Gravity Wall Layout</h1><div class="breadcrumb"><a href="#">Home</a> / <a href="#">Retaining Wall</a> / <span>Gravity Wall</span></div><div id="mount-draw-gravitywall"></div></div>'
+    + '    <div class="page-view" id="page-draw-invtwall"><h1 class="page-heading">Inverted-T Wall Layout</h1><div class="breadcrumb"><a href="#">Home</a> / <a href="#">Retaining Wall</a> / <span>Inverted-T Wall</span></div><div id="mount-draw-invtwall"></div></div>'
 
     + '  </div>'
     + '</div>';
@@ -615,6 +617,7 @@ function _bindNavigation() {
         if (pageId === 'draw-octagon') { mountDrawing('octagon'); if (typeof fdraw_octagon === 'function') fdraw_octagon(); }
         if (pageId === 'draw-track') { mountDrawing('track'); if (typeof fdraw_track === 'function') fdraw_track(); }
         if (pageId === 'draw-gravitywall') { mountDrawing('gravitywall'); ensureGravityWall(); }
+        if (pageId === 'draw-invtwall') { mountDrawing('invtwall'); ensureInvtWall(); }
     }
     window.showPage = showPage;
 
@@ -630,8 +633,20 @@ function _bindNavigation() {
         document.head.appendChild(sc);
     }
 
+    // Inverted-T wall module (bim_invtwall.js) — load on demand.
+    function ensureInvtWall() {
+        if (typeof fdraw_invtwall === 'function') { fdraw_invtwall('mount-draw-invtwall'); return; }
+        if (window._iwLoading) return;
+        window._iwLoading = true;
+        var sc = document.createElement('script');
+        sc.src = 'https://macrobim.github.io/macroBIM/bim_invtwall.js?v=7';
+        sc.onload = function () { window._iwLoading = false; if (typeof fdraw_invtwall === 'function') fdraw_invtwall('mount-draw-invtwall'); };
+        sc.onerror = function () { window._iwLoading = false; var m = document.getElementById('mount-draw-invtwall'); if (m) m.innerHTML = '<p style="color:#b91c1c;padding:16px;">bim_invtwall.js failed to load.</p>'; };
+        document.head.appendChild(sc);
+    }
+
     function mountDrawing(kind) {
-        ['hsection','channel','ibeam','splice','liftinglug','box1cell','rect','circle','octagon','track','gravitywall'].forEach(function(k) {
+        ['hsection','channel','ibeam','splice','liftinglug','box1cell','rect','circle','octagon','track','gravitywall','invtwall'].forEach(function(k) {
             if (k !== kind) {
                 var other = document.getElementById('mount-draw-' + k);
                 if (other) other.innerHTML = '';

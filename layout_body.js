@@ -1,7 +1,7 @@
 /*
     layout_body.js — <body> 내부 HTML 레이아웃 (검증 완료본 / index.html 용)
     GitHub에서 관리, PHP에서 로드하여 innerHTML로 주입
-    - 포함 기능: Tables(Rebar·Steel·Bend Radius) / Code(Rebar Anchorage·Splice) / Drawings / Retaining Wall(Gravity·Inverted-T)
+    - 포함 기능: Tables(Rebar·Steel·Bend Radius) / Code(Rebar Anchorage·Splice) / Drawings / Retaining Wall(Gravity·Inverted-T·L-shaped)
 */
 function initLayout(phpData) {
     var visits = phpData && phpData.visits ? Number(phpData.visits).toLocaleString() : '0';
@@ -41,6 +41,7 @@ function initLayout(phpData) {
     + '    <div class="nav-sub" id="retaining-sub">'
     + '      <a href="#" data-page="draw-gravitywall">Gravity Wall</a>'
     + '      <a href="#" data-page="draw-invtwall">Inverted-T Wall</a>'
+    + '      <a href="#" data-page="draw-lwall">L-shaped Wall</a>'
     + '    </div>'
     + '  </div>'
     + '</nav>'
@@ -187,6 +188,7 @@ function initLayout(phpData) {
     + '    <div class="page-view" id="page-draw-track"><h1 class="page-heading">Track Section Drawing</h1><div class="breadcrumb"><a href="#">Home</a> / <a href="#">Drawings</a> / <span>Track</span></div><div id="mount-draw-track"></div></div>'
     + '    <div class="page-view" id="page-draw-gravitywall"><h1 class="page-heading">Gravity Wall Layout</h1><div class="breadcrumb"><a href="#">Home</a> / <a href="#">Retaining Wall</a> / <span>Gravity Wall</span></div><div id="mount-draw-gravitywall"></div></div>'
     + '    <div class="page-view" id="page-draw-invtwall"><h1 class="page-heading">Inverted-T Wall Layout</h1><div class="breadcrumb"><a href="#">Home</a> / <a href="#">Retaining Wall</a> / <span>Inverted-T Wall</span></div><div id="mount-draw-invtwall"></div></div>'
+    + '    <div class="page-view" id="page-draw-lwall"><h1 class="page-heading">L-shaped Wall Layout</h1><div class="breadcrumb"><a href="#">Home</a> / <a href="#">Retaining Wall</a> / <span>L-shaped Wall</span></div><div id="mount-draw-lwall"></div></div>'
 
     + '  </div>'
     + '</div>';
@@ -618,6 +620,7 @@ function _bindNavigation() {
         if (pageId === 'draw-track') { mountDrawing('track'); if (typeof fdraw_track === 'function') fdraw_track(); }
         if (pageId === 'draw-gravitywall') { mountDrawing('gravitywall'); ensureGravityWall(); }
         if (pageId === 'draw-invtwall') { mountDrawing('invtwall'); ensureInvtWall(); }
+        if (pageId === 'draw-lwall') { mountDrawing('lwall'); ensureLWall(); }
     }
     window.showPage = showPage;
 
@@ -645,8 +648,20 @@ function _bindNavigation() {
         document.head.appendChild(sc);
     }
 
+    // L-shaped wall module (bim_lwall.js) — load on demand.
+    function ensureLWall() {
+        if (typeof fdraw_lwall === 'function') { fdraw_lwall('mount-draw-lwall'); return; }
+        if (window._lwLoading) return;
+        window._lwLoading = true;
+        var sc = document.createElement('script');
+        sc.src = 'https://macrobim.github.io/macroBIM/bim_lwall.js?v=1';
+        sc.onload = function () { window._lwLoading = false; if (typeof fdraw_lwall === 'function') fdraw_lwall('mount-draw-lwall'); };
+        sc.onerror = function () { window._lwLoading = false; var m = document.getElementById('mount-draw-lwall'); if (m) m.innerHTML = '<p style="color:#b91c1c;padding:16px;">bim_lwall.js failed to load.</p>'; };
+        document.head.appendChild(sc);
+    }
+
     function mountDrawing(kind) {
-        ['hsection','channel','ibeam','splice','liftinglug','box1cell','rect','circle','octagon','track','gravitywall','invtwall'].forEach(function(k) {
+        ['hsection','channel','ibeam','splice','liftinglug','box1cell','rect','circle','octagon','track','gravitywall','invtwall','lwall'].forEach(function(k) {
             if (k !== kind) {
                 var other = document.getElementById('mount-draw-' + k);
                 if (other) other.innerHTML = '';

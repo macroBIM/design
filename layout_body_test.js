@@ -638,7 +638,7 @@ function _bindNavigation() {
         if (window._iwLoading) return;
         window._iwLoading = true;
         var sc = document.createElement('script');
-        sc.src = 'https://macrobim.github.io/macroBIM/bim_invtwall.js?v=7';
+        sc.src = 'https://macrobim.github.io/macroBIM/bim_invtwall_test.js?v=1';
         sc.onload = function () { window._iwLoading = false; if (typeof fdraw_invtwall === 'function') fdraw_invtwall('mount-draw-invtwall'); };
         sc.onerror = function () { window._iwLoading = false; var m = document.getElementById('mount-draw-invtwall'); if (m) m.innerHTML = '<p style="color:#b91c1c;padding:16px;">bim_invtwall.js failed to load.</p>'; };
         document.head.appendChild(sc);

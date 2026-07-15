@@ -231,8 +231,19 @@ function _createTemplates() {
       + '  </div>'
       + '</div>'
       + '<div class="draw-card">'
-      + '  <div class="draw-card-header"><div class="draw-card-title">Drawing View <span style="font-weight:400;color:#94a3b8;font-size:12px;">(Synchronized Zoom / Pan)</span></div>'
-      + '  <button class="btn-generate" onclick="fdraw_hsection()" style="margin-top:0;"><i class="bi bi-arrow-repeat"></i> REGEN</button></div>'
+      + '  <div class="draw-card-header" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;"><div class="draw-card-title">Drawing View</div>'
+      + '    <div id="hsec-viewbar" style="display:flex;gap:4px;flex-wrap:wrap;align-items:center;">'
+      + '      <button type="button" data-hview="3d" onclick="hsec_setview(\'3d\')" style="padding:5px 11px;border:1px solid #2563eb;background:#2563eb;color:#fff;cursor:pointer;border-radius:6px;font-size:11px;font-weight:700;">3D</button>'
+      + '      <button type="button" data-hview="front" onclick="hsec_setview(\'front\')" style="padding:5px 11px;border:1px solid #475569;background:#334155;color:#cbd5e1;cursor:pointer;border-radius:6px;font-size:11px;font-weight:700;">Front</button>'
+      + '      <button type="button" data-hview="back" onclick="hsec_setview(\'back\')" style="padding:5px 11px;border:1px solid #475569;background:#334155;color:#cbd5e1;cursor:pointer;border-radius:6px;font-size:11px;font-weight:700;">Back</button>'
+      + '      <button type="button" data-hview="left" onclick="hsec_setview(\'left\')" style="padding:5px 11px;border:1px solid #475569;background:#334155;color:#cbd5e1;cursor:pointer;border-radius:6px;font-size:11px;font-weight:700;">Left</button>'
+      + '      <button type="button" data-hview="center" onclick="hsec_setview(\'center\')" style="padding:5px 11px;border:1px solid #475569;background:#334155;color:#cbd5e1;cursor:pointer;border-radius:6px;font-size:11px;font-weight:700;">Center</button>'
+      + '      <button type="button" data-hview="right" onclick="hsec_setview(\'right\')" style="padding:5px 11px;border:1px solid #475569;background:#334155;color:#cbd5e1;cursor:pointer;border-radius:6px;font-size:11px;font-weight:700;">Right</button>'
+      + '      <button type="button" data-hview="top" onclick="hsec_setview(\'top\')" style="padding:5px 11px;border:1px solid #475569;background:#334155;color:#cbd5e1;cursor:pointer;border-radius:6px;font-size:11px;font-weight:700;">Top</button>'
+      + '      <button type="button" data-hview="bottom" onclick="hsec_setview(\'bottom\')" style="padding:5px 11px;border:1px solid #475569;background:#334155;color:#cbd5e1;cursor:pointer;border-radius:6px;font-size:11px;font-weight:700;">Bottom</button>'
+      + '      <button class="btn-generate" onclick="fdraw_hsection()" style="margin:0;padding:5px 12px;"><i class="bi bi-arrow-repeat"></i> REGEN</button>'
+      + '    </div>'
+      + '  </div>'
       + '  <div class="drawing-viewport"><div id="hsecplot"></div></div>'
       + '</div>'
     );
@@ -606,7 +617,7 @@ function _bindNavigation() {
             else { document.getElementById('mount-rebarleng').innerHTML = '<p style="color:#b91c1c;padding:16px;">mod_rebar_leng.js / mod_rebar.js / mod_concrete.js 스크립트가 로드되지 않았습니다.</p>'; }
         }
         if (pageId === 'steel' && !window._steelLoaded) { selectSection('hsection'); window._steelLoaded = true; }
-        if (pageId === 'draw-hsection') { mountDrawing('hsection'); if (typeof fdraw_hsection === 'function') fdraw_hsection(); }
+        if (pageId === 'draw-hsection') { mountDrawing('hsection'); ensureHsectionTest(function(){ if (typeof fdraw_hsection === 'function') fdraw_hsection(); }); }
         if (pageId === 'draw-channel') { mountDrawing('channel'); if (typeof fdraw_channel === 'function') fdraw_channel(); }
         if (pageId === 'draw-ibeam') { mountDrawing('ibeam'); if (typeof fdraw_ibeam === 'function') fdraw_ibeam(); }
         if (pageId === 'draw-splice') { mountDrawing('splice'); if (typeof fdraw_boltsplice === 'function') fdraw_boltsplice(); }
@@ -655,6 +666,18 @@ function _bindNavigation() {
         sc.src = 'https://macrobim.github.io/macroBIM/bim_lwall.js?v=1';
         sc.onload = function () { window._lwLoading = false; if (typeof fdraw_lwall === 'function') fdraw_lwall('mount-draw-lwall'); };
         sc.onerror = function () { window._lwLoading = false; var m = document.getElementById('mount-draw-lwall'); if (m) m.innerHTML = '<p style="color:#b91c1c;padding:16px;">bim_lwall.js failed to load.</p>'; };
+        document.head.appendChild(sc);
+    }
+
+    // H-section TEST build (bim_hsection_test.js) — overrides fdraw_hsection for the header-driven single view.
+    function ensureHsectionTest(cb) {
+        if (window._hsecTestLoaded) { if (cb) cb(); return; }
+        if (window._hsecTestLoading) return;
+        window._hsecTestLoading = true;
+        var sc = document.createElement('script');
+        sc.src = 'https://macrobim.github.io/macroBIM/bim_hsection_test.js?v=1';
+        sc.onload = function () { window._hsecTestLoaded = true; window._hsecTestLoading = false; if (cb) cb(); };
+        sc.onerror = function () { window._hsecTestLoading = false; if (typeof fdraw_hsection === 'function') fdraw_hsection(); };
         document.head.appendChild(sc);
     }
 

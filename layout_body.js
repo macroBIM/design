@@ -331,7 +331,7 @@ function _createTemplates() {
 
     /* ── IBEAM ── */
     _addTemplate(root, 'tpl-draw-ibeam', _beTpl({
-      name: 'ibeam', plot: 'ibeamplot', bar: 'ibeam-viewbar', dxf: 'IBeam.dxf',
+      name: 'ibeam', plot: 'ibeamplot', bar: 'ibeam-viewbar', dxf: 'IBeam.dxf', guide: 'https://macrobim.github.io/macroBIM/ibeam_vars.png',
       hint: 'line1: Begin (13) / line2: End (13) / line3: L', brows: 4,
       bdef: '1500,1235,985,85,45,135,140,160,50,200,100,50,20\n1500,1235,985,85,45,135,140,160,50,200,100,50,20\n500', len: 500,
       rows: [['h', 'Section height', 'dh', 1500, 1500], ['bt', 'Top flange width', 'dbt', 1235, 1235], ['bb', 'Bottom flange width', 'dbb', 985, 985],
@@ -425,7 +425,7 @@ function _createTemplates() {
 
     /* ── BOX1CELL ── */
     _addTemplate(root, 'tpl-draw-box1cell', _beTpl({
-      name: 'box1cell', plot: 'box1cellplot', bar: 'box1cell-viewbar', dxf: 'Box1Cell.dxf',
+      name: 'box1cell', plot: 'box1cellplot', bar: 'box1cell-viewbar', dxf: 'Box1Cell.dxf', guide: 'https://macrobim.github.io/macroBIM/box1cell_vars.png',
       hint: 'line1: Begin (23) / line2: End (23) / line3: L', brows: 5,
       bdef: '6600,12000,6000,1500,1500,1500,300,300,600,600,300,300,840,500,200,200,100,300,200,400,-2,5,3\n8000,12000,6000,1500,1500,1500,300,300,600,600,300,300,840,500,200,200,100,300,200,400,-2,5,3\n5000', len: 5000,
       rows: [['h', 'Section height', 'dh', 6600, 8000], ['bt', 'Top slab width', 'dbt', 12000, 12000], ['bb', 'Bottom slab width', 'dbb', 6000, 6000],
@@ -538,7 +538,7 @@ function _HSCSS() {
 }
 
 // Begin/End drawing template builder (retaining-wall style), used by ibeam & box1cell.
-// o = { name, plot, bar, dxf, hint, brows, bdef, len, rows:[[var,desc,idBase,vFront,vBack],...] }
+// o = { name, plot, bar, dxf, hint, brows, bdef, len, rows:[[var,desc,idBase,vFront,vBack],...], guide? }
 function _beTpl(o) {
     var setview = o.name + '_setview', fdraw = 'fdraw_' + o.name, odxf = 'odxf_' + o.name, putp = 'putParams_' + o.name;
     function vb(v, label, active) { return '<button type="button" class="hs-vbtn" data-sview="' + v + '" onclick="' + setview + '(\'' + v + '\')"' + (active ? ' style="background:#2563eb;color:#fff;border-color:#2563eb;"' : '') + '>' + label + '</button>'; }
@@ -558,7 +558,10 @@ function _beTpl(o) {
       + '  </div>'
       + '  <div class="hs-card">'
       + '    <div class="hs-hd"><span class="hs-ttl">Dimension Input &mdash; Front / Back</span>'
-      + '      <button type="button" class="hs-btn" onclick="' + odxf + '.download(\'' + o.dxf + '\')">DXF out</button></div>'
+      + '      <span style="display:flex;gap:6px;align-items:center;">'
+      + (o.guide ? '<button type="button" class="hs-vbtn" onclick="var g=document.getElementById(\'' + o.name + '_guide_img\');g.style.display=(g.style.display===\'none\'?\'block\':\'none\');"><i class="bi bi-image"></i> Guide</button>' : '')
+      + '        <button type="button" class="hs-btn" onclick="' + odxf + '.download(\'' + o.dxf + '\')">DXF out</button></span></div>'
+      + (o.guide ? '<div id="' + o.name + '_guide_img" style="display:none;padding:10px;background:#f8f9fa;border-bottom:1px solid var(--hair);text-align:center;"><img src="' + o.guide + '" style="max-width:100%;height:auto;border:1px solid #ddd;border-radius:6px;"></div>' : '')
       + '    <div class="hs-inputs">'
       + '      <div class="hs-batch-wrap"><div class="hs-batch-lbl">Batch Input (CSV) <span class="hs-batch-hint">' + o.hint + '</span></div>'
       + '        <textarea class="hs-batch" id="sUserText" rows="' + o.brows + '" spellcheck="false" onchange="' + putp + '(\'sUserText\'); ' + fdraw + '();">' + o.bdef + '</textarea></div>'

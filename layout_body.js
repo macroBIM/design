@@ -13,7 +13,6 @@ function initLayout(phpData) {
     + '  <div class="sidebar-header"><div class="logo-info"><div class="name">macroBIM</div></div></div>'
     + '  <div class="nav-menu">'
     + '    <a class="nav-item active" href="#" id="dashboardMenu" data-page="dashboard"><i class="bi bi-grid-fill"></i> Dashboard</a>'
-    + '    <div class="nav-section">UI Elements</div>'
     + '    <a class="nav-item" href="#" id="tablesToggle"><i class="bi bi-table"></i> Tables <span class="arrow">&#8250;</span></a>'
     + '    <div class="nav-sub" id="tables-sub">'
     + '      <a href="#" data-page="rebar">Rebar Tables</a>'

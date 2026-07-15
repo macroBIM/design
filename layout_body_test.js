@@ -235,7 +235,6 @@ function _createTemplates() {
       + '  <div class="hs-card">'
       + '    <div class="hs-hd"><span class="hs-ttl">Layout</span>'
       + '      <span id="hsec-viewbar" style="display:flex;gap:4px;flex-wrap:wrap;align-items:center;">'
-      + '        <button type="button" class="hs-vbtn" data-hview="3d" onclick="hsec_setview(\'3d\')">3D</button>'
       + '        <button type="button" class="hs-vbtn" data-hview="front" onclick="hsec_setview(\'front\')" style="background:#2563eb;color:#fff;border-color:#2563eb;">Front</button>'
       + '        <button type="button" class="hs-vbtn" data-hview="back" onclick="hsec_setview(\'back\')">Back</button>'
       + '        <button type="button" class="hs-vbtn" data-hview="left" onclick="hsec_setview(\'left\')">Left</button>'
@@ -243,6 +242,7 @@ function _createTemplates() {
       + '        <button type="button" class="hs-vbtn" data-hview="right" onclick="hsec_setview(\'right\')">Right</button>'
       + '        <button type="button" class="hs-vbtn" data-hview="top" onclick="hsec_setview(\'top\')">Top</button>'
       + '        <button type="button" class="hs-vbtn" data-hview="bottom" onclick="hsec_setview(\'bottom\')">Bottom</button>'
+      + '        <button type="button" class="hs-vbtn" data-hview="3d" onclick="hsec_setview(\'3d\')">3D</button>'
       + '        <button type="button" class="hs-btn" onclick="fdraw_hsection()"><i class="bi bi-arrow-repeat"></i> Regen</button>'
       + '      </span></div>'
       + '    <div class="hs-plot"><div id="hsecplot"></div></div>'
@@ -693,7 +693,7 @@ function _bindNavigation() {
         if (window._hsecTestLoading) return;
         window._hsecTestLoading = true;
         var sc = document.createElement('script');
-        sc.src = 'https://macrobim.github.io/macroBIM/bim_hsection_test.js?v=3';
+        sc.src = 'https://macrobim.github.io/macroBIM/bim_hsection_test.js?v=4';
         sc.onload = function () { window._hsecTestLoaded = true; window._hsecTestLoading = false; if (cb) cb(); };
         sc.onerror = function () { window._hsecTestLoading = false; if (typeof fdraw_hsection === 'function') fdraw_hsection(); };
         document.head.appendChild(sc);

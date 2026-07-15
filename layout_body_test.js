@@ -696,7 +696,7 @@ function _bindNavigation() {
         if (window._chanTestLoading) return;
         window._chanTestLoading = true;
         var sc = document.createElement('script');
-        sc.src = 'https://macrobim.github.io/macroBIM/bim_channel_test.js?v=1';
+        sc.src = 'https://macrobim.github.io/macroBIM/bim_channel_test.js?v=2';
         sc.onload = function () { window._chanTestLoaded = true; window._chanTestLoading = false; if (cb) cb(); };
         sc.onerror = function () { window._chanTestLoading = false; if (typeof fdraw_channel === 'function') fdraw_channel(); };
         document.head.appendChild(sc);
@@ -712,7 +712,7 @@ function _bindNavigation() {
         if (window._sectLoading) return;
         window._sectLoading = true;
         var sc = document.createElement('script');
-        sc.src = 'https://macrobim.github.io/macroBIM/bim_section_test.js?v=1';
+        sc.src = 'https://macrobim.github.io/macroBIM/bim_section_test.js?v=2';
         sc.onload = function () { window._sectLoading = false; var q = window._sectCbs; window._sectCbs = []; q.forEach(function (f) { f(); }); };
         sc.onerror = function () { window._sectLoading = false; window._sectCbs = []; if (typeof window['fdraw_' + name] === 'function') window['fdraw_' + name](); };
         document.head.appendChild(sc);

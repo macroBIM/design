@@ -723,7 +723,7 @@ function _bindNavigation() {
     }
     function ensureLugTest(cb) { ensureRWModule('bim_liftinglug_test.js?v=1', 'lugTest', cb); }
     function ensureIbeamTest(cb) { ensureRWModule('bim_ibeam_test.js?v=2', 'ibeamTest', cb); }
-    function ensureBox1cellTest(cb) { ensureRWModule('bim_box1cell_test.js?v=2', 'box1cellTest', cb); }
+    function ensureBox1cellTest(cb) { ensureRWModule('bim_box1cell_test.js?v=3', 'box1cellTest', cb); }
 
     function mountDrawing(kind) {
         ['hsection','channel','ibeam','splice','liftinglug','box1cell','rect','circle','octagon','track','gravitywall','invtwall','lwall'].forEach(function(k) {

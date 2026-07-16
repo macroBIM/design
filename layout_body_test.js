@@ -41,12 +41,7 @@ function initLayout(phpData) {
     + '      <a href="#" data-page="draw-invtwall">Inverted-T Wall</a>'
     + '      <a href="#" data-page="draw-lwall">L-shaped Wall</a>'
     + '    </div>'
-    + '    <a class="nav-item" href="#" id="pierToggle"><i class="bi bi-building"></i> Pier <span class="arrow">&#8250;</span></a>'
-    + '    <div class="nav-sub" id="pier-sub">'
-    + '      <a href="#" data-page="draw-pier-coping">두부보 (Coping)</a>'
-    + '      <a href="#" data-page="draw-pier-column">기둥 (Column)</a>'
-    + '      <a href="#" data-page="draw-pier-foundation">기초 (Foundation)</a>'
-    + '    </div>'
+    + '    <a class="nav-item" href="#" data-page="draw-pier"><i class="bi bi-building"></i> Pier</a>'
     + '  </div>'
     + '</nav>'
 
@@ -193,9 +188,7 @@ function initLayout(phpData) {
     + '    <div class="page-view" id="page-draw-gravitywall"><h1 class="page-heading">Gravity Wall Layout</h1><div class="breadcrumb"><a href="#">Home</a> / <a href="#">Retaining Wall</a> / <span>Gravity Wall</span></div><div id="mount-draw-gravitywall"></div></div>'
     + '    <div class="page-view" id="page-draw-invtwall"><h1 class="page-heading">Inverted-T Wall Layout</h1><div class="breadcrumb"><a href="#">Home</a> / <a href="#">Retaining Wall</a> / <span>Inverted-T Wall</span></div><div id="mount-draw-invtwall"></div></div>'
     + '    <div class="page-view" id="page-draw-lwall"><h1 class="page-heading">L-shaped Wall Layout</h1><div class="breadcrumb"><a href="#">Home</a> / <a href="#">Retaining Wall</a> / <span>L-shaped Wall</span></div><div id="mount-draw-lwall"></div></div>'
-    + '    <div class="page-view" id="page-draw-pier-coping"><h1 class="page-heading">Pier &mdash; 두부보 (Coping)</h1><div class="breadcrumb"><a href="#">Home</a> / <a href="#">Pier</a> / <span>두부보</span></div><div id="mount-draw-pier-coping"></div></div>'
-    + '    <div class="page-view" id="page-draw-pier-column"><h1 class="page-heading">Pier &mdash; 기둥 (Column)</h1><div class="breadcrumb"><a href="#">Home</a> / <a href="#">Pier</a> / <span>기둥</span></div><div id="mount-draw-pier-column"></div></div>'
-    + '    <div class="page-view" id="page-draw-pier-foundation"><h1 class="page-heading">Pier &mdash; 기초 (Foundation)</h1><div class="breadcrumb"><a href="#">Home</a> / <a href="#">Pier</a> / <span>기초</span></div><div id="mount-draw-pier-foundation"></div></div>'
+    + '    <div class="page-view" id="page-draw-pier"><h1 class="page-heading">Pier Input</h1><div class="breadcrumb"><a href="#">Home</a> / <span>Pier</span></div><div id="mount-draw-pier"></div></div>'
 
     + '  </div>'
     + '</div>';
@@ -624,25 +617,19 @@ function _bindNavigation() {
         if (pageId === 'draw-gravitywall') { mountDrawing('gravitywall'); ensureGravityWall(); }
         if (pageId === 'draw-invtwall') { mountDrawing('invtwall'); ensureInvtWall(); }
         if (pageId === 'draw-lwall') { mountDrawing('lwall'); ensureLWall(); }
-        if (pageId === 'draw-pier-coping') { mountDrawing('pier-coping'); ensurePier('fdraw_pier_coping', 'mount-draw-pier-coping'); }
-        if (pageId === 'draw-pier-column') { mountDrawing('pier-column'); ensurePier('fdraw_pier_column', 'mount-draw-pier-column'); }
-        if (pageId === 'draw-pier-foundation') { mountDrawing('pier-foundation'); ensurePier('fdraw_pier_foundation', 'mount-draw-pier-foundation'); }
+        if (pageId === 'draw-pier') { mountDrawing('pier'); ensurePier(); }
     }
     window.showPage = showPage;
 
-    // Pier components module (bim_pier_test.js) — one file, three entry points. Load once, on demand.
-    function ensurePier(fn, mountId) {
-        if (typeof window[fn] === 'function') { window[fn](mountId); return; }
-        if (window._pierLoading) { (window._pierCbs = window._pierCbs || []).push([fn, mountId]); return; }
-        window._pierLoading = true; window._pierCbs = [[fn, mountId]];
+    // Pier input module (bim_pier_test.js) — single-page, single entry fdraw_pier. Load on demand.
+    function ensurePier() {
+        if (typeof fdraw_pier === 'function') { fdraw_pier('mount-draw-pier'); return; }
+        if (window._pierLoading) return;
+        window._pierLoading = true;
         var sc = document.createElement('script');
-        sc.src = 'https://macrobim.github.io/macroBIM/bim_pier_test.js?v=1';
-        sc.onload = function () {
-            window._pierLoading = false;
-            (window._pierCbs || []).forEach(function (c) { if (typeof window[c[0]] === 'function') window[c[0]](c[1]); });
-            window._pierCbs = [];
-        };
-        sc.onerror = function () { window._pierLoading = false; var m = document.getElementById(mountId); if (m) m.innerHTML = '<p style="color:#b91c1c;padding:16px;">bim_pier_test.js failed to load.</p>'; };
+        sc.src = 'https://macrobim.github.io/macroBIM/bim_pier_test.js?v=2';
+        sc.onload = function () { window._pierLoading = false; if (typeof fdraw_pier === 'function') fdraw_pier('mount-draw-pier'); };
+        sc.onerror = function () { window._pierLoading = false; var m = document.getElementById('mount-draw-pier'); if (m) m.innerHTML = '<p style="color:#b91c1c;padding:16px;">bim_pier_test.js failed to load.</p>'; };
         document.head.appendChild(sc);
     }
 
@@ -753,7 +740,7 @@ function _bindNavigation() {
     function ensureBox1cellTest(cb) { ensureRWModule('bim_box1cell_test.js?v=3', 'box1cellTest', cb); }
 
     function mountDrawing(kind) {
-        ['hsection','channel','ibeam','splice','liftinglug','box1cell','rect','circle','octagon','track','gravitywall','invtwall','lwall','pier-coping','pier-column','pier-foundation'].forEach(function(k) {
+        ['hsection','channel','ibeam','splice','liftinglug','box1cell','rect','circle','octagon','track','gravitywall','invtwall','lwall','pier'].forEach(function(k) {
             if (k !== kind) {
                 var other = document.getElementById('mount-draw-' + k);
                 if (other) other.innerHTML = '';
@@ -778,9 +765,6 @@ function _bindNavigation() {
     });
     document.getElementById('retainingToggle').addEventListener('click', function(e) {
         e.preventDefault(); this.classList.toggle('open'); document.getElementById('retaining-sub').classList.toggle('show');
-    });
-    document.getElementById('pierToggle').addEventListener('click', function(e) {
-        e.preventDefault(); this.classList.toggle('open'); document.getElementById('pier-sub').classList.toggle('show');
     });
     document.querySelectorAll('.nav-item[data-page]').forEach(function(el) {
         el.addEventListener('click', function(e) { e.preventDefault(); showPage(this.getAttribute('data-page')); });

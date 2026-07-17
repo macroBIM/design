@@ -652,7 +652,7 @@ function _bindNavigation() {
         if (window._pierLoading) return;
         window._pierLoading = true;
         var sc = document.createElement('script');
-        sc.src = 'https://macrobim.github.io/macroBIM/bim_pier_test.js?v=54';
+        sc.src = 'https://macrobim.github.io/macroBIM/bim_pier_test.js?v=55';
         sc.onload = function () { window._pierLoading = false; if (typeof fdraw_pier === 'function') fdraw_pier('mount-draw-pier'); };
         sc.onerror = function () { window._pierLoading = false; var m = document.getElementById('mount-draw-pier'); if (m) m.innerHTML = '<p style="color:#b91c1c;padding:16px;">bim_pier_test.js failed to load.</p>'; };
         document.head.appendChild(sc);
@@ -755,7 +755,7 @@ function _bindNavigation() {
         window._rwCoreLoading = true;
         window._rwCoreCbs = [afterCore];
         var sc0 = document.createElement('script');
-        sc0.src = 'https://macrobim.github.io/macroBIM/bim_draw_test_core.js?v=5';
+        sc0.src = 'https://macrobim.github.io/macroBIM/bim_draw_test_core.js?v=6';
         sc0.onload = function () { window._rwCoreLoading = false; var q = window._rwCoreCbs || []; window._rwCoreCbs = []; q.forEach(function (f) { f(); }); };
         sc0.onerror = function () { window._rwCoreLoading = false; window._rwCoreCbs = []; };
         document.head.appendChild(sc0);

@@ -478,34 +478,48 @@ function _createTemplates() {
         + '</div></div>';
     }
 
-    /* ── RECT ── */
-    _addTemplate(root, 'tpl-draw-rect', _sectDrawTpl({
-      name: 'rect', plot: 'rectplot', bar: 'rect-viewbar', dxf: 'Rect.dxf', hollow: 'drect_hollow',
-      hint: 'line1: H,B,h,b (F), H,B,h,b (B), hollow &nbsp;/&nbsp; line2: L', brows: 2, bdef: '400,300,300,200,400,300,300,200,1\n1000', len: 1000,
-      rows: [['H', 'Outer height', 'drect_H', 400, 400], ['B', 'Outer width', 'drect_B', 300, 300], ['h', 'Inner height', 'drect_h', 300, 300], ['b', 'Inner width', 'drect_b', 200, 200]]
-    }));
+    /* ── Cross-section preview builds (bim_xsect_test.js, window.XSECT) ── */
+    _addTemplate(root, 'tpl-draw-rect', _xsectTpl({ name: 'rect', rows: [
+      ['H', 'Outer height', 800], ['B', 'Outer width', 600],
+      ['twl', 'Wall thickness left', 120], ['twr', 'Wall thickness right', 120],
+      ['tf1', 'Top flange thickness', 120], ['tf2', 'Bottom flange thickness', 120],
+      ['ha', 'Inner haunch (horizontal)', 150], ['hb', 'Inner haunch (vertical)', 150] ] }));
 
-    /* ── CIRCLE ── */
-    _addTemplate(root, 'tpl-draw-circle', _sectDrawTpl({
-      name: 'circle', plot: 'circleplot', bar: 'circle-viewbar', dxf: 'Circle.dxf', hollow: 'dcircle_hollow',
-      hint: 'line1: D,d (F), D,d (B), hollow &nbsp;/&nbsp; line2: L', brows: 2, bdef: '500,400,500,400,1\n1000', len: 1000,
-      rows: [['D', 'Outer diameter', 'dcircle_D', 500, 500], ['d', 'Inner diameter', 'dcircle_d', 400, 400]]
-    }));
+    _addTemplate(root, 'tpl-draw-circle', _xsectTpl({ name: 'circle', rows: [
+      ['D', 'Outer diameter', 800], ['tw', 'Wall thickness', 120] ] }));
 
-    /* ── OCTAGON ── */
-    _addTemplate(root, 'tpl-draw-octagon', _sectDrawTpl({
-      name: 'octagon', plot: 'octagonplot', bar: 'octagon-viewbar', dxf: 'Octagon.dxf', hollow: 'doct_hollow',
-      hint: 'line1: H1,H2,B1,B2,h1,h2,b1,b2 (F) / line2: (B) / line3: hollow,L', brows: 3, bdef: '300,100,300,100,200,60,200,60\n300,100,300,100,200,60,200,60\n1,1000', len: 1000,
-      rows: [['H1', 'Center height', 'doct_H1', 300, 300], ['H2', 'Chamfer height', 'doct_H2', 100, 100], ['B1', 'Center width', 'doct_B1', 300, 300], ['B2', 'Chamfer width', 'doct_B2', 100, 100],
-        ['h1', 'Inner ctr height', 'doct_h1', 200, 200], ['h2', 'Inner chamfer h', 'doct_h2', 60, 60], ['b1', 'Inner ctr width', 'doct_b1', 200, 200], ['b2', 'Inner chamfer w', 'doct_b2', 60, 60]]
-    }));
+    _addTemplate(root, 'tpl-draw-octagon', _xsectTpl({ name: 'octagon', rows: [
+      ['H', 'Outer height', 800], ['B', 'Outer width', 1000],
+      ['a', 'Chamfer width (horiz)', 200], ['b', 'Chamfer height (vert)', 200],
+      ['t', 'Wall thickness', 120] ] }));
 
-    /* ── TRACK ── */
-    _addTemplate(root, 'tpl-draw-track', _sectDrawTpl({
-      name: 'track', plot: 'trackplot', bar: 'track-viewbar', dxf: 'Track.dxf', hollow: 'dtrack_hollow',
-      hint: 'line1: B,D,d (F), B,D,d (B), hollow &nbsp;/&nbsp; line2: L', brows: 2, bdef: '600,400,300,600,400,300,1\n1000', len: 1000,
-      rows: [['B', 'Total width', 'dtrack_B', 600, 600], ['D', 'Outer height', 'dtrack_D', 400, 400], ['d', 'Inner height', 'dtrack_d', 300, 300]]
-    }));
+    _addTemplate(root, 'tpl-draw-track', _xsectTpl({ name: 'track', rows: [
+      ['H', 'Outer height', 800], ['B', 'Outer width', 1400],
+      ['R', 'Corner radius', 400], ['t', 'Wall thickness', 120] ] }));
+}
+
+/* Cross-section preview template (single hollow section on the shared draw core).
+   o = { name, rows:[[var,desc,default],...], hollowDefault? } */
+function _xsectTpl(o) {
+    var fdraw = 'fdraw_' + o.name, plot = 'xs_' + o.name + '_plot';
+    var rows = o.rows.map(function (r) {
+      return '<div class="hs-inrow"><label><span class="var">' + r[0] + '</span><span class="desc">' + r[1] + '</span></label>'
+        + '<span><input type="number" id="xs_' + o.name + '_' + r[0] + '" value="' + r[2] + '" onchange="' + fdraw + '()"><span class="hs-unit">mm</span></span></div>';
+    }).join('');
+    return _HSCSS()
+      + '<div class="hs-root"><div class="hs-grid">'
+      + '  <div class="hs-card">'
+      + '    <div class="hs-hd"><span class="hs-ttl">Layout &mdash; Cross-section</span>'
+      + '      <button type="button" class="hs-btn" onclick="' + fdraw + '()"><i class="bi bi-arrow-repeat"></i> Regen</button></div>'
+      + '    <div class="hs-plot"><div id="' + plot + '"></div></div>'
+      + '  </div>'
+      + '  <div class="hs-card">'
+      + '    <div class="hs-hd"><span class="hs-ttl">Dimension Input</span></div>'
+      + '    <div class="hs-inputs">' + rows
+      + '      <div class="hs-inrow"><label><span class="var">Hollow</span><span class="desc">Hollow section</span></label><span><input type="checkbox" id="xs_' + o.name + '_hollow" ' + (o.hollowDefault === false ? '' : 'checked') + ' onchange="' + fdraw + '()" style="width:16px;height:16px;accent-color:#2563eb;vertical-align:middle;"></span></div>'
+      + '    </div>'
+      + '  </div>'
+      + '</div></div>';
 }
 
 function _HSCSS() {
@@ -610,10 +624,10 @@ function _bindNavigation() {
         if (pageId === 'draw-splice') { mountDrawing('splice'); if (typeof fdraw_boltsplice === 'function') fdraw_boltsplice(); }
         if (pageId === 'draw-liftinglug') { mountDrawing('liftinglug'); ensureLugTest(function(){ if (typeof fdraw_liftinglug === 'function') fdraw_liftinglug(); }); }
         if (pageId === 'draw-box1cell') { mountDrawing('box1cell'); ensureBox1cellTest(function(){ if (typeof fdraw_box1cell === 'function') fdraw_box1cell(); }); }
-        if (pageId === 'draw-rect') { mountDrawing('rect'); ensureSectionTest('rect', function(){ if (typeof fdraw_rect === 'function') fdraw_rect(); }); }
-        if (pageId === 'draw-circle') { mountDrawing('circle'); ensureSectionTest('circle', function(){ if (typeof fdraw_circle === 'function') fdraw_circle(); }); }
-        if (pageId === 'draw-octagon') { mountDrawing('octagon'); ensureSectionTest('octagon', function(){ if (typeof fdraw_octagon === 'function') fdraw_octagon(); }); }
-        if (pageId === 'draw-track') { mountDrawing('track'); ensureSectionTest('track', function(){ if (typeof fdraw_track === 'function') fdraw_track(); }); }
+        if (pageId === 'draw-rect') { mountDrawing('rect'); ensureXsect('rect'); }
+        if (pageId === 'draw-circle') { mountDrawing('circle'); ensureXsect('circle'); }
+        if (pageId === 'draw-octagon') { mountDrawing('octagon'); ensureXsect('octagon'); }
+        if (pageId === 'draw-track') { mountDrawing('track'); ensureXsect('track'); }
         if (pageId === 'draw-gravitywall') { mountDrawing('gravitywall'); ensureGravityWall(); }
         if (pageId === 'draw-invtwall') { mountDrawing('invtwall'); ensureInvtWall(); }
         if (pageId === 'draw-lwall') { mountDrawing('lwall'); ensureLWall(); }
@@ -738,6 +752,8 @@ function _bindNavigation() {
     function ensureLugTest(cb) { ensureRWModule('bim_liftinglug_test.js?v=1', 'lugTest', cb); }
     function ensureIbeamTest(cb) { ensureRWModule('bim_ibeam_test.js?v=2', 'ibeamTest', cb); }
     function ensureBox1cellTest(cb) { ensureRWModule('bim_box1cell_test.js?v=3', 'box1cellTest', cb); }
+    // Cross-section preview builds (bim_xsect_test.js — window.XSECT) on the shared core.
+    function ensureXsect(name) { ensureRWModule('bim_xsect_test.js?v=1', 'xsect', function () { if (window.XSECT) { window.XSECT.install(name); window.XSECT.mount(name); } }); }
 
     function mountDrawing(kind) {
         ['hsection','channel','ibeam','splice','liftinglug','box1cell','rect','circle','octagon','track','gravitywall','invtwall','lwall','pier'].forEach(function(k) {

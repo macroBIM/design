@@ -506,6 +506,8 @@ function _xsectTpl(o) {
       return '<div class="hs-inrow"><label><span class="var">' + r[0] + '</span><span class="desc">' + r[1] + '</span></label>'
         + '<span><input type="number" id="xs_' + o.name + '_' + r[0] + '" value="' + r[2] + '" onchange="' + fdraw + '()"><span class="hs-unit">mm</span></span></div>';
     }).join('');
+    var bhint = o.rows.map(function (r) { return r[0]; }).join(',') + ',hollow';
+    var bdef = o.rows.map(function (r) { return r[2]; }).join(',') + ',1';
     return _HSCSS()
       + '<div class="hs-root"><div class="hs-grid">'
       + '  <div class="hs-card">'
@@ -516,7 +518,10 @@ function _xsectTpl(o) {
       + '  <div class="hs-card">'
       + '    <div class="hs-hd"><span class="hs-ttl">Dimension Input</span>'
       + '      <button type="button" class="hs-btn" onclick="if(window.XSECT)window.XSECT.dxf(\'' + o.name + '\')">DXF out</button></div>'
-      + '    <div class="hs-inputs">' + rows
+      + '    <div class="hs-inputs">'
+      + '      <div class="hs-batch-wrap"><div class="hs-batch-lbl">Batch Input (CSV) <span class="hs-batch-hint">' + bhint + '</span></div>'
+      + '        <textarea class="hs-batch" id="xs_' + o.name + '_batch" rows="1" spellcheck="false" onchange="if(window.XSECT)window.XSECT.applyBatch(\'' + o.name + '\');">' + bdef + '</textarea></div>'
+      + rows
       + '      <div class="hs-inrow"><label><span class="var">Hollow</span><span class="desc">Hollow section</span></label><span><input type="checkbox" id="xs_' + o.name + '_hollow" ' + (o.hollowDefault === false ? '' : 'checked') + ' onchange="' + fdraw + '()" style="width:16px;height:16px;accent-color:#2563eb;vertical-align:middle;"></span></div>'
       + '    </div>'
       + '  </div>'
@@ -754,7 +759,7 @@ function _bindNavigation() {
     function ensureIbeamTest(cb) { ensureRWModule('bim_ibeam_test.js?v=2', 'ibeamTest', cb); }
     function ensureBox1cellTest(cb) { ensureRWModule('bim_box1cell_test.js?v=3', 'box1cellTest', cb); }
     // Cross-section preview builds (bim_xsect_test.js — window.XSECT) on the shared core.
-    function ensureXsect(name) { ensureRWModule('bim_xsect_test.js?v=3', 'xsect', function () { if (window.XSECT) { window.XSECT.install(name); window.XSECT.mount(name); } }); }
+    function ensureXsect(name) { ensureRWModule('bim_xsect_test.js?v=4', 'xsect', function () { if (window.XSECT) { window.XSECT.install(name); window.XSECT.mount(name); } }); }
 
     function mountDrawing(kind) {
         ['hsection','channel','ibeam','splice','liftinglug','box1cell','rect','circle','octagon','track','gravitywall','invtwall','lwall','pier'].forEach(function(k) {

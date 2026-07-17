@@ -514,7 +514,8 @@ function _xsectTpl(o) {
       + '    <div class="hs-plot"><div id="' + plot + '"></div></div>'
       + '  </div>'
       + '  <div class="hs-card">'
-      + '    <div class="hs-hd"><span class="hs-ttl">Dimension Input</span></div>'
+      + '    <div class="hs-hd"><span class="hs-ttl">Dimension Input</span>'
+      + '      <button type="button" class="hs-btn" onclick="if(window.XSECT)window.XSECT.dxf(\'' + o.name + '\')">DXF out</button></div>'
       + '    <div class="hs-inputs">' + rows
       + '      <div class="hs-inrow"><label><span class="var">Hollow</span><span class="desc">Hollow section</span></label><span><input type="checkbox" id="xs_' + o.name + '_hollow" ' + (o.hollowDefault === false ? '' : 'checked') + ' onchange="' + fdraw + '()" style="width:16px;height:16px;accent-color:#2563eb;vertical-align:middle;"></span></div>'
       + '    </div>'
@@ -753,7 +754,7 @@ function _bindNavigation() {
     function ensureIbeamTest(cb) { ensureRWModule('bim_ibeam_test.js?v=2', 'ibeamTest', cb); }
     function ensureBox1cellTest(cb) { ensureRWModule('bim_box1cell_test.js?v=3', 'box1cellTest', cb); }
     // Cross-section preview builds (bim_xsect_test.js — window.XSECT) on the shared core.
-    function ensureXsect(name) { ensureRWModule('bim_xsect_test.js?v=2', 'xsect', function () { if (window.XSECT) { window.XSECT.install(name); window.XSECT.mount(name); } }); }
+    function ensureXsect(name) { ensureRWModule('bim_xsect_test.js?v=3', 'xsect', function () { if (window.XSECT) { window.XSECT.install(name); window.XSECT.mount(name); } }); }
 
     function mountDrawing(kind) {
         ['hsection','channel','ibeam','splice','liftinglug','box1cell','rect','circle','octagon','track','gravitywall','invtwall','lwall','pier'].forEach(function(k) {

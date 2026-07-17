@@ -751,7 +751,7 @@ function _bindNavigation() {
     function ensureIbeamTest(cb) { ensureRWModule('bim_ibeam_test.js?v=2', 'ibeamTest', cb); }
     function ensureBox1cellTest(cb) { ensureRWModule('bim_box1cell_test.js?v=3', 'box1cellTest', cb); }
     // Cross-section preview builds (bim_xsect_test.js — window.XSECT) on the shared core.
-    function ensureXsect(name) { ensureRWModule('bim_xsect_test.js?v=5', 'xsect', function () { if (window.XSECT) { window.XSECT.install(name); window.XSECT.mount(name); } }); }
+    function ensureXsect(name) { ensureRWModule('bim_xsect_test.js?v=9', 'xsect', function () { if (window.XSECT) { window.XSECT.install(name); window.XSECT.mount(name); } }); }
 
     function mountDrawing(kind) {
         ['hsection','channel','ibeam','splice','liftinglug','box1cell','rect','circle','octagon','track','gravitywall','invtwall','lwall'].forEach(function(k) {

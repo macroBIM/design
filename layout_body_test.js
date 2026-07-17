@@ -508,11 +508,15 @@ function _xsectTpl(o) {
     }).join('');
     var bhint = o.rows.map(function (r) { return r[0]; }).join(',') + ',hollow';
     var bdef = o.rows.map(function (r) { return r[2]; }).join(',') + ',1';
+    var setview = o.name + '_setview';
+    function vb(v, label, active) { return '<button type="button" class="hs-vbtn" data-sview="' + v + '" onclick="' + setview + '(\'' + v + '\')"' + (active ? ' style="background:#2563eb;color:#fff;border-color:#2563eb;"' : '') + '>' + label + '</button>'; }
+    var vbar = vb('front', 'Front', true) + vb('back', 'Back') + vb('left', 'Left') + vb('center', 'Center') + vb('right', 'Right') + vb('top', 'Top') + vb('bottom', 'Bottom') + vb('3d', '3D')
+      + '<button type="button" class="hs-btn" onclick="' + fdraw + '()"><i class="bi bi-arrow-repeat"></i> Regen</button>';
     return _HSCSS()
       + '<div class="hs-root"><div class="hs-grid">'
       + '  <div class="hs-card">'
-      + '    <div class="hs-hd"><span class="hs-ttl">Layout &mdash; Cross-section</span>'
-      + '      <button type="button" class="hs-btn" onclick="' + fdraw + '()"><i class="bi bi-arrow-repeat"></i> Regen</button></div>'
+      + '    <div class="hs-hd"><span class="hs-ttl">Layout</span>'
+      + '      <span id="' + o.name + '-viewbar" style="display:flex;gap:4px;flex-wrap:wrap;align-items:center;">' + vbar + '</span></div>'
       + '    <div class="hs-plot"><div id="' + plot + '"></div></div>'
       + '  </div>'
       + '  <div class="hs-card">'
@@ -522,6 +526,7 @@ function _xsectTpl(o) {
       + '      <div class="hs-batch-wrap"><div class="hs-batch-lbl">Batch Input (CSV) <span class="hs-batch-hint">' + bhint + '</span></div>'
       + '        <textarea class="hs-batch" id="xs_' + o.name + '_batch" rows="1" spellcheck="false" onchange="if(window.XSECT)window.XSECT.applyBatch(\'' + o.name + '\');">' + bdef + '</textarea></div>'
       + rows
+      + '      <div class="hs-inrow"><label><span class="var">L</span><span class="desc">Segment length</span></label><span><input type="number" id="xs_' + o.name + '_L" value="3000" onchange="' + fdraw + '()"><span class="hs-unit">mm</span></span></div>'
       + '      <div class="hs-inrow"><label><span class="var">Hollow</span><span class="desc">Hollow section</span></label><span><input type="checkbox" id="xs_' + o.name + '_hollow" ' + (o.hollowDefault === false ? '' : 'checked') + ' onchange="' + fdraw + '()" style="width:16px;height:16px;accent-color:#2563eb;vertical-align:middle;"></span></div>'
       + '    </div>'
       + '  </div>'
@@ -759,7 +764,7 @@ function _bindNavigation() {
     function ensureIbeamTest(cb) { ensureRWModule('bim_ibeam_test.js?v=2', 'ibeamTest', cb); }
     function ensureBox1cellTest(cb) { ensureRWModule('bim_box1cell_test.js?v=3', 'box1cellTest', cb); }
     // Cross-section preview builds (bim_xsect_test.js — window.XSECT) on the shared core.
-    function ensureXsect(name) { ensureRWModule('bim_xsect_test.js?v=4', 'xsect', function () { if (window.XSECT) { window.XSECT.install(name); window.XSECT.mount(name); } }); }
+    function ensureXsect(name) { ensureRWModule('bim_xsect_test.js?v=5', 'xsect', function () { if (window.XSECT) { window.XSECT.install(name); window.XSECT.mount(name); } }); }
 
     function mountDrawing(kind) {
         ['hsection','channel','ibeam','splice','liftinglug','box1cell','rect','circle','octagon','track','gravitywall','invtwall','lwall','pier'].forEach(function(k) {

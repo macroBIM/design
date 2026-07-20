@@ -1,19 +1,17 @@
 /*
     layout_body.js — <body> 내부 HTML 레이아웃 (검증 완료본 / index.html 용)
-    - 포함 기능: Tables(Rebar·Steel·Bend Radius) / Code(Rebar Anchorage·Splice) / Drawings / Retaining Wall(Gravity·Inverted-T·L-shaped)
-    - Drawings 단면(Rect·Circle·Octagon·Track): 중공 단면 미리보기 + 다중 뷰 + 길이 + 3D/STL (bim_xsect_test.js)
+    - 포함 기능: Tables(Rebar·Steel·Bend Radius) / Code(Rebar Anchorage·Splice)
+                 / Drawings(H·Channel·Splice·Lug·I·BOX1CELL·Rect·Circle·Octagon·Track)
+                 / Retaining Wall(Gravity·Inverted-T·L-shaped) / Pier
+    - Dashboard 제외, 기본 랜딩 페이지는 Pier
     GitHub에서 관리, PHP에서 로드하여 innerHTML로 주입
 */
 function initLayout(phpData) {
-    var visits = phpData && phpData.visits ? Number(phpData.visits).toLocaleString() : '0';
-    var totalVisits = phpData && phpData.totalVisits ? Number(phpData.totalVisits).toLocaleString() : '0';
-
     var html = ''
     /* ══ SIDEBAR ══ */
     + '<nav id="sidebar">'
     + '  <div class="sidebar-header"><div class="logo-info"><div class="name">macroBIM</div></div></div>'
     + '  <div class="nav-menu">'
-    + '    <a class="nav-item active" href="#" id="dashboardMenu" data-page="dashboard"><i class="bi bi-grid-fill"></i> Dashboard</a>'
     + '    <a class="nav-item" href="#" id="tablesToggle"><i class="bi bi-table"></i> Tables <span class="arrow">&#8250;</span></a>'
     + '    <div class="nav-sub" id="tables-sub">'
     + '      <a href="#" data-page="rebar">Rebar Tables</a>'
@@ -43,34 +41,13 @@ function initLayout(phpData) {
     + '      <a href="#" data-page="draw-invtwall">Inverted-T Wall</a>'
     + '      <a href="#" data-page="draw-lwall">L-shaped Wall</a>'
     + '    </div>'
+    + '    <a class="nav-item active" href="#" data-page="draw-pier"><i class="bi bi-building"></i> Pier</a>'
     + '  </div>'
     + '</nav>'
 
     /* ══ MAIN ══ */
     + '<div id="main">'
     + '  <div class="content-wrap">'
-
-    /* ── DASHBOARD ── */
-    + '    <div class="page-view active" id="page-dashboard">'
-    + '      <h1 class="page-heading">Dashboard</h1>'
-    + '      <div class="breadcrumb"><a href="#">Home</a> / <span>Dashboard</span></div>'
-    + '      <div class="stat-grid">'
-    + '        <div class="stat-card">'
-    + '          <div>'
-    + '            <div class="stat-value">' + visits + '</div>'
-    + '            <div class="stat-label">Today Visits</div>'
-    + '          </div>'
-    + '          <div class="stat-icon blue"><i class="bi bi-person-check"></i></div>'
-    + '        </div>'
-    + '        <div class="stat-card">'
-    + '          <div>'
-    + '            <div class="stat-value">' + totalVisits + '</div>'
-    + '            <div class="stat-label">Total Visits</div>'
-    + '          </div>'
-    + '          <div class="stat-icon green"><i class="bi bi-people"></i></div>'
-    + '        </div>'
-    + '      </div>'
-    + '    </div>'
 
     /* ── REBAR TABLES ── */
     + '    <div class="page-view" id="page-rebar">'
@@ -189,6 +166,7 @@ function initLayout(phpData) {
     + '    <div class="page-view" id="page-draw-gravitywall"><h1 class="page-heading">Gravity Wall Layout</h1><div class="breadcrumb"><a href="#">Home</a> / <a href="#">Retaining Wall</a> / <span>Gravity Wall</span></div><div id="mount-draw-gravitywall"></div></div>'
     + '    <div class="page-view" id="page-draw-invtwall"><h1 class="page-heading">Inverted-T Wall Layout</h1><div class="breadcrumb"><a href="#">Home</a> / <a href="#">Retaining Wall</a> / <span>Inverted-T Wall</span></div><div id="mount-draw-invtwall"></div></div>'
     + '    <div class="page-view" id="page-draw-lwall"><h1 class="page-heading">L-shaped Wall Layout</h1><div class="breadcrumb"><a href="#">Home</a> / <a href="#">Retaining Wall</a> / <span>L-shaped Wall</span></div><div id="mount-draw-lwall"></div></div>'
+    + '    <div class="page-view active" id="page-draw-pier"><h1 class="page-heading">Pier Input</h1><div class="breadcrumb"><a href="#">Home</a> / <span>Pier</span></div><div id="mount-draw-pier"></div></div>'
 
     + '  </div>'
     + '</div>';
@@ -642,8 +620,21 @@ function _bindNavigation() {
         if (pageId === 'draw-gravitywall') { mountDrawing('gravitywall'); ensureGravityWall(); }
         if (pageId === 'draw-invtwall') { mountDrawing('invtwall'); ensureInvtWall(); }
         if (pageId === 'draw-lwall') { mountDrawing('lwall'); ensureLWall(); }
+        if (pageId === 'draw-pier') { mountDrawing('pier'); ensurePier(); }
     }
     window.showPage = showPage;
+
+    // Pier input module (bim_pier_test.js) — single-page, single entry fdraw_pier. Load on demand.
+    function ensurePier() {
+        if (typeof fdraw_pier === 'function') { fdraw_pier('mount-draw-pier'); return; }
+        if (window._pierLoading) return;
+        window._pierLoading = true;
+        var sc = document.createElement('script');
+        sc.src = 'https://macrobim.github.io/macroBIM/bim_pier_test.js?v=71';
+        sc.onload = function () { window._pierLoading = false; if (typeof fdraw_pier === 'function') fdraw_pier('mount-draw-pier'); };
+        sc.onerror = function () { window._pierLoading = false; var m = document.getElementById('mount-draw-pier'); if (m) m.innerHTML = '<p style="color:#b91c1c;padding:16px;">bim_pier_test.js failed to load.</p>'; };
+        document.head.appendChild(sc);
+    }
 
     // Gravity wall module (bim_gravitywall.js) may not be in the page's script list — load on demand.
     function ensureGravityWall() {
@@ -742,7 +733,7 @@ function _bindNavigation() {
         window._rwCoreLoading = true;
         window._rwCoreCbs = [afterCore];
         var sc0 = document.createElement('script');
-        sc0.src = 'https://macrobim.github.io/macroBIM/bim_draw_test_core.js?v=3';
+        sc0.src = 'https://macrobim.github.io/macroBIM/bim_draw_test_core.js?v=6';
         sc0.onload = function () { window._rwCoreLoading = false; var q = window._rwCoreCbs || []; window._rwCoreCbs = []; q.forEach(function (f) { f(); }); };
         sc0.onerror = function () { window._rwCoreLoading = false; window._rwCoreCbs = []; };
         document.head.appendChild(sc0);
@@ -751,10 +742,10 @@ function _bindNavigation() {
     function ensureIbeamTest(cb) { ensureRWModule('bim_ibeam_test.js?v=2', 'ibeamTest', cb); }
     function ensureBox1cellTest(cb) { ensureRWModule('bim_box1cell_test.js?v=3', 'box1cellTest', cb); }
     // Cross-section preview builds (bim_xsect_test.js — window.XSECT) on the shared core.
-    function ensureXsect(name) { ensureRWModule('bim_xsect_test.js?v=9', 'xsect', function () { if (window.XSECT) { window.XSECT.install(name); window.XSECT.mount(name); } }); }
+    function ensureXsect(name) { ensureRWModule('bim_xsect_test.js?v=10', 'xsect', function () { if (window.XSECT) { window.XSECT.install(name); window.XSECT.mount(name); } }); }
 
     function mountDrawing(kind) {
-        ['hsection','channel','ibeam','splice','liftinglug','box1cell','rect','circle','octagon','track','gravitywall','invtwall','lwall'].forEach(function(k) {
+        ['hsection','channel','ibeam','splice','liftinglug','box1cell','rect','circle','octagon','track','gravitywall','invtwall','lwall','pier'].forEach(function(k) {
             if (k !== kind) {
                 var other = document.getElementById('mount-draw-' + k);
                 if (other) other.innerHTML = '';
@@ -790,4 +781,6 @@ function _bindNavigation() {
             if (pt) { pt.classList.add('open'); this.closest('.nav-sub').classList.add('show'); }
         });
     });
+    // default landing page (Dashboard removed) — open Pier and load its module
+    showPage('draw-pier');
 }

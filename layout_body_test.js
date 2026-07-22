@@ -411,7 +411,7 @@ function _createTemplates() {
       + '      <button type="button" class="hs-btn" onclick="odxf_lug.download(\'LiftingLug.dxf\')">DXF out</button></div>'
       + '    <div class="hs-inputs">'
       + '      <div class="hs-batch-wrap"><div class="hs-batch-lbl">Batch Input (CSV) <span class="hs-batch-hint">lugW,lugH,baseH,outerR,innerR,padeyeR,lugT,padeyeT,ecc,bodyExt,bpW,bpT,bpL,weldLugSize,weldPadSize,weldBaseSize,spBot,spTop,spH,spW,spInset</span></div>'
-      + '        <textarea class="hs-batch" id="sUserText" rows="2" spellcheck="false" onchange="putParams_lug_test(\'sUserText\'); fdraw_liftinglug();">120,120,30,40,10,30,20,40,0,0,220,24,90,10,6,8,25,12,80,25,0</textarea></div>'
+      + '        <textarea class="hs-batch" id="sUserText" rows="2" spellcheck="false" onchange="putParams_lug_test(\'sUserText\'); fdraw_liftinglug();">120,120,30,40,10,30,20,40,0,0,220,24,90,10,6,8,50,24,80,25,0</textarea></div>'
       + '      <div class="hs-inrow"><label><span class="var">lugW</span><span class="desc">Lug width</span></label><span><input type="number" id="lugW" value="120" onchange="fdraw_liftinglug()"><span class="hs-unit">mm</span></span></div>'
       + '      <div class="hs-inrow"><label><span class="var">lugH</span><span class="desc">Lug height</span></label><span><input type="number" id="lugH" value="120" onchange="fdraw_liftinglug()"><span class="hs-unit">mm</span></span></div>'
       + '      <div class="hs-inrow"><label><span class="var">baseH</span><span class="desc">Base straight height</span></label><span><input type="number" id="baseH" value="30" onchange="fdraw_liftinglug()"><span class="hs-unit">mm</span></span></div>'
@@ -422,8 +422,8 @@ function _createTemplates() {
       + '      <div class="hs-inrow" id="row_padeyeR"><label><span class="var">padeyeR</span><span class="desc">Padeye radius</span></label><span><input type="number" id="padeyeR" value="30" onchange="fdraw_liftinglug()"><span class="hs-unit">mm</span></span></div>'
       + '      <div class="hs-inrow" id="row_padeyeT"><label><span class="var">padeyeT</span><span class="desc">Total thickness over side plates (lug + 2 pads)</span></label><span><input type="number" id="padeyeT" value="40" onchange="fdraw_liftinglug()"><span class="hs-unit">mm</span></span></div>'
       + '      <div class="hs-inrow"><label><span class="var">side plates</span><span class="desc"></span></label><span><input type="checkbox" id="spOn" onchange="fdraw_liftinglug()" style="width:18px;height:18px;vertical-align:middle;accent-color:#a855f7"></span></div>'
-      + '      <div class="hs-inrow" id="row_spBot"><label><span class="var">spBot</span><span class="desc">End-view bottom width (base)</span></label><span><input type="number" id="spBot" value="25" onchange="fdraw_liftinglug()"><span class="hs-unit">mm</span></span></div>'
-      + '      <div class="hs-inrow" id="row_spTop"><label><span class="var">spTop</span><span class="desc">End-view top width (= spBot &rarr; rectangle)</span></label><span><input type="number" id="spTop" value="12" onchange="fdraw_liftinglug()"><span class="hs-unit">mm</span></span></div>'
+      + '      <div class="hs-inrow" id="row_spBot"><label><span class="var">spBot</span><span class="desc">End-view bottom width, full (base)</span></label><span><input type="number" id="spBot" value="50" onchange="fdraw_liftinglug()"><span class="hs-unit">mm</span></span></div>'
+      + '      <div class="hs-inrow" id="row_spTop"><label><span class="var">spTop</span><span class="desc">End-view top width, full (= spBot &rarr; rectangle)</span></label><span><input type="number" id="spTop" value="24" onchange="fdraw_liftinglug()"><span class="hs-unit">mm</span></span></div>'
       + '      <div class="hs-inrow" id="row_spH"><label><span class="var">spH</span><span class="desc">Side plate height</span></label><span><input type="number" id="spH" value="80" onchange="fdraw_liftinglug()"><span class="hs-unit">mm</span></span></div>'
       + '      <div class="hs-inrow" id="row_spW"><label><span class="var">spW</span><span class="desc">Side plate width (each, L &amp; R)</span></label><span><input type="number" id="spW" value="25" onchange="fdraw_liftinglug()"><span class="hs-unit">mm</span></span></div>'
       + '      <div class="hs-inrow" id="row_spInset"><label><span class="var">spInset</span><span class="desc">Offset from lug edge (0=at edge, &minus;=into lug, +=out)</span></label><span><input type="number" id="spInset" value="0" onchange="fdraw_liftinglug()"><span class="hs-unit">mm</span></span></div>'
@@ -778,7 +778,7 @@ function _bindNavigation() {
         sc0.onerror = function () { window._rwCoreLoading = false; window._rwCoreCbs = []; };
         document.head.appendChild(sc0);
     }
-    function ensureLugTest(cb) { ensureRWModule('bim_liftinglug_test.js?v=12', 'lugTest', cb); }
+    function ensureLugTest(cb) { ensureRWModule('bim_liftinglug_test.js?v=13', 'lugTest', cb); }
     function ensureIbeamTest(cb) { ensureRWModule('bim_ibeam_test.js?v=2', 'ibeamTest', cb); }
     function ensureBox1cellTest(cb) { ensureRWModule('bim_box1cell_test.js?v=3', 'box1cellTest', cb); }
     // Cross-section preview builds (bim_xsect_test.js — window.XSECT) on the shared core.

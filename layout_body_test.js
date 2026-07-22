@@ -777,7 +777,7 @@ function _bindNavigation() {
         sc0.onerror = function () { window._rwCoreLoading = false; window._rwCoreCbs = []; };
         document.head.appendChild(sc0);
     }
-    function ensureLugTest(cb) { ensureRWModule('bim_liftinglug_test.js?v=9', 'lugTest', cb); }
+    function ensureLugTest(cb) { ensureRWModule('bim_liftinglug_test.js?v=10', 'lugTest', cb); }
     function ensureIbeamTest(cb) { ensureRWModule('bim_ibeam_test.js?v=2', 'ibeamTest', cb); }
     function ensureBox1cellTest(cb) { ensureRWModule('bim_box1cell_test.js?v=3', 'box1cellTest', cb); }
     // Cross-section preview builds (bim_xsect_test.js — window.XSECT) on the shared core.

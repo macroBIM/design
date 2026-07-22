@@ -410,8 +410,8 @@ function _createTemplates() {
       + '    <div class="hs-hd"><span class="hs-ttl">Dimension Input &mdash; live redraw on edit</span>'
       + '      <button type="button" class="hs-btn" onclick="odxf_lug.download(\'LiftingLug.dxf\')">DXF out</button></div>'
       + '    <div class="hs-inputs">'
-      + '      <div class="hs-batch-wrap"><div class="hs-batch-lbl">Batch Input (CSV) <span class="hs-batch-hint">lugW,lugH,baseH,outerR,innerR,padeyeR,lugT,padeyeT,ecc,bodyExt,bpW,bpT,bpL,weldLugSize,weldPadSize,weldBaseSize,spBot,spTop,spH,spW,spInset</span></div>'
-      + '        <textarea class="hs-batch" id="sUserText" rows="2" spellcheck="false" onchange="putParams_lug_test(\'sUserText\'); fdraw_liftinglug();">120,120,30,40,10,30,20,40,0,0,220,24,90,10,6,8,50,24,80,25,0</textarea></div>'
+      + '      <div class="hs-batch-wrap"><div class="hs-batch-lbl">Batch Input (CSV) <span class="hs-batch-hint">lugW,lugH,baseH,outerR,innerR,padeyeR,lugT,padeyeT,ecc,bodyExt,bpW,bpT,bpL,weldLugSize,weldPadSize,weldBaseSize,spBotL,spTopL,spHL,spWL,spInsetL,spBotR,spTopR,spHR,spWR,spInsetR</span></div>'
+      + '        <textarea class="hs-batch" id="sUserText" rows="2" spellcheck="false" onchange="putParams_lug_test(\'sUserText\'); fdraw_liftinglug();">120,120,30,40,10,30,20,40,0,0,220,24,90,10,6,8,50,24,80,25,0,50,24,80,25,0</textarea></div>'
       + '      <div class="hs-inrow"><label><span class="var">lugW</span><span class="desc">Lug width</span></label><span><input type="number" id="lugW" value="120" onchange="fdraw_liftinglug()"><span class="hs-unit">mm</span></span></div>'
       + '      <div class="hs-inrow"><label><span class="var">lugH</span><span class="desc">Lug height</span></label><span><input type="number" id="lugH" value="120" onchange="fdraw_liftinglug()"><span class="hs-unit">mm</span></span></div>'
       + '      <div class="hs-inrow"><label><span class="var">baseH</span><span class="desc">Base straight height</span></label><span><input type="number" id="baseH" value="30" onchange="fdraw_liftinglug()"><span class="hs-unit">mm</span></span></div>'
@@ -422,11 +422,30 @@ function _createTemplates() {
       + '      <div class="hs-inrow" id="row_padeyeR"><label><span class="var">padeyeR</span><span class="desc">Padeye radius</span></label><span><input type="number" id="padeyeR" value="30" onchange="fdraw_liftinglug()"><span class="hs-unit">mm</span></span></div>'
       + '      <div class="hs-inrow" id="row_padeyeT"><label><span class="var">padeyeT</span><span class="desc">Total thickness over side plates (lug + 2 pads)</span></label><span><input type="number" id="padeyeT" value="40" onchange="fdraw_liftinglug()"><span class="hs-unit">mm</span></span></div>'
       + '      <div class="hs-batch-lbl" style="margin-top:12px;display:flex;justify-content:space-between;align-items:center">Side plates<input type="checkbox" id="spOn" onchange="fdraw_liftinglug()" style="width:16px;height:16px;margin:0;accent-color:#a855f7"></div>'
-      + '      <div class="hs-inrow" id="row_spBot"><label><span class="var">spBot</span><span class="desc">End-view bottom width, full (base)</span></label><span><input type="number" id="spBot" value="50" onchange="fdraw_liftinglug()"><span class="hs-unit">mm</span></span></div>'
-      + '      <div class="hs-inrow" id="row_spTop"><label><span class="var">spTop</span><span class="desc">End-view top width, full (= spBot &rarr; rectangle)</span></label><span><input type="number" id="spTop" value="24" onchange="fdraw_liftinglug()"><span class="hs-unit">mm</span></span></div>'
-      + '      <div class="hs-inrow" id="row_spH"><label><span class="var">spH</span><span class="desc">Side plate height</span></label><span><input type="number" id="spH" value="80" onchange="fdraw_liftinglug()"><span class="hs-unit">mm</span></span></div>'
-      + '      <div class="hs-inrow" id="row_spW"><label><span class="var">spW</span><span class="desc">Side plate width (each, L &amp; R)</span></label><span><input type="number" id="spW" value="25" onchange="fdraw_liftinglug()"><span class="hs-unit">mm</span></span></div>'
-      + '      <div class="hs-inrow" id="row_spInset"><label><span class="var">spInset</span><span class="desc">Offset from lug edge (0=at edge, &minus;=into lug, +=out)</span></label><span><input type="number" id="spInset" value="0" onchange="fdraw_liftinglug()"><span class="hs-unit">mm</span></span></div>'
+      + '      <div id="sp_table" style="padding:8px 2px 4px;overflow-x:auto">'
+      + '        <table style="border-collapse:collapse;width:100%;font-size:11px">'
+      + '          <thead><tr><th style="padding:2px 4px"></th>'
+      + '            <th style="color:var(--dim);font-family:ui-monospace,Menlo,Consolas,monospace;padding:2px 3px;text-align:center;font-weight:700">spBot</th>'
+      + '            <th style="color:var(--dim);font-family:ui-monospace,Menlo,Consolas,monospace;padding:2px 3px;text-align:center;font-weight:700">spTop</th>'
+      + '            <th style="color:var(--dim);font-family:ui-monospace,Menlo,Consolas,monospace;padding:2px 3px;text-align:center;font-weight:700">spH</th>'
+      + '            <th style="color:var(--dim);font-family:ui-monospace,Menlo,Consolas,monospace;padding:2px 3px;text-align:center;font-weight:700">spW</th>'
+      + '            <th style="color:var(--dim);font-family:ui-monospace,Menlo,Consolas,monospace;padding:2px 3px;text-align:center;font-weight:700">spInset</th></tr></thead>'
+      + '          <tbody>'
+      + '            <tr><td style="color:var(--muted);font-weight:700;padding:3px 6px 3px 2px">Left</td>'
+      + '              <td style="padding:2px"><input type="number" id="spBotL" value="50" onchange="fdraw_liftinglug()" style="width:52px;text-align:right;padding:4px 5px;border:1px solid var(--line);border-radius:5px;font-size:12px;background:var(--panel);color:var(--ink)"></td>'
+      + '              <td style="padding:2px"><input type="number" id="spTopL" value="24" onchange="fdraw_liftinglug()" style="width:52px;text-align:right;padding:4px 5px;border:1px solid var(--line);border-radius:5px;font-size:12px;background:var(--panel);color:var(--ink)"></td>'
+      + '              <td style="padding:2px"><input type="number" id="spHL" value="80" onchange="fdraw_liftinglug()" style="width:52px;text-align:right;padding:4px 5px;border:1px solid var(--line);border-radius:5px;font-size:12px;background:var(--panel);color:var(--ink)"></td>'
+      + '              <td style="padding:2px"><input type="number" id="spWL" value="25" onchange="fdraw_liftinglug()" style="width:52px;text-align:right;padding:4px 5px;border:1px solid var(--line);border-radius:5px;font-size:12px;background:var(--panel);color:var(--ink)"></td>'
+      + '              <td style="padding:2px"><input type="number" id="spInsetL" value="0" onchange="fdraw_liftinglug()" style="width:52px;text-align:right;padding:4px 5px;border:1px solid var(--line);border-radius:5px;font-size:12px;background:var(--panel);color:var(--ink)"></td></tr>'
+      + '            <tr><td style="color:var(--muted);font-weight:700;padding:3px 6px 3px 2px">Right</td>'
+      + '              <td style="padding:2px"><input type="number" id="spBotR" value="50" onchange="fdraw_liftinglug()" style="width:52px;text-align:right;padding:4px 5px;border:1px solid var(--line);border-radius:5px;font-size:12px;background:var(--panel);color:var(--ink)"></td>'
+      + '              <td style="padding:2px"><input type="number" id="spTopR" value="24" onchange="fdraw_liftinglug()" style="width:52px;text-align:right;padding:4px 5px;border:1px solid var(--line);border-radius:5px;font-size:12px;background:var(--panel);color:var(--ink)"></td>'
+      + '              <td style="padding:2px"><input type="number" id="spHR" value="80" onchange="fdraw_liftinglug()" style="width:52px;text-align:right;padding:4px 5px;border:1px solid var(--line);border-radius:5px;font-size:12px;background:var(--panel);color:var(--ink)"></td>'
+      + '              <td style="padding:2px"><input type="number" id="spWR" value="25" onchange="fdraw_liftinglug()" style="width:52px;text-align:right;padding:4px 5px;border:1px solid var(--line);border-radius:5px;font-size:12px;background:var(--panel);color:var(--ink)"></td>'
+      + '              <td style="padding:2px"><input type="number" id="spInsetR" value="0" onchange="fdraw_liftinglug()" style="width:52px;text-align:right;padding:4px 5px;border:1px solid var(--line);border-radius:5px;font-size:12px;background:var(--panel);color:var(--ink)"></td></tr>'
+      + '          </tbody></table>'
+      + '          <div style="font-size:10px;color:var(--muted);margin-top:5px">mm &middot; spBot/spTop = end-view widths (equal &rarr; rectangle) &middot; spInset: 0=edge, &minus;=into lug, +=out</div>'
+      + '        </div>'
       + '      <div class="hs-batch-lbl" style="margin-top:12px;display:flex;justify-content:space-between;align-items:center">Eccentricity &amp; extension<input type="checkbox" id="eccOn" onchange="fdraw_liftinglug()" style="width:16px;height:16px;margin:0;accent-color:var(--dim)"></div>'
       + '      <div class="hs-inrow" id="row_ecc"><label><span class="var">ecc</span><span class="desc">Hole/padeye eccentricity (off)</span></label><span><input type="number" id="ecc" value="0" onchange="fdraw_liftinglug()"><span class="hs-unit">mm</span></span></div>'
       + '      <div class="hs-inrow" id="row_bodyExt"><label><span class="var">bodyExt</span><span class="desc">Lower-body extension</span></label><span><input type="number" id="bodyExt" value="0" onchange="fdraw_liftinglug()"><span class="hs-unit">mm</span></span></div>'
@@ -777,7 +796,7 @@ function _bindNavigation() {
         sc0.onerror = function () { window._rwCoreLoading = false; window._rwCoreCbs = []; };
         document.head.appendChild(sc0);
     }
-    function ensureLugTest(cb) { ensureRWModule('bim_liftinglug_test.js?v=14', 'lugTest', cb); }
+    function ensureLugTest(cb) { ensureRWModule('bim_liftinglug_test.js?v=15', 'lugTest', cb); }
     function ensureIbeamTest(cb) { ensureRWModule('bim_ibeam_test.js?v=2', 'ibeamTest', cb); }
     function ensureBox1cellTest(cb) { ensureRWModule('bim_box1cell_test.js?v=3', 'box1cellTest', cb); }
     // Cross-section preview builds (bim_xsect_test.js — window.XSECT) on the shared core.

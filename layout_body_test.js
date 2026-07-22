@@ -417,10 +417,10 @@ function _createTemplates() {
       + '      <div class="hs-inrow"><label><span class="var">baseH</span><span class="desc">Base straight height</span></label><span><input type="number" id="baseH" value="30" onchange="fdraw_liftinglug()"><span class="hs-unit">mm</span></span></div>'
       + '      <div class="hs-inrow"><label><span class="var">outerR</span><span class="desc">Outer arc radius</span></label><span><input type="number" id="outerR" value="40" onchange="fdraw_liftinglug()"><span class="hs-unit">mm</span></span></div>'
       + '      <div class="hs-inrow"><label><span class="var">innerR</span><span class="desc">Hole radius</span></label><span><input type="number" id="innerR" value="10" onchange="fdraw_liftinglug()"><span class="hs-unit">mm</span></span></div>'
-      + '      <div class="hs-inrow"><label><span class="var">padeyeR</span><span class="desc">Padeye radius</span></label><span><input type="number" id="padeyeR" value="30" onchange="fdraw_liftinglug()"><span class="hs-unit">mm</span></span></div>'
       + '      <div class="hs-inrow"><label><span class="var">lugT</span><span class="desc">Lug plate thickness</span></label><span><input type="number" id="lugT" value="20" onchange="fdraw_liftinglug()"><span class="hs-unit">mm</span></span></div>'
-      + '      <div class="hs-inrow"><label><span class="var">padeyeT</span><span class="desc">Total thickness over side plates (lug + 2 pads)</span></label><span><input type="number" id="padeyeT" value="40" onchange="fdraw_liftinglug()"><span class="hs-unit">mm</span></span></div>'
-      + '      <div class="hs-inrow"><label><span class="var">pads</span><span class="desc">Vertical side plates, both sides (padeye ring stays if off)</span></label><span><input type="checkbox" id="padOn" checked onchange="fdraw_liftinglug()" style="width:18px;height:18px;vertical-align:middle;accent-color:var(--dim)"></span></div>'
+      + '      <div class="hs-inrow"><label><span class="var">padeye</span><span class="desc">Padeye reinforcement (ring + side plates)</span></label><span><input type="checkbox" id="padOn" checked onchange="fdraw_liftinglug()" style="width:18px;height:18px;vertical-align:middle;accent-color:var(--dim)"></span></div>'
+      + '      <div class="hs-inrow" id="row_padeyeR"><label><span class="var">padeyeR</span><span class="desc">Padeye radius</span></label><span><input type="number" id="padeyeR" value="30" onchange="fdraw_liftinglug()"><span class="hs-unit">mm</span></span></div>'
+      + '      <div class="hs-inrow" id="row_padeyeT"><label><span class="var">padeyeT</span><span class="desc">Total thickness over side plates (lug + 2 pads)</span></label><span><input type="number" id="padeyeT" value="40" onchange="fdraw_liftinglug()"><span class="hs-unit">mm</span></span></div>'
       + '      <div class="hs-batch-lbl" style="margin-top:10px">Eccentricity &amp; extension</div>'
       + '      <div class="hs-inrow"><label><span class="var">ecc</span><span class="desc">Hole/padeye eccentricity (off)</span></label><span><input type="number" id="ecc" value="0" onchange="fdraw_liftinglug()"><span class="hs-unit">mm</span></span></div>'
       + '      <div class="hs-inrow"><label><span class="var">bodyExt</span><span class="desc">Lower-body extension</span></label><span><input type="number" id="bodyExt" value="0" onchange="fdraw_liftinglug()"><span class="hs-unit">mm</span></span></div>'
@@ -772,7 +772,7 @@ function _bindNavigation() {
         sc0.onerror = function () { window._rwCoreLoading = false; window._rwCoreCbs = []; };
         document.head.appendChild(sc0);
     }
-    function ensureLugTest(cb) { ensureRWModule('bim_liftinglug_test.js?v=4', 'lugTest', cb); }
+    function ensureLugTest(cb) { ensureRWModule('bim_liftinglug_test.js?v=5', 'lugTest', cb); }
     function ensureIbeamTest(cb) { ensureRWModule('bim_ibeam_test.js?v=2', 'ibeamTest', cb); }
     function ensureBox1cellTest(cb) { ensureRWModule('bim_box1cell_test.js?v=3', 'box1cellTest', cb); }
     // Cross-section preview builds (bim_xsect_test.js — window.XSECT) on the shared core.

@@ -411,7 +411,7 @@ function _createTemplates() {
       + '      <button type="button" class="hs-btn" onclick="odxf_lug.download(\'LiftingLug.dxf\')">DXF out</button></div>'
       + '    <div class="hs-inputs">'
       + '      <div class="hs-batch-wrap"><div class="hs-batch-lbl">Batch Input (CSV) <span class="hs-batch-hint">lugW,lugH,baseH,outerR,innerR,padeyeR,lugT,padeyeT,ecc,bodyExt,bpW,bpT,bpL,weldLugSize,weldPadSize,weldBaseSize,spT,spH,spW,spInset</span></div>'
-      + '        <textarea class="hs-batch" id="sUserText" rows="2" spellcheck="false" onchange="putParams_lug_test(\'sUserText\'); fdraw_liftinglug();">120,120,30,40,10,30,20,40,0,0,220,24,90,10,6,8,12,80,25,8</textarea></div>'
+      + '        <textarea class="hs-batch" id="sUserText" rows="2" spellcheck="false" onchange="putParams_lug_test(\'sUserText\'); fdraw_liftinglug();">120,120,30,40,10,30,20,40,0,0,220,24,90,10,6,8,12,80,25,0</textarea></div>'
       + '      <div class="hs-inrow"><label><span class="var">lugW</span><span class="desc">Lug width</span></label><span><input type="number" id="lugW" value="120" onchange="fdraw_liftinglug()"><span class="hs-unit">mm</span></span></div>'
       + '      <div class="hs-inrow"><label><span class="var">lugH</span><span class="desc">Lug height</span></label><span><input type="number" id="lugH" value="120" onchange="fdraw_liftinglug()"><span class="hs-unit">mm</span></span></div>'
       + '      <div class="hs-inrow"><label><span class="var">baseH</span><span class="desc">Base straight height</span></label><span><input type="number" id="baseH" value="30" onchange="fdraw_liftinglug()"><span class="hs-unit">mm</span></span></div>'
@@ -425,7 +425,7 @@ function _createTemplates() {
       + '      <div class="hs-inrow" id="row_spT"><label><span class="var">spT</span><span class="desc">Side plate thickness (each face)</span></label><span><input type="number" id="spT" value="12" onchange="fdraw_liftinglug()"><span class="hs-unit">mm</span></span></div>'
       + '      <div class="hs-inrow" id="row_spH"><label><span class="var">spH</span><span class="desc">Side plate height</span></label><span><input type="number" id="spH" value="80" onchange="fdraw_liftinglug()"><span class="hs-unit">mm</span></span></div>'
       + '      <div class="hs-inrow" id="row_spW"><label><span class="var">spW</span><span class="desc">Side plate width (each, L &amp; R)</span></label><span><input type="number" id="spW" value="25" onchange="fdraw_liftinglug()"><span class="hs-unit">mm</span></span></div>'
-      + '      <div class="hs-inrow" id="row_spInset"><label><span class="var">spInset</span><span class="desc">Inset from lug edge (0 = at edge)</span></label><span><input type="number" id="spInset" value="8" onchange="fdraw_liftinglug()"><span class="hs-unit">mm</span></span></div>'
+      + '      <div class="hs-inrow" id="row_spInset"><label><span class="var">spInset</span><span class="desc">Offset from lug edge (0=at edge, &minus;=into lug, +=out)</span></label><span><input type="number" id="spInset" value="0" onchange="fdraw_liftinglug()"><span class="hs-unit">mm</span></span></div>'
       + '      <div class="hs-batch-lbl" style="margin-top:10px">Eccentricity &amp; extension</div>'
       + '      <div class="hs-inrow"><label><span class="var">ecc</span><span class="desc">Hole/padeye eccentricity (off)</span></label><span><input type="number" id="ecc" value="0" onchange="fdraw_liftinglug()"><span class="hs-unit">mm</span></span></div>'
       + '      <div class="hs-inrow"><label><span class="var">bodyExt</span><span class="desc">Lower-body extension</span></label><span><input type="number" id="bodyExt" value="0" onchange="fdraw_liftinglug()"><span class="hs-unit">mm</span></span></div>'
@@ -777,7 +777,7 @@ function _bindNavigation() {
         sc0.onerror = function () { window._rwCoreLoading = false; window._rwCoreCbs = []; };
         document.head.appendChild(sc0);
     }
-    function ensureLugTest(cb) { ensureRWModule('bim_liftinglug_test.js?v=8', 'lugTest', cb); }
+    function ensureLugTest(cb) { ensureRWModule('bim_liftinglug_test.js?v=9', 'lugTest', cb); }
     function ensureIbeamTest(cb) { ensureRWModule('bim_ibeam_test.js?v=2', 'ibeamTest', cb); }
     function ensureBox1cellTest(cb) { ensureRWModule('bim_box1cell_test.js?v=3', 'box1cellTest', cb); }
     // Cross-section preview builds (bim_xsect_test.js — window.XSECT) on the shared core.

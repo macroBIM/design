@@ -412,6 +412,7 @@ function _createTemplates() {
       + '    <div class="hs-inputs">'
       + '      <div class="hs-batch-wrap"><div class="hs-batch-lbl">Batch Input (CSV) <span class="hs-batch-hint">lugW,lugH,baseH,outerR,innerR,padeyeR,lugT,padeyeT,ecc,bodyExt,bpW,bpT,bpL,weldLugSize,weldPadSize,weldBaseSize,spBotL,spTopL,spHL,spWL,spInsetL,spBotR,spTopR,spHR,spWR,spInsetR</span></div>'
       + '        <textarea class="hs-batch" id="sUserText" rows="2" spellcheck="false" onchange="putParams_lug_test(\'sUserText\'); fdraw_liftinglug();">120,120,30,40,10,30,20,40,0,0,220,24,90,10,6,8,50,24,80,25,0,50,24,80,25,0</textarea></div>'
+      + '      <div class="hs-batch-lbl" style="margin-top:2px">Geometry</div>'
       + '      <div class="hs-inrow"><label><span class="var">lugW</span><span class="desc">Lug width</span></label><span><input type="number" id="lugW" value="120" onchange="fdraw_liftinglug()"><span class="hs-unit">mm</span></span></div>'
       + '      <div class="hs-inrow"><label><span class="var">lugH</span><span class="desc">Lug height</span></label><span><input type="number" id="lugH" value="120" onchange="fdraw_liftinglug()"><span class="hs-unit">mm</span></span></div>'
       + '      <div class="hs-inrow"><label><span class="var">baseH</span><span class="desc">Base straight height</span></label><span><input type="number" id="baseH" value="30" onchange="fdraw_liftinglug()"><span class="hs-unit">mm</span></span></div>'

@@ -54,7 +54,7 @@ var QNA = (function() {
             if (!body) return;
 
             if (!data.rows || data.rows.length === 0) {
-                body.innerHTML = '<div class="qna-empty"><i class="bi bi-chat-left-text"></i><p>No posts yet.</p></div>';
+                body.innerHTML = _emptyTable();
                 return;
             }
 
@@ -100,6 +100,9 @@ var QNA = (function() {
 
             // 페이지네이션
             _renderPagination(data.total, data.page, data.perPage);
+        }).catch(function() {
+            var body = document.getElementById('qna-list-body');
+            if (body) body.innerHTML = _emptyTable();
         });
     }
 
@@ -352,6 +355,18 @@ var QNA = (function() {
     function _formatDate(d) {
         if (!d) return '';
         return d.replace(/(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):\d{2}/, '$1.$2.$3 $4:$5');
+    }
+    function _emptyTable() {
+        return '<div class="qna-table-empty">'
+            + '<table class="qna-list-table"><thead><tr>'
+            + '<th style="width:60px">No</th>'
+            + '<th>Title</th>'
+            + '<th style="width:100px">Author</th>'
+            + '<th style="width:140px">Date</th>'
+            + '</tr></thead>'
+            + '<tbody><tr><td colspan="4" class="qna-empty-row">'
+            + '<i class="bi bi-chat-left-text"></i><br>No posts yet. Be the first to write!'
+            + '</td></tr></tbody></table></div>';
     }
 
     return { init: init };

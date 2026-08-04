@@ -57,35 +57,34 @@ var QNA = (function() {
                 return;
             }
 
-            var html = '<div class="qna-accordion">';
+            var html = '<table class="qna-list-table"><thead><tr>'
+                + '<th style="width:60px">No</th>'
+                + '<th>Title</th>'
+                + '<th style="width:120px">Author</th>'
+                + '<th style="width:160px">Date</th>'
+                + '<th style="width:40px"></th>'
+                + '</tr></thead><tbody>';
             data.rows.forEach(function(row) {
                 var isReply = row.parent_no > 0;
-                var depthPad = isReply ? ' style="margin-left:' + (row.depth * 24) + 'px"' : '';
-                var secretBadge = row.is_secret == 1 ? '<span class="qna-badge qna-badge-secret"><i class="bi bi-lock-fill"></i> Secret</span>' : '';
-                var answeredBadge = row.is_answered == 1 ? '<span class="qna-badge qna-badge-answered"><i class="bi bi-check-circle-fill"></i> Answered</span>' : '';
-                var replyBadge = isReply ? '<span class="qna-badge qna-badge-reply"><i class="bi bi-reply-fill"></i> Reply</span>' : '';
+                var indent = isReply ? 'padding-left:' + (16 + row.depth * 24) + 'px' : '';
+                var secretBadge = row.is_secret == 1 ? ' <span class="qna-badge qna-badge-secret"><i class="bi bi-lock-fill"></i></span>' : '';
+                var answeredBadge = row.is_answered == 1 ? ' <span class="qna-badge qna-badge-answered"><i class="bi bi-check-circle-fill"></i></span>' : '';
+                var replyBadge = isReply ? '<span class="qna-badge qna-badge-reply"><i class="bi bi-reply-fill"></i></span> ' : '';
                 var date = _formatDate(row.created_at);
 
-                html += '<div class="qna-item"' + depthPad + '>'
-                     +  '  <div class="qna-item-header" data-no="' + row.no + '">'
-                     +  '    <div class="qna-item-left">'
-                     +  '      <span class="qna-item-no">#' + row.no + '</span>'
-                     +  '      ' + replyBadge + secretBadge + answeredBadge
-                     +  '      <span class="qna-item-title">' + _esc(row.title) + '</span>'
-                     +  '    </div>'
-                     +  '    <div class="qna-item-right">'
-                     +  '      <span class="qna-item-author"><i class="bi bi-person"></i> ' + _esc(row.id) + '</span>'
-                     +  '      <span class="qna-item-date"><i class="bi bi-clock"></i> ' + date + '</span>'
-                     +  '      <i class="bi bi-chevron-right qna-chevron"></i>'
-                     +  '    </div>'
-                     +  '  </div>'
-                     +  '</div>';
+                html += '<tr class="qna-row" data-no="' + row.no + '" style="cursor:pointer;">'
+                     +  '<td>' + row.no + '</td>'
+                     +  '<td style="text-align:left;' + indent + '">' + replyBadge + secretBadge + answeredBadge + ' ' + _esc(row.title) + '</td>'
+                     +  '<td>' + _esc(row.id) + '</td>'
+                     +  '<td>' + date + '</td>'
+                     +  '<td><i class="bi bi-chevron-right" style="color:#cbd5e1;"></i></td>'
+                     +  '</tr>';
             });
-            html += '</div>';
+            html += '</tbody></table>';
             body.innerHTML = html;
 
             // 클릭 이벤트
-            body.querySelectorAll('.qna-item-header').forEach(function(el) {
+            body.querySelectorAll('.qna-row').forEach(function(el) {
                 el.addEventListener('click', function() {
                     var no = parseInt(this.getAttribute('data-no'));
                     var item = data.rows.find(function(r) { return r.no == no; });

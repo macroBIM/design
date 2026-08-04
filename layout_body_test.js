@@ -654,6 +654,47 @@ function _addTemplate(root, id, html) {
     root.appendChild(tpl);
 }
 
+/* ══ VISIT CHART ══ */
+function loadVisitChart() {
+    var canvas = document.getElementById('visitChart');
+    if (!canvas) return;
+    var loc = window.location;
+    var apiUrl = loc.protocol + '//' + loc.host + loc.pathname;
+    fetch(apiUrl + '?action=stats').then(function(r) { return r.json(); }).then(function(data) {
+        if (!data.rows || !data.rows.length) return;
+        var labels = [];
+        var visits = [];
+        data.rows.forEach(function(r) {
+            var m = String(r.month).padStart(2, '0');
+            var d = String(r.day).padStart(2, '0');
+            labels.push(m + '/' + d);
+            visits.push(r.visit);
+        });
+        if (window._visitChartInstance) window._visitChartInstance.destroy();
+        window._visitChartInstance = new Chart(canvas, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Daily Visits',
+                    data: visits,
+                    backgroundColor: 'rgba(37, 99, 235, 0.8)',
+                    borderRadius: 4,
+                    maxBarThickness: 40
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: { beginAtZero: true, ticks: { stepSize: 1, precision: 0 } },
+                    x: { grid: { display: false } }
+                }
+            }
+        });
+    }).catch(function() {});
+}
+
 /* ══ NAVIGATION ══ */
 function _bindNavigation() {
 
@@ -850,46 +891,6 @@ function _bindNavigation() {
             if (pt) { pt.classList.add('open'); this.closest('.nav-sub').classList.add('show'); }
         });
     });
-
-    function loadVisitChart() {
-        var canvas = document.getElementById('visitChart');
-        if (!canvas) return;
-        var loc = window.location;
-        var apiUrl = loc.protocol + '//' + loc.host + loc.pathname;
-        fetch(apiUrl + '?action=stats').then(function(r) { return r.json(); }).then(function(data) {
-            if (!data.rows || !data.rows.length) return;
-            var labels = [];
-            var visits = [];
-            data.rows.forEach(function(r) {
-                var m = String(r.month).padStart(2, '0');
-                var d = String(r.day).padStart(2, '0');
-                labels.push(m + '/' + d);
-                visits.push(r.visit);
-            });
-            if (window._visitChartInstance) window._visitChartInstance.destroy();
-            window._visitChartInstance = new Chart(canvas, {
-                type: 'bar',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: 'Daily Visits',
-                        data: visits,
-                        backgroundColor: 'rgba(37, 99, 235, 0.8)',
-                        borderRadius: 4,
-                        maxBarThickness: 40
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    plugins: { legend: { display: false } },
-                    scales: {
-                        y: { beginAtZero: true, ticks: { stepSize: 1, precision: 0 } },
-                        x: { grid: { display: false } }
-                    }
-                }
-            });
-        }).catch(function() {});
-    }
 
     function ensureQna() {
         if (typeof QNA !== 'undefined') { QNA.init('mount-qna'); return; }

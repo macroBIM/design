@@ -83,15 +83,16 @@ var QNA = (function() {
             html += '</tbody></table>';
             body.innerHTML = html;
 
-            // 클릭 이벤트
+            // 클릭 이벤트: 답글이면 원본 글로 이동
             body.querySelectorAll('.qna-row').forEach(function(el) {
                 el.addEventListener('click', function() {
                     var no = parseInt(this.getAttribute('data-no'));
                     var item = data.rows.find(function(r) { return r.no == no; });
+                    var viewNo = (item && item.parent_no > 0) ? item.parent_no : no;
                     if (item && item.is_secret == 1 && !item.content) {
-                        renderUnlockForm(no);
+                        renderUnlockForm(viewNo);
                     } else {
-                        renderView(no);
+                        renderView(viewNo);
                     }
                 });
             });

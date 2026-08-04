@@ -665,9 +665,10 @@ function loadVisitChart() {
         var labels = [];
         var visits = [];
         data.rows.forEach(function(r) {
+            var y = String(r.year).slice(-2);
             var m = String(r.month).padStart(2, '0');
             var d = String(r.day).padStart(2, '0');
-            labels.push(m + '/' + d);
+            labels.push(y + '/' + m + '/' + d);
             visits.push(r.visit);
         });
         if (window._visitChartInstance) window._visitChartInstance.destroy();

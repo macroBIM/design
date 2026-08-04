@@ -72,7 +72,7 @@ function initLayout(phpData) {
     + '      </div>'
     + '      <div class="table-card" style="margin-top:24px;">'
     + '        <div class="table-card-header"><div class="table-card-title">Daily Visits (Last 30 Days)</div></div>'
-    + '        <div style="padding:20px;"><canvas id="visitChart" height="100"></canvas></div>'
+    + '        <div style="padding:20px;"><canvas id="visitChart" height="70"></canvas></div>'
     + '      </div>'
     + '    </div>'
 

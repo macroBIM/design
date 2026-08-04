@@ -386,10 +386,15 @@ var QNA = (function() {
         return d.replace(/(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):\d{2}/, '$1.$2.$3 $4:$5');
     }
     function _emptyTable() {
-        return '<div class="qna-empty">'
-            + '<i class="bi bi-chat-left-text"></i>'
-            + '<p>No posts yet. Be the first to write!</p>'
-            + '</div>';
+        return '<table class="qna-list-table"><thead><tr>'
+            + '<th style="width:60px">No</th>'
+            + '<th>Title</th>'
+            + '<th style="width:120px">Author</th>'
+            + '<th style="width:160px">Date</th>'
+            + '</tr></thead>'
+            + '<tbody><tr><td colspan="4" class="qna-empty-row">'
+            + '<i class="bi bi-chat-left-text"></i><br>No posts yet. Be the first to write!'
+            + '</td></tr></tbody></table>';
     }
 
     return { init: init };

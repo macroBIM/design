@@ -219,10 +219,9 @@ var QNA = (function() {
         document.getElementById('qna-unlock-submit').addEventListener('click', function() {
             var pw = document.getElementById('qna-unlock-pw').value;
             var fd = new FormData();
-            fd.append('action', 'unlock');
             fd.append('no', no);
             fd.append('password', pw);
-            fetch(API_URL, { method: 'POST', body: fd }).then(function(r) { return r.json(); }).then(function(data) {
+            fetch(API_URL + '?action=unlock', { method: 'POST', body: fd }).then(function(r) { return r.json(); }).then(function(data) {
                 if (data.ok) { renderView(no); }
                 else { document.getElementById('qna-unlock-error').textContent = 'Wrong password'; }
             });
@@ -244,14 +243,6 @@ var QNA = (function() {
           + '    <label>ID</label>'
           + '    <input type="text" id="qna-w-id" class="qna-input" placeholder="Your ID (optional)">'
           + '  </div>'
-          + '  <div class="qna-form-group">'
-          + '    <label>Title <span class="qna-required">*</span></label>'
-          + '    <input type="text" id="qna-w-title" class="qna-input" placeholder="Post title">'
-          + '  </div>'
-          + '  <div class="qna-form-group">'
-          + '    <label>Content</label>'
-          + '    <textarea id="qna-w-content" class="qna-textarea" rows="8" placeholder="Write your message here..."></textarea>'
-          + '  </div>'
           + '  <div class="qna-form-row">'
           + '    <div class="qna-form-group qna-half">'
           + '      <label><i class="bi bi-lock"></i> Password (enter to make secret post)</label>'
@@ -261,6 +252,14 @@ var QNA = (function() {
           + '      <label>Confirm Password</label>'
           + '      <input type="password" id="qna-w-pw2" class="qna-input" placeholder="Re-enter password">'
           + '    </div>'
+          + '  </div>'
+          + '  <div class="qna-form-group">'
+          + '    <label>Title <span class="qna-required">*</span></label>'
+          + '    <input type="text" id="qna-w-title" class="qna-input" placeholder="Post title">'
+          + '  </div>'
+          + '  <div class="qna-form-group">'
+          + '    <label>Content</label>'
+          + '    <textarea id="qna-w-content" class="qna-textarea" rows="8" placeholder="Write your message here..."></textarea>'
           + '  </div>'
           + '  <div class="qna-form-group">'
           + '    <label>Image (max 2MB)</label>'
@@ -299,7 +298,6 @@ var QNA = (function() {
             var secret = pw ? 1 : 0;
 
             var fd = new FormData();
-            fd.append('action', 'write');
             fd.append('id', id);
             fd.append('password', pw);
             fd.append('title', title);
@@ -308,7 +306,7 @@ var QNA = (function() {
             fd.append('parent_no', parentNo);
             if (imageInput.files.length > 0) fd.append('image', imageInput.files[0]);
 
-            fetch(API_URL, { method: 'POST', body: fd }).then(function(r) { return r.json(); }).then(function(data) {
+            fetch(API_URL + '?action=write', { method: 'POST', body: fd }).then(function(r) { return r.json(); }).then(function(data) {
                 if (data.ok) {
                     if (isReply) renderView(parentNo); else renderList(1);
                 } else {
@@ -343,10 +341,9 @@ var QNA = (function() {
         document.getElementById('qna-del-submit').addEventListener('click', function() {
             var pw = document.getElementById('qna-del-pw').value;
             var fd = new FormData();
-            fd.append('action', 'delete');
             fd.append('no', no);
             fd.append('password', pw);
-            fetch(API_URL, { method: 'POST', body: fd }).then(function(r) { return r.json(); }).then(function(data) {
+            fetch(API_URL + '?action=delete', { method: 'POST', body: fd }).then(function(r) { return r.json(); }).then(function(data) {
                 if (data.ok) { renderList(1); }
                 else { document.getElementById('qna-del-error').textContent = data.error || 'Failed'; }
             });

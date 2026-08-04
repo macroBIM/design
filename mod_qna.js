@@ -240,30 +240,31 @@ var QNA = (function() {
         var isReply = parentNo > 0;
         var formTitle = isReply ? 'Write a Reply' : 'New Post';
 
-        mount.innerHTML =
-            '<div class="qna-wrap">'
+        var formHtml = '<div class="qna-wrap">'
           + '<button class="qna-btn qna-btn-back" id="qna-back"><i class="bi bi-arrow-left"></i> Back</button>'
           + '<div class="qna-form-card">'
           + '  <h2 class="qna-form-title"><i class="bi bi-pencil-square"></i> ' + formTitle + '</h2>'
           + '  <div class="qna-form-group">'
           + '    <label>ID <span class="qna-required">*</span></label>'
           + '    <input type="text" id="qna-w-id" class="qna-input" placeholder="Your ID">'
-          + '  </div>'
-          + '  <div class="qna-form-row">'
-          + '    <div class="qna-form-group qna-half">'
-          + '      <label><i class="bi bi-lock"></i> Password (enter to make secret post)</label>'
-          + '      <input type="password" id="qna-w-pw" class="qna-input" placeholder="Leave empty for public post">'
-          + '    </div>'
-          + '    <div class="qna-form-group qna-half">'
-          + '      <label>Confirm Password</label>'
-          + '      <input type="password" id="qna-w-pw2" class="qna-input" placeholder="Re-enter password">'
-          + '    </div>'
-          + '  </div>'
-          + '  <div class="qna-form-group">'
-          + '    <label>Title <span class="qna-required">*</span></label>'
-          + '    <input type="text" id="qna-w-title" class="qna-input" placeholder="Post title">'
-          + '  </div>'
-          + '  <div class="qna-form-group">'
+          + '  </div>';
+        if (!isReply) {
+            formHtml += '  <div class="qna-form-row">'
+              + '    <div class="qna-form-group qna-half">'
+              + '      <label><i class="bi bi-lock"></i> Password (enter to make secret post)</label>'
+              + '      <input type="password" id="qna-w-pw" class="qna-input" placeholder="Leave empty for public post">'
+              + '    </div>'
+              + '    <div class="qna-form-group qna-half">'
+              + '      <label>Confirm Password</label>'
+              + '      <input type="password" id="qna-w-pw2" class="qna-input" placeholder="Re-enter password">'
+              + '    </div>'
+              + '  </div>'
+              + '  <div class="qna-form-group">'
+              + '    <label>Title <span class="qna-required">*</span></label>'
+              + '    <input type="text" id="qna-w-title" class="qna-input" placeholder="Post title">'
+              + '  </div>';
+        }
+        formHtml += '  <div class="qna-form-group">'
           + '    <label>Content <span style="color:#94a3b8;font-weight:400;">(Ctrl+V to paste images)</span></label>'
           + '    <div id="qna-w-content" class="qna-contenteditable" contenteditable="true"></div>'
           + '  </div>'
@@ -273,6 +274,7 @@ var QNA = (function() {
           + '  </div>'
           + '  <div id="qna-w-error" class="qna-error"></div>'
           + '</div></div>';
+        mount.innerHTML = formHtml;
 
         document.getElementById('qna-back').addEventListener('click', function() {
             if (isReply) renderView(parentNo); else renderList();
@@ -303,21 +305,28 @@ var QNA = (function() {
 
         document.getElementById('qna-w-submit').addEventListener('click', function() {
             var id = document.getElementById('qna-w-id').value.trim();
-            var pw = document.getElementById('qna-w-pw').value;
-            var pw2 = document.getElementById('qna-w-pw2').value;
-            var title = document.getElementById('qna-w-title').value.trim();
+            var pwEl = document.getElementById('qna-w-pw');
+            var pw2El = document.getElementById('qna-w-pw2');
+            var titleEl = document.getElementById('qna-w-title');
+            var pw = pwEl ? pwEl.value : '';
+            var pw2 = pw2El ? pw2El.value : '';
+            var title = titleEl ? titleEl.value.trim() : 'Re:';
             var content = document.getElementById('qna-w-content').innerHTML.trim();
 
             if (!id) {
                 document.getElementById('qna-w-error').textContent = 'ID is required.';
                 return;
             }
-            if (!title) {
+            if (!isReply && !title) {
                 document.getElementById('qna-w-error').textContent = 'Title is required.';
                 return;
             }
-            if (pw && pw !== pw2) {
+            if (!isReply && pw && pw !== pw2) {
                 document.getElementById('qna-w-error').textContent = 'Passwords do not match.';
+                return;
+            }
+            if (isReply && !content) {
+                document.getElementById('qna-w-error').textContent = 'Content is required.';
                 return;
             }
 

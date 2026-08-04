@@ -240,15 +240,9 @@ var QNA = (function() {
           + '<button class="qna-btn qna-btn-back" id="qna-back"><i class="bi bi-arrow-left"></i> Back</button>'
           + '<div class="qna-form-card">'
           + '  <h2 class="qna-form-title"><i class="bi bi-pencil-square"></i> ' + formTitle + '</h2>'
-          + '  <div class="qna-form-row">'
-          + '    <div class="qna-form-group qna-half">'
-          + '      <label>ID <span class="qna-required">*</span></label>'
-          + '      <input type="text" id="qna-w-id" class="qna-input" placeholder="Your ID">'
-          + '    </div>'
-          + '    <div class="qna-form-group qna-half">'
-          + '      <label>Password <span class="qna-required">*</span></label>'
-          + '      <input type="password" id="qna-w-pw" class="qna-input" placeholder="Password">'
-          + '    </div>'
+          + '  <div class="qna-form-group">'
+          + '    <label>ID</label>'
+          + '    <input type="text" id="qna-w-id" class="qna-input" placeholder="Your ID (optional)">'
           + '  </div>'
           + '  <div class="qna-form-group">'
           + '    <label>Title <span class="qna-required">*</span></label>'
@@ -260,12 +254,17 @@ var QNA = (function() {
           + '  </div>'
           + '  <div class="qna-form-row">'
           + '    <div class="qna-form-group qna-half">'
-          + '      <label>Image (max 2MB)</label>'
-          + '      <input type="file" id="qna-w-image" class="qna-input" accept="image/*">'
+          + '      <label><i class="bi bi-lock"></i> Password (enter to make secret post)</label>'
+          + '      <input type="password" id="qna-w-pw" class="qna-input" placeholder="Leave empty for public post">'
           + '    </div>'
-          + '    <div class="qna-form-group qna-half" style="display:flex;align-items:flex-end;">'
-          + '      <label class="qna-checkbox-label"><input type="checkbox" id="qna-w-secret"> <i class="bi bi-lock"></i> Secret Post</label>'
+          + '    <div class="qna-form-group qna-half">'
+          + '      <label>Confirm Password</label>'
+          + '      <input type="password" id="qna-w-pw2" class="qna-input" placeholder="Re-enter password">'
           + '    </div>'
+          + '  </div>'
+          + '  <div class="qna-form-group">'
+          + '    <label>Image (max 2MB)</label>'
+          + '    <input type="file" id="qna-w-image" class="qna-input" accept="image/*">'
           + '  </div>'
           + '  <div class="qna-form-actions">'
           + '    <button class="qna-btn qna-btn-primary" id="qna-w-submit"><i class="bi bi-send"></i> Submit</button>'
@@ -281,17 +280,23 @@ var QNA = (function() {
             if (isReply) renderView(parentNo); else renderList();
         });
         document.getElementById('qna-w-submit').addEventListener('click', function() {
-            var id = document.getElementById('qna-w-id').value.trim();
+            var id = document.getElementById('qna-w-id').value.trim() || 'Anonymous';
             var pw = document.getElementById('qna-w-pw').value;
+            var pw2 = document.getElementById('qna-w-pw2').value;
             var title = document.getElementById('qna-w-title').value.trim();
             var content = document.getElementById('qna-w-content').value.trim();
-            var secret = document.getElementById('qna-w-secret').checked ? 1 : 0;
             var imageInput = document.getElementById('qna-w-image');
 
-            if (!id || !pw || !title) {
-                document.getElementById('qna-w-error').textContent = 'ID, Password, Title are required.';
+            if (!title) {
+                document.getElementById('qna-w-error').textContent = 'Title is required.';
                 return;
             }
+            if (pw && pw !== pw2) {
+                document.getElementById('qna-w-error').textContent = 'Passwords do not match.';
+                return;
+            }
+
+            var secret = pw ? 1 : 0;
 
             var fd = new FormData();
             fd.append('action', 'write');

@@ -12,8 +12,7 @@ var QNA = (function() {
     function init(mountElId) {
         mountId = mountElId;
         var loc = window.location;
-        var base = loc.protocol + '//' + loc.host + loc.pathname.replace(/[^\/]*$/, '');
-        API_URL = base + 'qna_api.php';
+        API_URL = loc.protocol + '//' + loc.host + loc.pathname;
         renderList();
     }
 

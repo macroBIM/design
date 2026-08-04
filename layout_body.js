@@ -2,7 +2,7 @@
     layout_body.js — <body> 내부 HTML 레이아웃 (검증 완료본 / index.html 용)
     - 포함 기능: Tables(Rebar·Steel·Bend Radius) / Code(Rebar Anchorage·Splice)
                  / Drawings(H·Channel·Splice·Lug·I·BOX1CELL·Rect·Circle·Octagon·Track)
-                 / Retaining Wall(Gravity·Inverted-T·L-shaped) / Pier
+                 / Retaining Wall(Gravity·Inverted-T·L-shaped) / Pier / QnA
     - Dashboard 제외, 기본 랜딩 페이지는 Pier
     GitHub에서 관리, PHP에서 로드하여 innerHTML로 주입
 */
@@ -42,6 +42,7 @@ function initLayout(phpData) {
     + '      <a href="#" data-page="draw-lwall">L-shaped Wall</a>'
     + '    </div>'
     + '    <a class="nav-item active" href="#" data-page="draw-pier"><i class="bi bi-building"></i> Pier</a>'
+    + '    <a class="nav-item" href="#" data-page="qna"><i class="bi bi-question-circle"></i> QnA</a>'
     + '  </div>'
     + '</nav>'
 
@@ -167,6 +168,7 @@ function initLayout(phpData) {
     + '    <div class="page-view" id="page-draw-invtwall"><h1 class="page-heading">Inverted-T Wall Layout</h1><div class="breadcrumb"><a href="#">Home</a> / <a href="#">Retaining Wall</a> / <span>Inverted-T Wall</span></div><div id="mount-draw-invtwall"></div></div>'
     + '    <div class="page-view" id="page-draw-lwall"><h1 class="page-heading">L-shaped Wall Layout</h1><div class="breadcrumb"><a href="#">Home</a> / <a href="#">Retaining Wall</a> / <span>L-shaped Wall</span></div><div id="mount-draw-lwall"></div></div>'
     + '    <div class="page-view active" id="page-draw-pier"><h1 class="page-heading">Pier Input</h1><div class="breadcrumb"><a href="#">Home</a> / <span>Pier</span></div><div id="mount-draw-pier"></div></div>'
+    + '    <div class="page-view" id="page-qna"><h1 class="page-heading">QnA Board</h1><div class="breadcrumb"><a href="#">Home</a> / <span>QnA</span></div><div id="mount-qna"></div></div>'
 
     + '  </div>'
     + '</div>';
@@ -621,8 +623,20 @@ function _bindNavigation() {
         if (pageId === 'draw-invtwall') { mountDrawing('invtwall'); ensureInvtWall(); }
         if (pageId === 'draw-lwall') { mountDrawing('lwall'); ensureLWall(); }
         if (pageId === 'draw-pier') { mountDrawing('pier'); ensurePier(); }
+        if (pageId === 'qna') { ensureQna(); }
     }
     window.showPage = showPage;
+
+    function ensureQna() {
+        if (typeof QNA !== 'undefined') { QNA.init('mount-qna'); return; }
+        if (window._qnaLoading) return;
+        window._qnaLoading = true;
+        var sc = document.createElement('script');
+        sc.src = 'https://macrobim.github.io/design/mod_qna.js?v=9';
+        sc.onload = function() { window._qnaLoading = false; if (typeof QNA !== 'undefined') QNA.init('mount-qna'); };
+        sc.onerror = function() { window._qnaLoading = false; var m = document.getElementById('mount-qna'); if (m) m.innerHTML = '<p style="color:#b91c1c;padding:16px;">mod_qna.js failed to load.</p>'; };
+        document.head.appendChild(sc);
+    }
 
     // Pier input module (bim_pier_test.js) — single-page, single entry fdraw_pier. Load on demand.
     function ensurePier() {

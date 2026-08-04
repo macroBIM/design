@@ -194,10 +194,15 @@ var QNA = (function() {
             mount.innerHTML = html;
 
             document.getElementById('qna-back').addEventListener('click', function() { renderList(); });
-            document.getElementById('qna-reply-btn').addEventListener('click', function() { renderWriteForm(no); });
+            document.getElementById('qna-reply-btn').addEventListener('click', function() { renderWriteForm(no, post.title); });
             document.getElementById('qna-delete-btn').addEventListener('click', function() { renderDeleteConfirm(no, post.is_secret == 1); });
             mount.querySelectorAll('.qna-btn-reply-small').forEach(function(btn) {
-                btn.addEventListener('click', function() { renderWriteForm(parseInt(this.getAttribute('data-reply-to'))); });
+                btn.addEventListener('click', function() {
+                    var replyTo = parseInt(this.getAttribute('data-reply-to'));
+                    var replyItem = replies.find(function(r) { return r.no == replyTo; });
+                    var replyTitle = replyItem ? replyItem.title : post.title;
+                    renderWriteForm(replyTo, replyTitle);
+                });
             });
         });
     }
@@ -235,10 +240,11 @@ var QNA = (function() {
     }
 
     // ── 글쓰기 / 답글 ──
-    function renderWriteForm(parentNo) {
+    function renderWriteForm(parentNo, parentTitle) {
         var mount = document.getElementById(mountId);
         var isReply = parentNo > 0;
         var formTitle = isReply ? 'Write a Reply' : 'New Post';
+        var replyTitle = isReply ? 'Re: ' + (parentTitle || '') : '';
 
         var formHtml = '<div class="qna-wrap">'
           + '<button class="qna-btn qna-btn-back" id="qna-back"><i class="bi bi-arrow-left"></i> Back</button>'
@@ -310,7 +316,7 @@ var QNA = (function() {
             var titleEl = document.getElementById('qna-w-title');
             var pw = pwEl ? pwEl.value : '';
             var pw2 = pw2El ? pw2El.value : '';
-            var title = titleEl ? titleEl.value.trim() : 'Re:';
+            var title = titleEl ? titleEl.value.trim() : replyTitle;
             var content = document.getElementById('qna-w-content').innerHTML.trim();
 
             if (!id) {

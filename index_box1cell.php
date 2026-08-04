@@ -76,6 +76,12 @@ session_start();
 	$totalRow = $totalResult->fetch_assoc();
 	$totalVisits = $totalRow['total_visits'];
 
+	// total_visit 컬럼 업데이트
+	$updateTotalSql = "UPDATE counter SET total_visit = ? WHERE year = ? AND month = ? AND day = ?";
+	$updateTotalStmt = $conn->prepare($updateTotalSql);
+	$updateTotalStmt->bind_param("iiii", $totalVisits, $currentYear, $currentMonth, $currentDay);
+	$updateTotalStmt->execute();
+
 	// DB 연결 종료
 	$conn->close();
 

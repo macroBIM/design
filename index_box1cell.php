@@ -1,37 +1,145 @@
 <?php
 session_start();
 
-/*
-	우비에서 디폴트로 dbname은 주소명과 동일하게 제공한다
-	주어진 db에 들어가서 counter라는 테이블을 생성하고
-	아래와 같이 field를 생성한다
-
-		no		(int) primary key : autoincrement 됨..
-		year 	(int)
-		month 	(int)
-		day		(int)
-		visit	(bigint)
-		total_visits	(bigint)
-
-*/
-
-	// 데이터베이스 연결 설정
 	$servername = "localhost";
 	$username = "macrobim";
 	$password = "yjp@072072";
 	$dbname = "macrobim";
 
-	// MySQL 연결
 	$conn = new mysqli($servername, $username, $password, $dbname);
+	$conn->set_charset("utf8");
 
-	// 현재 연도와 월 가져오기
+	// ── QnA API ──
+	$action = isset($_GET['action']) ? $_GET['action'] : '';
+
+	if ($action !== '') {
+		header('Content-Type: application/json; charset=utf-8');
+
+		if ($action === 'list') {
+			$page = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
+			$perPage = 10;
+			$offset = ($page - 1) * $perPage;
+			$search = isset($_GET['search']) ? trim($_GET['search']) : '';
+			$where = '';
+			$params = [];
+			$types = '';
+			if ($search !== '') {
+				$where = " WHERE (title LIKE ? OR content LIKE ? OR id LIKE ?)";
+				$like = '%' . $search . '%';
+				$params = [$like, $like, $like];
+				$types = 'sss';
+			}
+			$countStmt = $conn->prepare("SELECT COUNT(*) AS cnt FROM qna" . $where);
+			if ($types) $countStmt->bind_param($types, ...$params);
+			$countStmt->execute();
+			$total = $countStmt->get_result()->fetch_assoc()['cnt'];
+			$stmt = $conn->prepare("SELECT no, parent_no, depth, id, title, content, is_secret, is_answered, image_path, created_at FROM qna" . $where . " ORDER BY no DESC LIMIT ? OFFSET ?");
+			if ($types) {
+				$stmt->bind_param($types . 'ii', ...[...$params, $perPage, $offset]);
+			} else {
+				$stmt->bind_param('ii', $perPage, $offset);
+			}
+			$stmt->execute();
+			$result = $stmt->get_result();
+			$rows = [];
+			while ($row = $result->fetch_assoc()) {
+				if ($row['is_secret'] && !isset($_SESSION['qna_auth_' . $row['no']])) {
+					$row['content'] = '';
+					$row['image_path'] = '';
+				}
+				$rows[] = $row;
+			}
+			echo json_encode(['rows' => $rows, 'total' => intval($total), 'page' => $page, 'perPage' => $perPage]);
+			$conn->close();
+			exit;
+		}
+
+		if ($action === 'view') {
+			$no = isset($_GET['no']) ? intval($_GET['no']) : 0;
+			$stmt = $conn->prepare("SELECT * FROM qna WHERE no = ?");
+			$stmt->bind_param("i", $no);
+			$stmt->execute();
+			$row = $stmt->get_result()->fetch_assoc();
+			if (!$row) { echo json_encode(['error' => 'not found']); $conn->close(); exit; }
+			if ($row['is_secret'] && !isset($_SESSION['qna_auth_' . $no])) { echo json_encode(['error' => 'secret', 'no' => $no]); $conn->close(); exit; }
+			$replyStmt = $conn->prepare("SELECT * FROM qna WHERE parent_no = ? ORDER BY no ASC");
+			$replyStmt->bind_param("i", $no);
+			$replyStmt->execute();
+			$replies = [];
+			$rr = $replyStmt->get_result();
+			while ($r = $rr->fetch_assoc()) { $replies[] = $r; }
+			echo json_encode(['post' => $row, 'replies' => $replies]);
+			$conn->close();
+			exit;
+		}
+
+		if ($action === 'unlock') {
+			$no = isset($_POST['no']) ? intval($_POST['no']) : 0;
+			$pw = isset($_POST['password']) ? $_POST['password'] : '';
+			$stmt = $conn->prepare("SELECT password FROM qna WHERE no = ?");
+			$stmt->bind_param("i", $no);
+			$stmt->execute();
+			$row = $stmt->get_result()->fetch_assoc();
+			if ($row && password_verify($pw, $row['password'])) {
+				$_SESSION['qna_auth_' . $no] = true;
+				echo json_encode(['ok' => true]);
+			} else {
+				echo json_encode(['error' => 'wrong password']);
+			}
+			$conn->close();
+			exit;
+		}
+
+		if ($action === 'write') {
+			$id = isset($_POST['id']) ? trim($_POST['id']) : '';
+			$pw = isset($_POST['password']) ? $_POST['password'] : '';
+			$title = isset($_POST['title']) ? trim($_POST['title']) : '';
+			$content = isset($_POST['content']) ? $_POST['content'] : '';
+			$is_secret = isset($_POST['is_secret']) ? intval($_POST['is_secret']) : 0;
+			$parent_no = isset($_POST['parent_no']) ? intval($_POST['parent_no']) : 0;
+			$depth = 0;
+			if ($title === '') { echo json_encode(['error' => 'title required']); $conn->close(); exit; }
+			if ($parent_no > 0) {
+				$pStmt = $conn->prepare("SELECT depth FROM qna WHERE no = ?");
+				$pStmt->bind_param("i", $parent_no);
+				$pStmt->execute();
+				$pRow = $pStmt->get_result()->fetch_assoc();
+				if ($pRow) $depth = $pRow['depth'] + 1;
+			}
+			$hashedPw = ($pw !== '') ? password_hash($pw, PASSWORD_DEFAULT) : '';
+			$stmt = $conn->prepare("INSERT INTO qna (parent_no, depth, id, password, title, content, is_secret) VALUES (?, ?, ?, ?, ?, ?, ?)");
+			$stmt->bind_param("iissssi", $parent_no, $depth, $id, $hashedPw, $title, $content, $is_secret);
+			$stmt->execute();
+			echo json_encode(['ok' => true, 'no' => $conn->insert_id]);
+			$conn->close();
+			exit;
+		}
+
+		if ($action === 'delete') {
+			$no = isset($_POST['no']) ? intval($_POST['no']) : 0;
+			$pw = isset($_POST['password']) ? $_POST['password'] : '';
+			$stmt = $conn->prepare("SELECT password FROM qna WHERE no = ?");
+			$stmt->bind_param("i", $no);
+			$stmt->execute();
+			$row = $stmt->get_result()->fetch_assoc();
+			if (!$row || !password_verify($pw, $row['password'])) { echo json_encode(['error' => 'wrong password']); $conn->close(); exit; }
+			$conn->prepare("DELETE FROM qna WHERE parent_no = ?")->bind_param("i", $no) && $conn->query("DELETE FROM qna WHERE parent_no = $no");
+			$conn->query("DELETE FROM qna WHERE no = $no");
+			echo json_encode(['ok' => true]);
+			$conn->close();
+			exit;
+		}
+
+		echo json_encode(['error' => 'unknown action']);
+		$conn->close();
+		exit;
+	}
+
+	// ── Counter ──
 	$currentYear = date("Y");
 	$currentMonth = date("n");
 	$currentDay = date("d");
 
-	//echo "<script>alert( ' $currentMonth ' );</script>";
-
-	// 방문 기록 가져오기
 	$sql = "SELECT * FROM counter WHERE year = ? AND month = ? AND day = ?";
 	$stmt = $conn->prepare($sql);
 	$stmt->bind_param("iii", $currentYear, $currentMonth, $currentDay);
@@ -39,30 +147,19 @@ session_start();
 	$result = $stmt->get_result();
 
 	if ($result->num_rows > 0) {
-
 		if ( isset( $_SESSION['mecad'] ) ){
-
-			// f5 면, 카운트 증가하지 않음
 			$row = $result->fetch_assoc();
 			$visits = $row['visit'];
-
 		} else {
-			// ctrl + f5일때만..
-			// 현재 달의 기록이 있으면 방문 횟수 증가
 			$row = $result->fetch_assoc();
 			$visits = $row['visit'] + 1;
-
 			$_SESSION['mecad'] = 'warluck';
-
 		}
-
 		$updateSql = "UPDATE counter SET visit = ? WHERE no = ? ";
 		$updateStmt = $conn->prepare($updateSql);
 		$updateStmt->bind_param("ii", $visits, $row['no']);
 		$updateStmt->execute();
-
 	} else {
-		// 현재 달의 기록이 없으면 새 레코드 생성
 		$visits = 1;
 		$insertSql = "INSERT INTO counter (year, month, day, visit) VALUES (?, ?, ?, ?)";
 		$insertStmt = $conn->prepare($insertSql);
@@ -70,16 +167,24 @@ session_start();
 		$insertStmt->execute();
 	}
 
-	// 총 방문 횟수 가져오기
-	$totalVisitsSql = "SELECT SUM(visit) AS total_visits FROM counter";
-	$totalResult = $conn->query($totalVisitsSql);
-	$totalRow = $totalResult->fetch_assoc();
-	$totalVisits = $totalRow['total_visits'];
+	$prevSql = "SELECT total_visit FROM counter WHERE NOT (year = ? AND month = ? AND day = ?) ORDER BY year DESC, month DESC, day DESC LIMIT 1";
+	$prevStmt = $conn->prepare($prevSql);
+	$prevStmt->bind_param("iii", $currentYear, $currentMonth, $currentDay);
+	$prevStmt->execute();
+	$prevResult = $prevStmt->get_result();
+	if ($prevResult->num_rows > 0) {
+		$prevRow = $prevResult->fetch_assoc();
+		$totalVisits = $prevRow['total_visit'] + $visits;
+	} else {
+		$totalVisits = $visits;
+	}
+	$updateTotalSql = "UPDATE counter SET total_visit = ? WHERE year = ? AND month = ? AND day = ?";
+	$updateTotalStmt = $conn->prepare($updateTotalSql);
+	$updateTotalStmt->bind_param("iiii", $totalVisits, $currentYear, $currentMonth, $currentDay);
+	$updateTotalStmt->execute();
 
-	// DB 연결 종료
 	$conn->close();
 
-	// 캐시 무효화용 버전 (macroBIM JS ?v= 뒤에 붙음)
 	$_BIM_V = time();
 
 ?>

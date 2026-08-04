@@ -850,7 +850,7 @@ function _bindNavigation() {
         if (window._qnaLoading) return;
         window._qnaLoading = true;
         var sc = document.createElement('script');
-        sc.src = 'https://macrobim.github.io/design/mod_qna.js?v=4';
+        sc.src = 'https://macrobim.github.io/design/mod_qna.js?v=5';
         sc.onload = function() { window._qnaLoading = false; if (typeof QNA !== 'undefined') QNA.init('mount-qna'); };
         sc.onerror = function() { window._qnaLoading = false; var m = document.getElementById('mount-qna'); if (m) m.innerHTML = '<p style="color:#b91c1c;padding:16px;">mod_qna.js failed to load.</p>'; };
         document.head.appendChild(sc);

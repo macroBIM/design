@@ -191,7 +191,7 @@ var QNA = (function() {
 
             document.getElementById('qna-back').addEventListener('click', function() { renderList(); });
             document.getElementById('qna-reply-btn').addEventListener('click', function() { renderWriteForm(no); });
-            document.getElementById('qna-delete-btn').addEventListener('click', function() { renderDeleteConfirm(no); });
+            document.getElementById('qna-delete-btn').addEventListener('click', function() { renderDeleteConfirm(no, post.is_secret == 1); });
         });
     }
 
@@ -344,29 +344,46 @@ var QNA = (function() {
     }
 
     // ── 삭제 확인 ──
-    function renderDeleteConfirm(no) {
+    function renderDeleteConfirm(no, hasPassword) {
         var mount = document.getElementById(mountId);
-        mount.innerHTML =
-            '<div class="qna-wrap">'
-          + '<button class="qna-btn qna-btn-back" id="qna-back"><i class="bi bi-arrow-left"></i> Back</button>'
-          + '<div class="qna-form-card">'
-          + '  <h2 class="qna-form-title"><i class="bi bi-trash"></i> Delete Post</h2>'
-          + '  <p style="color:#64748b;margin-bottom:20px;">Enter your password to delete this post.</p>'
-          + '  <div class="qna-form-group">'
-          + '    <label>Password</label>'
-          + '    <input type="password" id="qna-del-pw" class="qna-input">'
-          + '  </div>'
-          + '  <div class="qna-form-actions">'
-          + '    <button class="qna-btn qna-btn-danger" id="qna-del-submit"><i class="bi bi-trash"></i> Delete</button>'
-          + '    <button class="qna-btn qna-btn-cancel" id="qna-del-cancel">Cancel</button>'
-          + '  </div>'
-          + '  <div id="qna-del-error" class="qna-error"></div>'
-          + '</div></div>';
+
+        if (!hasPassword) {
+            mount.innerHTML =
+                '<div class="qna-wrap">'
+              + '<button class="qna-btn qna-btn-back" id="qna-back"><i class="bi bi-arrow-left"></i> Back</button>'
+              + '<div class="qna-form-card">'
+              + '  <h2 class="qna-form-title"><i class="bi bi-trash"></i> Delete Post</h2>'
+              + '  <p style="color:#64748b;margin-bottom:20px;">Are you sure you want to delete this post?</p>'
+              + '  <div class="qna-form-actions">'
+              + '    <button class="qna-btn qna-btn-danger" id="qna-del-submit"><i class="bi bi-trash"></i> Delete</button>'
+              + '    <button class="qna-btn qna-btn-cancel" id="qna-del-cancel">Cancel</button>'
+              + '  </div>'
+              + '  <div id="qna-del-error" class="qna-error"></div>'
+              + '</div></div>';
+        } else {
+            mount.innerHTML =
+                '<div class="qna-wrap">'
+              + '<button class="qna-btn qna-btn-back" id="qna-back"><i class="bi bi-arrow-left"></i> Back</button>'
+              + '<div class="qna-form-card">'
+              + '  <h2 class="qna-form-title"><i class="bi bi-trash"></i> Delete Post</h2>'
+              + '  <p style="color:#64748b;margin-bottom:20px;">Enter your password to delete this post.</p>'
+              + '  <div class="qna-form-group">'
+              + '    <label>Password</label>'
+              + '    <input type="password" id="qna-del-pw" class="qna-input">'
+              + '  </div>'
+              + '  <div class="qna-form-actions">'
+              + '    <button class="qna-btn qna-btn-danger" id="qna-del-submit"><i class="bi bi-trash"></i> Delete</button>'
+              + '    <button class="qna-btn qna-btn-cancel" id="qna-del-cancel">Cancel</button>'
+              + '  </div>'
+              + '  <div id="qna-del-error" class="qna-error"></div>'
+              + '</div></div>';
+        }
 
         document.getElementById('qna-back').addEventListener('click', function() { renderView(no); });
         document.getElementById('qna-del-cancel').addEventListener('click', function() { renderView(no); });
         document.getElementById('qna-del-submit').addEventListener('click', function() {
-            var pw = document.getElementById('qna-del-pw').value;
+            var pwEl = document.getElementById('qna-del-pw');
+            var pw = pwEl ? pwEl.value : '';
             var fd = new FormData();
             fd.append('no', no);
             fd.append('password', pw);

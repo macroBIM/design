@@ -172,7 +172,7 @@ var QNA = (function() {
                 html += '<div class="qna-replies-section"><h3 class="qna-replies-title"><i class="bi bi-chat-dots"></i> Replies (' + replies.length + ')</h3>';
                 replies.forEach(function(r) {
                     var rDate = _formatDate(r.created_at);
-                    html += '<div class="qna-reply-card" style="margin-left:' + (r.depth * 20) + 'px">'
+                    html += '<div class="qna-reply-card" style="margin-left:' + ((r.depth - 1) * 20) + 'px">'
                         + '  <div class="qna-reply-header">'
                         + '    <span><i class="bi bi-person"></i> ' + _esc(r.id) + '</span>'
                         + '    <span><i class="bi bi-clock"></i> ' + rDate + '</span>'
@@ -182,7 +182,10 @@ var QNA = (function() {
                         var rImgUrl = window.location.protocol + '//' + window.location.host + window.location.pathname.replace(/[^\/]*$/, '') + r.image_path;
                         html += '<div class="qna-view-image"><img src="' + rImgUrl + '" alt="attached"></div>';
                     }
-                    html += '</div>';
+                    html += '  <div class="qna-reply-actions">'
+                        + '    <button class="qna-btn qna-btn-reply-small" data-reply-to="' + r.no + '"><i class="bi bi-reply"></i> Reply</button>'
+                        + '  </div>'
+                        + '</div>';
                 });
                 html += '</div>';
             }
@@ -193,6 +196,9 @@ var QNA = (function() {
             document.getElementById('qna-back').addEventListener('click', function() { renderList(); });
             document.getElementById('qna-reply-btn').addEventListener('click', function() { renderWriteForm(no); });
             document.getElementById('qna-delete-btn').addEventListener('click', function() { renderDeleteConfirm(no, post.is_secret == 1); });
+            mount.querySelectorAll('.qna-btn-reply-small').forEach(function(btn) {
+                btn.addEventListener('click', function() { renderWriteForm(parseInt(this.getAttribute('data-reply-to'))); });
+            });
         });
     }
 

@@ -687,7 +687,7 @@ function loadVisitChart() {
                 responsive: true,
                 plugins: { legend: { display: false } },
                 scales: {
-                    y: { beginAtZero: true, ticks: { stepSize: 1, precision: 0 } },
+                    y: { beginAtZero: true, ticks: { stepSize: 5, precision: 0, callback: function(v) { return v % 10 === 0 ? v : ''; } }, grid: { color: function(ctx) { return ctx.tick.value % 10 === 0 ? '#e2e8f0' : '#f1f5f9'; } } },
                     x: { grid: { display: false } }
                 }
             }

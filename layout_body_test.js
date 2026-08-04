@@ -671,6 +671,9 @@ function loadVisitChart() {
             visits.push(r.visit);
         });
         if (window._visitChartInstance) window._visitChartInstance.destroy();
+        var maxVal = Math.max.apply(null, visits);
+        var yMax = Math.ceil(maxVal / 10) * 10;
+        if (yMax <= maxVal) yMax += 10;
         window._visitChartInstance = new Chart(canvas, {
             type: 'bar',
             data: {
@@ -687,7 +690,7 @@ function loadVisitChart() {
                 responsive: true,
                 plugins: { legend: { display: false } },
                 scales: {
-                    y: { beginAtZero: true, ticks: { stepSize: 5, precision: 0, callback: function(v) { return v % 10 === 0 ? v : ''; } }, grid: { color: function(ctx) { return ctx.tick.value % 10 === 0 ? '#e2e8f0' : '#f1f5f9'; } } },
+                    y: { beginAtZero: true, max: yMax, ticks: { stepSize: 5, precision: 0, callback: function(v) { return v % 10 === 0 ? v : ''; } }, grid: { color: function(ctx) { return ctx.tick.value % 10 === 0 ? '#e2e8f0' : '#f1f5f9'; } } },
                     x: { grid: { display: false } }
                 }
             }

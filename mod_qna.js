@@ -153,7 +153,7 @@ var QNA = (function() {
                 + '    </div>'
                 + '  </div>'
                 + '  <div class="qna-view-body">'
-                + '    <div class="qna-view-content">' + _nl2br(_esc(post.content)) + '</div>';
+                + '    <div class="qna-view-content">' + post.content + '</div>';
 
             if (post.image_path) {
                 var imgUrl = window.location.protocol + '//' + window.location.host + window.location.pathname.replace(/[^\/]*$/, '') + post.image_path;
@@ -177,7 +177,7 @@ var QNA = (function() {
                         + '    <span><i class="bi bi-person"></i> ' + _esc(r.id) + '</span>'
                         + '    <span><i class="bi bi-clock"></i> ' + rDate + '</span>'
                         + '  </div>'
-                        + '  <div class="qna-reply-body">' + _nl2br(_esc(r.content)) + '</div>';
+                        + '  <div class="qna-reply-body">' + r.content + '</div>';
                     if (r.image_path) {
                         var rImgUrl = window.location.protocol + '//' + window.location.host + window.location.pathname.replace(/[^\/]*$/, '') + r.image_path;
                         html += '<div class="qna-view-image"><img src="' + rImgUrl + '" alt="attached"></div>';
@@ -240,8 +240,8 @@ var QNA = (function() {
           + '<div class="qna-form-card">'
           + '  <h2 class="qna-form-title"><i class="bi bi-pencil-square"></i> ' + formTitle + '</h2>'
           + '  <div class="qna-form-group">'
-          + '    <label>ID</label>'
-          + '    <input type="text" id="qna-w-id" class="qna-input" placeholder="Your ID (optional)">'
+          + '    <label>ID <span class="qna-required">*</span></label>'
+          + '    <input type="text" id="qna-w-id" class="qna-input" placeholder="Your ID">'
           + '  </div>'
           + '  <div class="qna-form-row">'
           + '    <div class="qna-form-group qna-half">'
@@ -258,12 +258,8 @@ var QNA = (function() {
           + '    <input type="text" id="qna-w-title" class="qna-input" placeholder="Post title">'
           + '  </div>'
           + '  <div class="qna-form-group">'
-          + '    <label>Content</label>'
-          + '    <textarea id="qna-w-content" class="qna-textarea" rows="8" placeholder="Write your message here..."></textarea>'
-          + '  </div>'
-          + '  <div class="qna-form-group">'
-          + '    <label>Image (max 2MB)</label>'
-          + '    <input type="file" id="qna-w-image" class="qna-input" accept="image/*">'
+          + '    <label>Content <span style="color:#94a3b8;font-weight:400;">(Ctrl+V to paste images)</span></label>'
+          + '    <div id="qna-w-content" class="qna-contenteditable" contenteditable="true"></div>'
           + '  </div>'
           + '  <div class="qna-form-actions">'
           + '    <button class="qna-btn qna-btn-primary" id="qna-w-submit"><i class="bi bi-send"></i> Submit</button>'
@@ -278,14 +274,38 @@ var QNA = (function() {
         document.getElementById('qna-w-cancel').addEventListener('click', function() {
             if (isReply) renderView(parentNo); else renderList();
         });
+        // 이미지 붙여넣기 핸들러
+        document.getElementById('qna-w-content').addEventListener('paste', function(e) {
+            var items = (e.clipboardData || e.originalEvent.clipboardData).items;
+            for (var i = 0; i < items.length; i++) {
+                if (items[i].type.indexOf('image') !== -1) {
+                    e.preventDefault();
+                    var file = items[i].getAsFile();
+                    if (file.size > 2 * 1024 * 1024) {
+                        document.getElementById('qna-w-error').textContent = 'Image too large (max 2MB)';
+                        return;
+                    }
+                    var reader = new FileReader();
+                    reader.onload = function(ev) {
+                        document.execCommand('insertImage', false, ev.target.result);
+                    };
+                    reader.readAsDataURL(file);
+                    return;
+                }
+            }
+        });
+
         document.getElementById('qna-w-submit').addEventListener('click', function() {
-            var id = document.getElementById('qna-w-id').value.trim() || 'Anonymous';
+            var id = document.getElementById('qna-w-id').value.trim();
             var pw = document.getElementById('qna-w-pw').value;
             var pw2 = document.getElementById('qna-w-pw2').value;
             var title = document.getElementById('qna-w-title').value.trim();
-            var content = document.getElementById('qna-w-content').value.trim();
-            var imageInput = document.getElementById('qna-w-image');
+            var content = document.getElementById('qna-w-content').innerHTML.trim();
 
+            if (!id) {
+                document.getElementById('qna-w-error').textContent = 'ID is required.';
+                return;
+            }
             if (!title) {
                 document.getElementById('qna-w-error').textContent = 'Title is required.';
                 return;
@@ -304,14 +324,22 @@ var QNA = (function() {
             fd.append('content', content);
             fd.append('is_secret', secret);
             fd.append('parent_no', parentNo);
-            if (imageInput.files.length > 0) fd.append('image', imageInput.files[0]);
 
-            fetch(API_URL + '?action=write', { method: 'POST', body: fd }).then(function(r) { return r.json(); }).then(function(data) {
-                if (data.ok) {
-                    if (isReply) renderView(parentNo); else renderList(1);
-                } else {
-                    document.getElementById('qna-w-error').textContent = data.error || 'Failed';
+            fetch(API_URL + '?action=write', { method: 'POST', body: fd }).then(function(r) {
+                return r.text();
+            }).then(function(text) {
+                try {
+                    var data = JSON.parse(text);
+                    if (data.ok) {
+                        if (isReply) renderView(parentNo); else renderList(1);
+                    } else {
+                        document.getElementById('qna-w-error').textContent = data.error || 'Failed';
+                    }
+                } catch(e) {
+                    document.getElementById('qna-w-error').textContent = 'Server error: ' + text.substring(0, 200);
                 }
+            }).catch(function(err) {
+                document.getElementById('qna-w-error').textContent = 'Network error: ' + err.message;
             });
         });
     }

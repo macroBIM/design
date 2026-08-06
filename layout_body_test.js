@@ -42,6 +42,7 @@ function initLayout(phpData) {
     + '      <a href="#" data-page="draw-lwall">L-shaped Wall</a>'
     + '    </div>'
     + '    <a class="nav-item" href="#" data-page="draw-pier"><i class="bi bi-building"></i> Pier</a>'
+    + '    <a class="nav-item" href="#" data-page="draw-pscbox"><i class="bi bi-box-seam"></i> PSCBOX</a>'
     + '    <a class="nav-item" href="#" data-page="qna"><i class="bi bi-question-circle"></i> QnA</a>'
     + '  </div>'
     + '</nav>'
@@ -194,6 +195,7 @@ function initLayout(phpData) {
     + '    <div class="page-view" id="page-draw-invtwall"><h1 class="page-heading">Inverted-T Wall Layout</h1><div class="breadcrumb"><a href="#">Home</a> / <a href="#">Retaining Wall</a> / <span>Inverted-T Wall</span></div><div id="mount-draw-invtwall"></div></div>'
     + '    <div class="page-view" id="page-draw-lwall"><h1 class="page-heading">L-shaped Wall Layout</h1><div class="breadcrumb"><a href="#">Home</a> / <a href="#">Retaining Wall</a> / <span>L-shaped Wall</span></div><div id="mount-draw-lwall"></div></div>'
     + '    <div class="page-view" id="page-draw-pier"><h1 class="page-heading">Pier Input</h1><div class="breadcrumb"><a href="#">Home</a> / <span>Pier</span></div><div id="mount-draw-pier"></div></div>'
+    + '    <div class="page-view" id="page-draw-pscbox"><h1 class="page-heading">PSC Box Girder</h1><div class="breadcrumb"><a href="#">Home</a> / <span>PSCBOX</span></div><div id="mount-draw-pscbox"></div></div>'
     + '    <div class="page-view" id="page-qna"><h1 class="page-heading">QnA Board</h1><div class="breadcrumb"><a href="#">Home</a> / <span>QnA</span></div><div id="mount-qna"></div></div>'
 
     + '  </div>'
@@ -734,6 +736,7 @@ function _bindNavigation() {
         if (pageId === 'draw-invtwall') { mountDrawing('invtwall'); ensureInvtWall(); }
         if (pageId === 'draw-lwall') { mountDrawing('lwall'); ensureLWall(); }
         if (pageId === 'draw-pier') { mountDrawing('pier'); ensurePier(); }
+        if (pageId === 'draw-pscbox') { mountDrawing('pscbox'); ensurePscbox(); }
         if (pageId === 'qna') { ensureQna(); }
     }
     window.showPage = showPage;
@@ -747,6 +750,18 @@ function _bindNavigation() {
         sc.src = 'https://macrobim.github.io/macroBIM/bim_pier_test.js?v=71';
         sc.onload = function () { window._pierLoading = false; if (typeof fdraw_pier === 'function') fdraw_pier('mount-draw-pier'); };
         sc.onerror = function () { window._pierLoading = false; var m = document.getElementById('mount-draw-pier'); if (m) m.innerHTML = '<p style="color:#b91c1c;padding:16px;">bim_pier_test.js failed to load.</p>'; };
+        document.head.appendChild(sc);
+    }
+
+    // PSC Box (1/2-cell) parametric module (bim_pscbox_test.js) — single entry fdraw_pscbox. Load on demand.
+    function ensurePscbox() {
+        if (typeof fdraw_pscbox === 'function') { fdraw_pscbox('mount-draw-pscbox'); return; }
+        if (window._pscboxLoading) return;
+        window._pscboxLoading = true;
+        var sc = document.createElement('script');
+        sc.src = 'https://macrobim.github.io/macroBIM/bim_pscbox_test.js?v=1';
+        sc.onload = function () { window._pscboxLoading = false; if (typeof fdraw_pscbox === 'function') fdraw_pscbox('mount-draw-pscbox'); };
+        sc.onerror = function () { window._pscboxLoading = false; var m = document.getElementById('mount-draw-pscbox'); if (m) m.innerHTML = '<p style="color:#b91c1c;padding:16px;">bim_pscbox_test.js failed to load.</p>'; };
         document.head.appendChild(sc);
     }
 
@@ -859,7 +874,7 @@ function _bindNavigation() {
     function ensureXsect(name) { ensureRWModule('bim_xsect_test.js?v=10', 'xsect', function () { if (window.XSECT) { window.XSECT.install(name); window.XSECT.mount(name); } }); }
 
     function mountDrawing(kind) {
-        ['hsection','channel','ibeam','splice','liftinglug','box1cell','rect','circle','octagon','track','gravitywall','invtwall','lwall','pier'].forEach(function(k) {
+        ['hsection','channel','ibeam','splice','liftinglug','box1cell','rect','circle','octagon','track','gravitywall','invtwall','lwall','pier','pscbox'].forEach(function(k) {
             if (k !== kind) {
                 var other = document.getElementById('mount-draw-' + k);
                 if (other) other.innerHTML = '';

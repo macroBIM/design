@@ -750,7 +750,7 @@ function _bindNavigation() {
         if (window._pierLoading) return;
         window._pierLoading = true;
         var sc = document.createElement('script');
-        sc.src = 'https://cdn.jsdelivr.net/gh/macroBIM/macroBIM@2583fc1/bim_pier_test.js';
+        sc.src = 'https://macrobim.github.io/macroBIM/bim_pier_test.js?v=72';
         sc.onload = function () { window._pierLoading = false; if (typeof fdraw_pier === 'function') fdraw_pier('mount-draw-pier'); };
         sc.onerror = function () { window._pierLoading = false; var m = document.getElementById('mount-draw-pier'); if (m) m.innerHTML = '<p style="color:#b91c1c;padding:16px;">bim_pier_test.js failed to load.</p>'; };
         document.head.appendChild(sc);
@@ -762,8 +762,7 @@ function _bindNavigation() {
         if (window._pscboxLoading) return;
         window._pscboxLoading = true;
         var sc = document.createElement('script');
-        // TEMP: pinned jsDelivr while GitHub Pages deploys are backed up; restore github.io URL when Pages recovers.
-        sc.src = 'https://cdn.jsdelivr.net/gh/macroBIM/macroBIM@2583fc1/bim_pscbox_test.js';
+        sc.src = 'https://macrobim.github.io/macroBIM/bim_pscbox_test.js?v=4';
         sc.onload = function () { window._pscboxLoading = false; if (typeof fdraw_pscbox === 'function') fdraw_pscbox('mount-draw-pscbox'); };
         sc.onerror = function () { window._pscboxLoading = false; var m = document.getElementById('mount-draw-pscbox'); if (m) m.innerHTML = '<p style="color:#b91c1c;padding:16px;">bim_pscbox_test.js failed to load.</p>'; };
         document.head.appendChild(sc);
@@ -775,7 +774,7 @@ function _bindNavigation() {
         if (window._gwLoading) return;
         window._gwLoading = true;
         var sc = document.createElement('script');
-        sc.src = 'https://cdn.jsdelivr.net/gh/macroBIM/macroBIM@2583fc1/bim_gravitywall.js';
+        sc.src = 'https://macrobim.github.io/macroBIM/bim_gravitywall.js?v=11';
         sc.onload = function () { window._gwLoading = false; if (typeof fdraw_gravitywall === 'function') fdraw_gravitywall('mount-draw-gravitywall'); };
         sc.onerror = function () { window._gwLoading = false; var m = document.getElementById('mount-draw-gravitywall'); if (m) m.innerHTML = '<p style="color:#b91c1c;padding:16px;">bim_gravitywall.js failed to load.</p>'; };
         document.head.appendChild(sc);
@@ -787,7 +786,7 @@ function _bindNavigation() {
         if (window._iwLoading) return;
         window._iwLoading = true;
         var sc = document.createElement('script');
-        sc.src = 'https://cdn.jsdelivr.net/gh/macroBIM/macroBIM@2583fc1/bim_invtwall_test.js';
+        sc.src = 'https://macrobim.github.io/macroBIM/bim_invtwall_test.js?v=5';
         sc.onload = function () { window._iwLoading = false; if (typeof fdraw_invtwall === 'function') fdraw_invtwall('mount-draw-invtwall'); };
         sc.onerror = function () { window._iwLoading = false; var m = document.getElementById('mount-draw-invtwall'); if (m) m.innerHTML = '<p style="color:#b91c1c;padding:16px;">bim_invtwall.js failed to load.</p>'; };
         document.head.appendChild(sc);
@@ -799,7 +798,7 @@ function _bindNavigation() {
         if (window._lwLoading) return;
         window._lwLoading = true;
         var sc = document.createElement('script');
-        sc.src = 'https://cdn.jsdelivr.net/gh/macroBIM/macroBIM@2583fc1/bim_lwall.js';
+        sc.src = 'https://macrobim.github.io/macroBIM/bim_lwall.js?v=2';
         sc.onload = function () { window._lwLoading = false; if (typeof fdraw_lwall === 'function') fdraw_lwall('mount-draw-lwall'); };
         sc.onerror = function () { window._lwLoading = false; var m = document.getElementById('mount-draw-lwall'); if (m) m.innerHTML = '<p style="color:#b91c1c;padding:16px;">bim_lwall.js failed to load.</p>'; };
         document.head.appendChild(sc);

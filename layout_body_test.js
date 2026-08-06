@@ -760,7 +760,7 @@ function _bindNavigation() {
         window._pscboxLoading = true;
         var sc = document.createElement('script');
         // TEMP: pinned jsDelivr while GitHub Pages deploys are backed up; restore github.io URL when Pages recovers.
-        sc.src = 'https://cdn.jsdelivr.net/gh/macroBIM/macroBIM@03147a1/bim_pscbox_test.js';
+        sc.src = 'https://cdn.jsdelivr.net/gh/macroBIM/macroBIM@4b6ff14/bim_pscbox_test.js';
         sc.onload = function () { window._pscboxLoading = false; if (typeof fdraw_pscbox === 'function') fdraw_pscbox('mount-draw-pscbox'); };
         sc.onerror = function () { window._pscboxLoading = false; var m = document.getElementById('mount-draw-pscbox'); if (m) m.innerHTML = '<p style="color:#b91c1c;padding:16px;">bim_pscbox_test.js failed to load.</p>'; };
         document.head.appendChild(sc);

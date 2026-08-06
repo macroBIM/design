@@ -759,7 +759,7 @@ function _bindNavigation() {
         if (window._pscboxLoading) return;
         window._pscboxLoading = true;
         var sc = document.createElement('script');
-        sc.src = 'https://macrobim.github.io/macroBIM/bim_pscbox_test.js?v=2';
+        sc.src = 'https://macrobim.github.io/macroBIM/bim_pscbox_test.js?v=3';
         sc.onload = function () { window._pscboxLoading = false; if (typeof fdraw_pscbox === 'function') fdraw_pscbox('mount-draw-pscbox'); };
         sc.onerror = function () { window._pscboxLoading = false; var m = document.getElementById('mount-draw-pscbox'); if (m) m.innerHTML = '<p style="color:#b91c1c;padding:16px;">bim_pscbox_test.js failed to load.</p>'; };
         document.head.appendChild(sc);

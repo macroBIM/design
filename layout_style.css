@@ -48,8 +48,9 @@ body{font-family:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;ba
 .breadcrumb a:hover{color:#2563eb;}
 .breadcrumb span{color:#64748b;}
 .table-card{background:#fff;border-radius:10px;border:1px solid #e2e8f0;margin-bottom:20px;overflow:hidden;}
-.table-card-header{display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid #e2e8f0;}
-.table-card-title{font-size:15px;font-weight:600;color:#0f172a;}
+.table-card-header{display:flex;justify-content:space-between;align-items:center;padding:13px 16px;border-bottom:1px solid #e2e8f0;background:#f1f5f9;}
+.table-card-title{font-size:15px;font-weight:600;color:#0f172a;display:flex;align-items:center;}
+.table-card-title::before{content:'';display:inline-block;width:4px;height:15px;border-radius:2px;background:#2563eb;margin-right:9px;flex-shrink:0;}
 .table-card-desc{font-size:12.5px;color:#94a3b8;}
 
 /* ── REBAR TABLE ── */
@@ -89,8 +90,9 @@ body{font-family:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;ba
 
 /* ── DRAWING PAGE ── */
 .draw-card{background:#fff;border-radius:10px;border:1px solid #e2e8f0;margin-bottom:20px;overflow:hidden;}
-.draw-card-header{display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid #e2e8f0;}
-.draw-card-title{font-size:15px;font-weight:600;color:#0f172a;}
+.draw-card-header{display:flex;justify-content:space-between;align-items:center;padding:13px 16px;border-bottom:1px solid #e2e8f0;background:#f1f5f9;}
+.draw-card-title{font-size:15px;font-weight:600;color:#0f172a;display:flex;align-items:center;}
+.draw-card-title::before{content:'';display:inline-block;width:4px;height:15px;border-radius:2px;background:#2563eb;margin-right:9px;flex-shrink:0;}
 .draw-card-desc{font-size:12.5px;color:#94a3b8;}
 .draw-card-body{padding:20px;}
 

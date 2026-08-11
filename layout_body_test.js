@@ -865,12 +865,12 @@ function _bindNavigation() {
         window._rwCoreLoading = true;
         window._rwCoreCbs = [afterCore];
         var sc0 = document.createElement('script');
-        sc0.src = 'https://macrobim.github.io/macroBIM/bim_draw_test_core.js?v=6';
+        sc0.src = 'https://macrobim.github.io/macroBIM/bim_draw_test_core.js?v=7';
         sc0.onload = function () { window._rwCoreLoading = false; var q = window._rwCoreCbs || []; window._rwCoreCbs = []; q.forEach(function (f) { f(); }); };
         sc0.onerror = function () { window._rwCoreLoading = false; window._rwCoreCbs = []; };
         document.head.appendChild(sc0);
     }
-    function ensureLugTest(cb) { ensureRWModule('bim_liftinglug_test.js?v=19', 'lugTest', cb); }
+    function ensureLugTest(cb) { ensureRWModule('bim_liftinglug_test.js?v=20', 'lugTest', cb); }
     function ensureIbeamTest(cb) { ensureRWModule('bim_ibeam_test.js?v=2', 'ibeamTest', cb); }
     function ensureBox1cellTest(cb) { ensureRWModule('bim_box1cell_test.js?v=3', 'box1cellTest', cb); }
     // Cross-section preview builds (bim_xsect_test.js — window.XSECT) on the shared core.

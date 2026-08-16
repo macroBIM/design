@@ -42,7 +42,7 @@ function initLayout(phpData) {
     + '      <a href="#" data-page="draw-lwall">L-shaped Wall</a>'
     + '    </div>'
     + '    <a class="nav-item" href="#" data-page="draw-pier"><i class="bi bi-building"></i> Pier</a>'
-    + '    <a class="nav-item" href="#" data-page="draw-plate3d"><i class="bi bi-boxes"></i> PLATE3D</a>'
+    + '    <a class="nav-item" href="#" data-page="draw-plate3d"><i class="bi bi-stack"></i> PLATE3D</a>'
     + '    <a class="nav-item" href="#" data-page="draw-pscbox"><i class="bi bi-box-seam"></i> PSCBOX</a>'
     + '    <a class="nav-item" href="#" data-page="qna"><i class="bi bi-question-circle"></i> QnA</a>'
     + '  </div>'
@@ -779,7 +779,7 @@ function _bindNavigation() {
         var mount = document.getElementById('mount-draw-plate3d');
         if (!mount || mount.firstElementChild) return;
         var fr = document.createElement('iframe');
-        fr.src = 'https://macrobim.github.io/macroBIM/plate3d/embed.html?v=9';
+        fr.src = 'https://macrobim.github.io/macroBIM/plate3d/embed.html?v=10';
         fr.title = 'PLATE3D';
         fr.allow = 'fullscreen';
         fr.style.cssText = 'width:100%;height:calc(100vh - 210px);min-height:520px;'

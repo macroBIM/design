@@ -42,6 +42,7 @@ function initLayout(phpData) {
     + '      <a href="#" data-page="draw-lwall">L-shaped Wall</a>'
     + '    </div>'
     + '    <a class="nav-item" href="#" data-page="draw-pier"><i class="bi bi-building"></i> Pier</a>'
+    + '    <a class="nav-item" href="#" data-page="draw-plate3d"><i class="bi bi-boxes"></i> PLATE3D</a>'
     + '    <a class="nav-item" href="#" data-page="draw-pscbox"><i class="bi bi-box-seam"></i> PSCBOX</a>'
     + '    <a class="nav-item" href="#" data-page="qna"><i class="bi bi-question-circle"></i> QnA</a>'
     + '  </div>'
@@ -195,6 +196,7 @@ function initLayout(phpData) {
     + '    <div class="page-view" id="page-draw-invtwall"><h1 class="page-heading">Inverted-T Wall Layout</h1><div class="breadcrumb"><a href="#">Home</a> / <a href="#">Retaining Wall</a> / <span>Inverted-T Wall</span></div><div id="mount-draw-invtwall"></div></div>'
     + '    <div class="page-view" id="page-draw-lwall"><h1 class="page-heading">L-shaped Wall Layout</h1><div class="breadcrumb"><a href="#">Home</a> / <a href="#">Retaining Wall</a> / <span>L-shaped Wall</span></div><div id="mount-draw-lwall"></div></div>'
     + '    <div class="page-view" id="page-draw-pier"><h1 class="page-heading">Pier Input</h1><div class="breadcrumb"><a href="#">Home</a> / <span>Pier</span></div><div id="mount-draw-pier"></div></div>'
+    + '    <div class="page-view" id="page-draw-plate3d"><h1 class="page-heading">PLATE3D</h1><div class="breadcrumb"><a href="#">Home</a> / <span>PLATE3D</span></div><div id="mount-draw-plate3d"></div></div>'
     + '    <div class="page-view" id="page-draw-pscbox"><h1 class="page-heading">PSC Box Girder</h1><div class="breadcrumb"><a href="#">Home</a> / <span>PSCBOX</span></div><div id="mount-draw-pscbox"></div></div>'
     + '    <div class="page-view" id="page-qna"><h1 class="page-heading">QnA Board</h1><div class="breadcrumb"><a href="#">Home</a> / <span>QnA</span></div><div id="mount-qna"></div></div>'
 
@@ -749,6 +751,7 @@ function _bindNavigation() {
         if (pageId === 'draw-invtwall') { mountDrawing('invtwall'); ensureInvtWall(); }
         if (pageId === 'draw-lwall') { mountDrawing('lwall'); ensureLWall(); }
         if (pageId === 'draw-pier') { mountDrawing('pier'); ensurePier(); }
+        if (pageId === 'draw-plate3d') { ensurePlate3d(); }
         if (pageId === 'draw-pscbox') { mountDrawing('pscbox'); ensurePscbox(); }
         if (pageId === 'qna') { ensureQna(); }
     }
@@ -764,6 +767,24 @@ function _bindNavigation() {
         sc.onload = function () { window._pierLoading = false; if (typeof fdraw_pier === 'function') fdraw_pier('mount-draw-pier'); };
         sc.onerror = function () { window._pierLoading = false; var m = document.getElementById('mount-draw-pier'); if (m) m.innerHTML = '<p style="color:#b91c1c;padding:16px;">bim_pier_test.js failed to load.</p>'; };
         document.head.appendChild(sc);
+    }
+
+    // PLATE3D (plate3d/plate_builder.js) runs in its own document, not as a module
+    // on this page: it wants three.js r147 where the page carries r0.128, and its
+    // shell is laid out against 100vw/100vh. An iframe gives it both, and keeps
+    // its globals off the host page. Built once and deliberately left out of
+    // mountDrawing's clear list, so a sheet the user loaded survives a trip to
+    // another page - a hidden frame stops animating on its own.
+    function ensurePlate3d() {
+        var mount = document.getElementById('mount-draw-plate3d');
+        if (!mount || mount.firstElementChild) return;
+        var fr = document.createElement('iframe');
+        fr.src = 'https://macrobim.github.io/macroBIM/plate3d/embed.html?v=1';
+        fr.title = 'PLATE3D';
+        fr.allow = 'fullscreen';
+        fr.style.cssText = 'width:100%;height:calc(100vh - 210px);min-height:520px;'
+                         + 'border:1px solid #e3e6ea;border-radius:8px;display:block;background:#15181c;';
+        mount.appendChild(fr);
     }
 
     // PSC Box (1/2-cell) parametric module (bim_pscbox_test.js) — single entry fdraw_pscbox. Load on demand.

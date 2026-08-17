@@ -605,6 +605,14 @@ function _bindNavigation() {
         var topItem = document.querySelector('.nav-item[data-page="' + pageId + '"]');
         if (topItem) topItem.classList.add('active');
 
+        // PLATE3D runs in an iframe that mountDrawing does not touch, so it has to
+        // be dropped by hand on the way out. Leaving the page throws away whatever
+        // sheet was loaded; coming back rebuilds the frame on its built-in model.
+        if (pageId !== 'draw-plate3d') {
+            var pm = document.getElementById('mount-draw-plate3d');
+            if (pm && pm.firstElementChild) pm.innerHTML = '';
+        }
+
         if (pageId === 'rebar' && !window._rebarLoaded) { loadRebarTables(); window._rebarLoaded = true; }
         if (pageId === 'rebarleng' && !window._rebarLengLoaded) {
             if (typeof mod_rebar_leng !== 'undefined') { mod_rebar_leng.init('mount-rebarleng'); window._rebarLengLoaded = true; }
@@ -656,9 +664,9 @@ function _bindNavigation() {
     // PLATE3D (plate3d/plate_builder.js) runs in its own document, not as a module
     // on this page: it wants three.js r147 where the page carries r0.128, and its
     // shell is laid out against 100vw/100vh. An iframe gives it both, and keeps
-    // its globals off the host page. Built once and deliberately left out of
-    // mountDrawing's clear list, so a sheet the user loaded survives a trip to
-    // another page - a hidden frame stops animating on its own.
+    // its globals off the host page. showPage drops the frame whenever you
+    // navigate away, so a sheet you loaded does not follow you around: come back
+    // and PLATE3D is on its built-in model again.
     function ensurePlate3d() {
         var mount = document.getElementById('mount-draw-plate3d');
         if (!mount || mount.firstElementChild) return;

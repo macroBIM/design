@@ -41,8 +41,8 @@ function initLayout(phpData) {
     + '      <a href="#" data-page="draw-invtwall">Inverted-T Wall</a>'
     + '      <a href="#" data-page="draw-lwall">L-shaped Wall</a>'
     + '    </div>'
-    + '    <a class="nav-item active" href="#" data-page="draw-pier"><i class="bi bi-building"></i> Pier</a>'
-    + '    <a class="nav-item" href="#" data-page="draw-plate3d"><i class="bi bi-stack"></i> PLATE3D</a>'
+    + '    <a class="nav-item" href="#" data-page="draw-pier"><i class="bi bi-building"></i> Pier</a>'
+    + '    <a class="nav-item active" href="#" data-page="draw-plate3d"><i class="bi bi-stack"></i> PLATE3D</a>'
     + '    <a class="nav-item" href="#" data-page="qna"><i class="bi bi-question-circle"></i> QnA</a>'
     + '  </div>'
     + '</nav>'
@@ -168,8 +168,8 @@ function initLayout(phpData) {
     + '    <div class="page-view" id="page-draw-gravitywall"><h1 class="page-heading">Gravity Wall Layout</h1><div class="breadcrumb"><a href="#">Home</a> / <a href="#">Retaining Wall</a> / <span>Gravity Wall</span></div><div id="mount-draw-gravitywall"></div></div>'
     + '    <div class="page-view" id="page-draw-invtwall"><h1 class="page-heading">Inverted-T Wall Layout</h1><div class="breadcrumb"><a href="#">Home</a> / <a href="#">Retaining Wall</a> / <span>Inverted-T Wall</span></div><div id="mount-draw-invtwall"></div></div>'
     + '    <div class="page-view" id="page-draw-lwall"><h1 class="page-heading">L-shaped Wall Layout</h1><div class="breadcrumb"><a href="#">Home</a> / <a href="#">Retaining Wall</a> / <span>L-shaped Wall</span></div><div id="mount-draw-lwall"></div></div>'
-    + '    <div class="page-view active" id="page-draw-pier"><h1 class="page-heading">Pier Input</h1><div class="breadcrumb"><a href="#">Home</a> / <span>Pier</span></div><div id="mount-draw-pier"></div></div>'
-    + '    <div class="page-view" id="page-draw-plate3d"><h1 class="page-heading">PLATE3D</h1><div class="breadcrumb"><a href="#">Home</a> / <span>PLATE3D</span></div><div id="mount-draw-plate3d"></div></div>'
+    + '    <div class="page-view" id="page-draw-pier"><h1 class="page-heading">Pier Input</h1><div class="breadcrumb"><a href="#">Home</a> / <span>Pier</span></div><div id="mount-draw-pier"></div></div>'
+    + '    <div class="page-view active" id="page-draw-plate3d"><h1 class="page-heading">PLATE3D</h1><div class="breadcrumb"><a href="#">Home</a> / <span>PLATE3D</span></div><div id="mount-draw-plate3d"></div></div>'
     + '    <div class="page-view" id="page-qna"><h1 class="page-heading">QnA Board</h1><div class="breadcrumb"><a href="#">Home</a> / <span>QnA</span></div><div id="mount-qna"></div></div>'
 
     + '  </div>'
@@ -825,5 +825,5 @@ function _bindNavigation() {
         });
     });
     // default landing page (Dashboard removed) — open Pier and load its module
-    showPage('draw-pier');
+    showPage('draw-plate3d');            // the site opens on PLATE3D
 }

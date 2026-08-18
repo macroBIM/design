@@ -787,7 +787,7 @@ function _bindNavigation() {
         var mount = document.getElementById('mount-draw-plate3d');
         if (!mount || mount.firstElementChild) return;
         var fr = document.createElement('iframe');
-        fr.src = 'https://macrobim.github.io/macroBIM/plate3d/embed_test.html?v=25';
+        fr.src = 'https://macrobim.github.io/macroBIM/plate3d/embed_test.html?v=26';
         fr.title = 'PLATE3D';
         fr.allow = 'fullscreen';
         fr.style.cssText = 'width:100%;height:calc(100vh - 210px);min-height:520px;'

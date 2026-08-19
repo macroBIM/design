@@ -671,10 +671,14 @@ function _bindNavigation() {
         var mount = document.getElementById('mount-draw-plate3d');
         if (!mount || mount.firstElementChild) return;
         var fr = document.createElement('iframe');
-        fr.src = 'https://macrobim.github.io/macroBIM/plate3d/embed.html?v=34';
+        fr.src = 'https://macrobim.github.io/macroBIM/plate3d/embed.html?v=42';
         fr.title = 'PLATE3D';
         fr.allow = 'fullscreen';
-        fr.style.cssText = 'width:100%;height:calc(100vh - 210px);min-height:520px;'
+        // 210px 는 실측보다 90px 넉넉했다 — 프레임 위쪽 여백은 108px 이고 아래로
+        // 102px 이 그냥 비어 있었다. 120px (=108 + 아래 여백 12) 로 줄이면 프레임이
+        // 그만큼 커지고, PLATE3D 의 module preview 가 뷰포트 869px 부터 축소 없이
+        // 열린다. 페이지는 여전히 스크롤되지 않는다.
+        fr.style.cssText = 'width:100%;height:calc(100vh - 120px);min-height:520px;'
                          + 'border:1px solid #e3e6ea;border-radius:8px;display:block;background:#15181c;';
         mount.appendChild(fr);
     }

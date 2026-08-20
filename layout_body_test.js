@@ -787,16 +787,34 @@ function _bindNavigation() {
         var mount = document.getElementById('mount-draw-plate3d');
         if (!mount || mount.firstElementChild) return;
         var fr = document.createElement('iframe');
-        fr.src = 'https://macrobim.github.io/macroBIM/plate3d/embed_test.html?v=55';
+        fr.src = 'https://macrobim.github.io/macroBIM/plate3d/embed_test.html?v=56';
         fr.title = 'PLATE3D';
         fr.allow = 'fullscreen';
-        // 210px 는 실측보다 90px 넉넉했다 — 프레임 위쪽 여백은 108px 이고 아래로
-        // 102px 이 그냥 비어 있었다. 120px (=108 + 아래 여백 12) 로 줄이면 프레임이
-        // 그만큼 커지고, PLATE3D 의 module preview 가 뷰포트 869px 부터 축소 없이
-        // 제 크기(1100x619)로 열린다. 페이지는 여전히 스크롤되지 않는다.
-        fr.style.cssText = 'width:100%;height:calc(100vh - 120px);min-height:520px;'
+        // 높이를 100vh 에서 상수를 빼서 잡던 방식은 추정이었다. 프레임 위에 무엇이
+        // 얼마나 오는지 이 스크립트는 알 수 없고, 추정이 조금만 모자라면 페이지가
+        // 스크롤되고 조금만 남으면 도면 아래가 허옇게 뜬다. 두 값 모두 실측으로 잡는다:
+        //   위쪽 — 프레임의 실제 위치에서 창 아래까지 (= 쓸 수 있는 최대)
+        //   아래쪽 — PLATE3D 가 postMessage 로 알려주는 "실제 필요한 높이"
+        // 둘 중 작은 값을 쓴다. 그래서 넘치지도, 남지도 않는다.
+        fr.style.cssText = 'width:100%;height:520px;min-height:520px;'
                          + 'border:1px solid #e3e6ea;border-radius:8px;display:block;background:#15181c;';
         mount.appendChild(fr);
+
+        var want = 0;                       // 프레임이 스스로 요청한 높이
+        function sizeFrame() {
+            var top = fr.getBoundingClientRect().top;
+            var room = Math.floor(window.innerHeight - top - 12);
+            var h = want ? Math.min(want, room) : room;
+            fr.style.height = Math.max(520, h) + 'px';
+        }
+        window.addEventListener('message', function (e) {
+            var d = e && e.data;
+            if (!d || d.plate3d !== 'height' || !(d.h > 0)) return;
+            want = d.h;
+            sizeFrame();
+        });
+        window.addEventListener('resize', sizeFrame);
+        sizeFrame();
     }
 
     // PSC Box (1/2-cell) parametric module (bim_pscbox_test.js) — single entry fdraw_pscbox. Load on demand.

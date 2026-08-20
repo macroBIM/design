@@ -26,7 +26,6 @@ function initLayout(phpData) {
     + '    <div class="nav-sub" id="drawings-sub">'
     + '      <a href="#" data-page="draw-hsection">H Section</a>'
     + '      <a href="#" data-page="draw-channel">Channel</a>'
-    + '      <a href="#" data-page="draw-splice">Splice</a>'
     + '      <a href="#" data-page="draw-liftinglug">Lifting Lug</a>'
     + '      <a href="#" data-page="draw-ibeam">I Beam</a>'
     + '      <a href="#" data-page="draw-box1cell">BOX1CELL</a>'
@@ -185,7 +184,6 @@ function initLayout(phpData) {
     + '    <div class="page-view" id="page-draw-hsection"><h1 class="page-heading">H Section Drawing</h1><div class="breadcrumb"><a href="#">Home</a> / <a href="#">Drawings</a> / <span>H Section</span></div><div id="mount-draw-hsection"></div></div>'
     + '    <div class="page-view" id="page-draw-channel"><h1 class="page-heading">Channel Drawing</h1><div class="breadcrumb"><a href="#">Home</a> / <a href="#">Drawings</a> / <span>Channel</span></div><div id="mount-draw-channel"></div></div>'
     + '    <div class="page-view" id="page-draw-ibeam"><h1 class="page-heading">I Beam Drawing</h1><div class="breadcrumb"><a href="#">Home</a> / <a href="#">Drawings</a> / <span>I Beam</span></div><div id="mount-draw-ibeam"></div></div>'
-    + '    <div class="page-view" id="page-draw-splice"><h1 class="page-heading">Bolt Splice Drawing</h1><div class="breadcrumb"><a href="#">Home</a> / <a href="#">Drawings</a> / <span>Splice</span></div><div id="mount-draw-splice"></div></div>'
     + '    <div class="page-view" id="page-draw-liftinglug"><h1 class="page-heading">Lifting Lug Drawing</h1><div class="breadcrumb"><a href="#">Home</a> / <a href="#">Drawings</a> / <span>Lifting Lug</span></div><div id="mount-draw-liftinglug"></div></div>'
     + '    <div class="page-view" id="page-draw-rect"><h1 class="page-heading">Rect Section Drawing</h1><div class="breadcrumb"><a href="#">Home</a> / <a href="#">Drawings</a> / <span>Rect</span></div><div id="mount-draw-rect"></div></div>'
     + '    <div class="page-view" id="page-draw-box1cell"><h1 class="page-heading">BOX 1-Cell Drawing</h1><div class="breadcrumb"><a href="#">Home</a> / <a href="#">Drawings</a> / <span>BOX1CELL</span></div><div id="mount-draw-box1cell"></div></div>'
@@ -357,55 +355,6 @@ function _createTemplates() {
         ['tw', 'Web thickness', 'dtw', 160, 160], ['rtf', 'Top fillet R', 'drtf', 50, 50], ['rwt', 'Upper web fillet R', 'drwt', 200, 200], ['rwb', 'Lower web fillet R', 'drwb', 100, 100],
         ['rbf', 'Bottom fillet R', 'drbf', 50, 50], ['chb', 'Chamfer', 'dchb', 20, 20]]
     }));
-
-    /* ── SPLICE (hybrid: retaining-wall shell + Konva assembly drawing) ── */
-    _addTemplate(root, 'tpl-draw-splice', _HSCSS()
-      + '<style>'
-      + '.hs-plot #spliceplot{width:100%;height:780px;border-radius:8px;overflow:hidden}'
-      + '.hs-sub{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--dim);margin:12px 0 4px;padding-top:8px;border-top:1px dashed var(--hair)}'
-      + '.hs-sub:first-child{border-top:0;padding-top:0}'
-      + '.hs-sub .n{color:var(--muted);font-weight:400;text-transform:none;letter-spacing:0}'
-      + '.hs-inrow.txt input{width:150px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px}'
-      + '</style>'
-      + '<div class="hs-root"><div class="hs-grid">'
-      + '  <div class="hs-card">'
-      + '    <div class="hs-hd"><span class="hs-ttl">Layout &mdash; Elevation / Plan / Section</span>'
-      + '      <span style="display:flex;gap:6px;align-items:center;">'
-      + '        <button type="button" class="hs-btn" onclick="odxf_boltsplice.download(\'BoltSplice.dxf\')">DXF out</button>'
-      + '        <button type="button" class="hs-btn" onclick="fdraw_boltsplice()"><i class="bi bi-arrow-repeat"></i> Regen</button>'
-      + '      </span></div>'
-      + '    <div class="hs-plot" style="padding:10px"><div id="spliceplot" class="sp-canvas"></div></div>'
-      + '  </div>'
-      + '  <div class="hs-card">'
-      + '    <div class="hs-hd"><span class="hs-ttl">Dimension Input &mdash; live redraw on edit</span></div>'
-      + '    <div class="hs-inputs">'
-      + '      <div class="hs-batch-wrap"><div class="hs-batch-lbl">Batch Input (CSV) <span class="hs-batch-hint">line1: H-beam / line2: plates / line3: bolts</span></div>'
-      + '        <textarea class="hs-batch" id="sUserText" rows="3" spellcheck="false" onchange="putParams_boltsplice(\'sUserText\'); fdraw_boltsplice();">300,300,300,10,15,15,18\n280,300,10,110,300,5,220,280,10,110,300,5,280,300,10\n5,12,8,30,10,80,10,5,12,10,60,10,0,10,5,12,8,30,10,80,10</textarea></div>'
-      + '      <div class="hs-sub">1) H Beam</div>'
-      + '      <div class="hs-inrow"><label><span class="var">H</span><span class="desc">Section height</span></label><span><input type="number" id="dsech" value="300" onchange="fdraw_boltsplice()"><span class="hs-unit">mm</span></span></div>'
-      + '      <div class="hs-inrow"><label><span class="var">Bt</span><span class="desc">Top flange width</span></label><span><input type="number" id="dbt" value="300" onchange="fdraw_boltsplice()"><span class="hs-unit">mm</span></span></div>'
-      + '      <div class="hs-inrow"><label><span class="var">Bb</span><span class="desc">Bottom flange width</span></label><span><input type="number" id="dbb" value="300" onchange="fdraw_boltsplice()"><span class="hs-unit">mm</span></span></div>'
-      + '      <div class="hs-inrow"><label><span class="var">tw</span><span class="desc">Web thickness</span></label><span><input type="number" id="dtw" value="10" onchange="fdraw_boltsplice()"><span class="hs-unit">mm</span></span></div>'
-      + '      <div class="hs-inrow"><label><span class="var">tft</span><span class="desc">Top flange thickness</span></label><span><input type="number" id="dttf" value="15" onchange="fdraw_boltsplice()"><span class="hs-unit">mm</span></span></div>'
-      + '      <div class="hs-inrow"><label><span class="var">tbf</span><span class="desc">Bottom flange thickness</span></label><span><input type="number" id="dtbf" value="15" onchange="fdraw_boltsplice()"><span class="hs-unit">mm</span></span></div>'
-      + '      <div class="hs-inrow"><label><span class="var">R</span><span class="desc">Fillet radius (0 = none)</span></label><span><input type="number" id="dradius" value="18" onchange="fdraw_boltsplice()"><span class="hs-unit">mm</span></span></div>'
-      + '      <div class="hs-sub">2) Splice Plate <span class="n">(Width, Length, Thick)</span></div>'
-      + '      <div class="hs-inrow txt"><label><span class="var">TP</span><span class="desc">Top plate</span></label><input type="text" id="splt" value="280,300,10" onchange="fdraw_boltsplice()"></div>'
-      + '      <div class="hs-inrow txt"><label><span class="var">TPi</span><span class="desc">Top inner plate</span></label><input type="text" id="splti" value="110,300,5" onchange="fdraw_boltsplice()"></div>'
-      + '      <div class="hs-inrow txt"><label><span class="var">WP</span><span class="desc">Web plate</span></label><input type="text" id="splw" value="220,280,10" onchange="fdraw_boltsplice()"></div>'
-      + '      <div class="hs-inrow txt"><label><span class="var">BPi</span><span class="desc">Bottom inner plate</span></label><input type="text" id="splbi" value="110,300,5" onchange="fdraw_boltsplice()"></div>'
-      + '      <div class="hs-inrow txt"><label><span class="var">BP</span><span class="desc">Bottom plate</span></label><input type="text" id="splb" value="280,300,10" onchange="fdraw_boltsplice()"></div>'
-      + '      <div class="hs-sub">3) Bolt Layout <span class="n">(Dia, Long N, Trans N&nbsp;/&nbsp;Space: In, Out, In, Out)</span></div>'
-      + '      <div class="hs-inrow txt"><label><span class="var">TB</span><span class="desc">Top bolt</span></label><input type="text" id="slayt" value="5,12,8" onchange="fdraw_boltsplice()"></div>'
-      + '      <div class="hs-inrow txt"><label><span class="var">TBs</span><span class="desc">Top spacing</span></label><input type="text" id="slaytsp" value="30,10,80,10" onchange="fdraw_boltsplice()"></div>'
-      + '      <div class="hs-inrow txt"><label><span class="var">WB</span><span class="desc">Web bolt</span></label><input type="text" id="slayw" value="5,12,10" onchange="fdraw_boltsplice()"></div>'
-      + '      <div class="hs-inrow txt"><label><span class="var">WBs</span><span class="desc">Web spacing (I,O,0,O)</span></label><input type="text" id="slaywsp" value="60,10,0,10" onchange="fdraw_boltsplice()"></div>'
-      + '      <div class="hs-inrow txt"><label><span class="var">BB</span><span class="desc">Bottom bolt</span></label><input type="text" id="slayb" value="5,12,8" onchange="fdraw_boltsplice()"></div>'
-      + '      <div class="hs-inrow txt"><label><span class="var">BBs</span><span class="desc">Bottom spacing</span></label><input type="text" id="slaybsp" value="30,10,80,10" onchange="fdraw_boltsplice()"></div>'
-      + '    </div>'
-      + '  </div>'
-      + '</div></div>'
-    );
 
     /* ── LIFTING LUG ── */
     _addTemplate(root, 'tpl-draw-liftinglug', _HSCSS()
@@ -748,7 +697,6 @@ function _bindNavigation() {
         if (pageId === 'draw-hsection') { mountDrawing('hsection'); ensureHsectionTest(function(){ if (typeof fdraw_hsection === 'function') fdraw_hsection(); }); }
         if (pageId === 'draw-channel') { mountDrawing('channel'); ensureChannelTest(function(){ if (typeof fdraw_channel === 'function') fdraw_channel(); }); }
         if (pageId === 'draw-ibeam') { mountDrawing('ibeam'); ensureIbeamTest(function(){ if (typeof fdraw_ibeam === 'function') fdraw_ibeam(); }); }
-        if (pageId === 'draw-splice') { mountDrawing('splice'); if (typeof fdraw_boltsplice === 'function') fdraw_boltsplice(); }
         if (pageId === 'draw-liftinglug') { mountDrawing('liftinglug'); ensureLugTest(function(){ if (typeof fdraw_liftinglug === 'function') fdraw_liftinglug(); }); }
         if (pageId === 'draw-box1cell') { mountDrawing('box1cell'); ensureBox1cellTest(function(){ if (typeof fdraw_box1cell === 'function') fdraw_box1cell(); }); }
         if (pageId === 'draw-rect') { mountDrawing('rect'); ensureXsect('rect'); }
@@ -787,7 +735,7 @@ function _bindNavigation() {
         var mount = document.getElementById('mount-draw-plate3d');
         if (!mount || mount.firstElementChild) return;
         var fr = document.createElement('iframe');
-        fr.src = 'https://macrobim.github.io/macroBIM/plate3d/embed_test.html?v=73';
+        fr.src = 'https://macrobim.github.io/macroBIM/plate3d/embed_test.html?v=74';
         fr.title = 'PLATE3D';
         fr.allow = 'fullscreen';
         // 높이를 100vh 에서 상수를 빼서 잡던 방식은 추정이었다. 프레임 위에 무엇이
@@ -938,7 +886,7 @@ function _bindNavigation() {
     function ensureXsect(name) { ensureRWModule('bim_xsect_test.js?v=10', 'xsect', function () { if (window.XSECT) { window.XSECT.install(name); window.XSECT.mount(name); } }); }
 
     function mountDrawing(kind) {
-        ['hsection','channel','ibeam','splice','liftinglug','box1cell','rect','circle','octagon','track','gravitywall','invtwall','lwall','pier','pscbox'].forEach(function(k) {
+        ['hsection','channel','ibeam','liftinglug','box1cell','rect','circle','octagon','track','gravitywall','invtwall','lwall','pier','pscbox'].forEach(function(k) {
             if (k !== kind) {
                 var other = document.getElementById('mount-draw-' + k);
                 if (other) other.innerHTML = '';

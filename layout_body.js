@@ -671,7 +671,7 @@ function _bindNavigation() {
         var mount = document.getElementById('mount-draw-plate3d');
         if (!mount || mount.firstElementChild) return;
         var fr = document.createElement('iframe');
-        fr.src = 'https://macrobim.github.io/macroBIM/plate3d/embed.html?v=42';
+        fr.src = 'https://macrobim.github.io/macroBIM/plate3d/embed.html?v=66';
         fr.title = 'PLATE3D';
         fr.allow = 'fullscreen';
         // 210px 는 실측보다 90px 넉넉했다 — 프레임 위쪽 여백은 108px 이고 아래로

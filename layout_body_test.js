@@ -127,6 +127,11 @@ function initLayout(phpData) {
     + '          <div class="section-card-name">Inverted Angle</div>'
     + '        </div>'
     + '      </div>'
+    /* The dimension drawing, above the table it explains. The cards carry a
+       thumbnail each, which is enough to pick a shape and not enough to read
+       a heading by — D and t on a pipe, A/B/t/r on a tube. It follows the
+       selection, so it is always the one being looked at. */
+    + '      <div class="steel-fig" id="steel-fig"><img id="steel-fig-img" alt=""><div class="steel-fig-cap" id="steel-fig-cap"></div></div>'
     + '      <div class="steel-table-wrap">'
     + '        <table class="steel-table">'
     + '          <thead id="steel-thead"></thead>'

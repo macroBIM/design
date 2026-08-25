@@ -5,6 +5,8 @@ var GITHUB_BASE = 'https://macrobim.github.io/design/';
 var STEEL_CFG = {
   hsection: {
     url: GITHUB_BASE + 'hsection.csv',
+    fig: 'Hsection.jpg',
+    figCap: 'H-Section — H x B, web t1, flange t2, fillet r',
     thead: '<tr>' +
       '<th rowspan="2">Designation<br>(H×B)</th>' +
       '<th rowspan="2">Unit Wt<br>(kg/m)</th>' +
@@ -23,6 +25,8 @@ var STEEL_CFG = {
   },
   channel: {
     url: GITHUB_BASE + 'channel.csv',
+    fig: 'channel.png',
+    figCap: 'Channel — H x B, web t1, flange t2, fillets r1 / r2',
     thead: '<tr>' +
       '<th rowspan="2">Designation<br>(H×B)</th>' +
       '<th colspan="6">Sectional Dimension (mm)</th>' +
@@ -38,6 +42,8 @@ var STEEL_CFG = {
   },
   equalangle: {
     url: GITHUB_BASE + 'equalangle.csv',
+    fig: 'angle.png',
+    figCap: 'Equal Angle — A x B, thickness t, fillets r1 / r2',
     thead: '<tr>' +
       '<th rowspan="2">Designation<br>(A×B)</th>' +
       '<th colspan="5">Dimension (mm)</th>' +
@@ -54,6 +60,8 @@ var STEEL_CFG = {
   },
   unequalangle: {
     url: GITHUB_BASE + 'unequalangle.csv',
+    fig: 'angle.png',
+    figCap: 'Unequal Angle — A x B, thickness t, fillets r1 / r2',
     thead: '<tr>' +
       '<th rowspan="2">Designation<br>(A×B)</th>' +
       '<th colspan="5">Dimension (mm)</th>' +
@@ -75,7 +83,9 @@ var STEEL_CFG = {
      the dimensions, the area, the unit weight — so the headings stop there
      too. Inventing an Ix to fill a column would be worse than a short table. */
   squaretube: {
-    url: 'https://macrobim.github.io/design/squaretube.csv',
+    url: GITHUB_BASE + 'squaretube.csv',
+    fig: 'squaretube.svg',
+    figCap: 'Square Tube — A x B, wall t, outer corner r',
     thead:
       '<tr><th rowspan="2">Designation<br>(A x B x t)</th>' +
       '<th rowspan="2">Unit Weight<br>(kg/m)</th>' +
@@ -86,7 +96,9 @@ var STEEL_CFG = {
       '<tr><th>A</th><th>B</th><th>t</th><th>r</th></tr>'
   },
   pipe: {
-    url: 'https://macrobim.github.io/design/pipe.csv',
+    url: GITHUB_BASE + 'pipe.csv',
+    fig: 'pipe.svg',
+    figCap: 'Pipe — outside diameter D, wall t',
     thead:
       '<tr><th rowspan="2">Designation<br>(D x t)</th>' +
       '<th rowspan="2">Unit Weight<br>(kg/m)</th>' +
@@ -97,6 +109,8 @@ var STEEL_CFG = {
   },
   invertedangle: {
     url: GITHUB_BASE + 'invertedangle.csv',
+    fig: 'invertedangle.png',
+    figCap: 'Inverted Angle — A x B, t1 / t2, fillets r1 / r2',
     thead: '<tr>' +
       '<th rowspan="2">Designation<br>(A×B)</th>' +
       '<th colspan="6">Dimension (mm)</th>' +
@@ -124,6 +138,25 @@ function selectSection(type) {
   if (card) card.classList.add('selected');
 
   var cfg = STEEL_CFG[type];
+  /* The drawing above the table, following the selection. The cards carry a
+     thumbnail each, which is enough to pick a shape and not enough to read a
+     heading by - D and t on a pipe, A/B/t/r on a tube. A type with no drawing
+     hides the band rather than leaving the previous one up: an H-section
+     beside a pipe table reads as correct and is not. */
+  var fig = document.getElementById('steel-fig');
+  if (fig) {
+    var figImg = document.getElementById('steel-fig-img');
+    var figCap = document.getElementById('steel-fig-cap');
+    if (cfg.fig) {
+      if (figImg) { figImg.src = GITHUB_BASE + cfg.fig; figImg.alt = cfg.figCap || ''; }
+      if (figCap) figCap.textContent = cfg.figCap || '';
+      fig.classList.remove('empty');
+    } else {
+      if (figImg) figImg.removeAttribute('src');
+      if (figCap) figCap.textContent = '';
+      fig.classList.add('empty');
+    }
+  }
   var thead = document.getElementById('steel-thead');
   var tbody = document.getElementById('steel-tbody');
   thead.innerHTML = cfg.thead;

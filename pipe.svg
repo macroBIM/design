@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 220" width="260" height="220">
+  <!-- KS D 3566 강관 단면. 표가 주는 두 값 D 와 t 만 보인다 -->
+  <defs>
+    <marker id="pa" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">
+      <path d="M0,0 L7,3.5 L0,7 z" fill="#64748b"/>
+    </marker>
+  </defs>
+  <g fill="none" stroke="#0f172a" stroke-width="1.6">
+    <circle cx="130" cy="112" r="72"/>
+    <circle cx="130" cy="112" r="57"/>
+  </g>
+  <path d="M130,112 m-72,0 a72,72 0 0,1 144,0 a72,72 0 0,1 -144,0
+           M130,112 m-57,0 a57,57 0 0,0 114,0 a57,57 0 0,0 -114,0"
+        fill="#cbd5e1" fill-rule="evenodd" opacity=".55"/>
+
+  <!-- D, across the outside -->
+  <line x1="58" y1="112" x2="202" y2="112" stroke="#64748b" stroke-width="1"
+        marker-start="url(#pa)" marker-end="url(#pa)"/>
+  <rect x="116" y="102" width="28" height="16" fill="#fff"/>
+  <text x="130" y="114" font-family="Arial" font-size="13" fill="#0f172a"
+        text-anchor="middle" font-weight="700">D</text>
+
+  <!-- t, the wall -->
+  <line x1="130" y1="40" x2="184" y2="26" stroke="#64748b" stroke-width="1"/>
+  <line x1="130" y1="40" x2="130" y2="55" stroke="#64748b" stroke-width="1"/>
+  <text x="188" y="24" font-family="Arial" font-size="13" fill="#0f172a" font-weight="700">t</text>
+
+  <text x="130" y="205" font-family="Arial" font-size="11" fill="#64748b"
+        text-anchor="middle">KS D 3566 · 일반구조용 탄소강 강관</text>
+</svg>

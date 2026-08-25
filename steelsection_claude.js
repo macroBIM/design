@@ -71,6 +71,30 @@ var STEEL_CFG = {
       '<th>ix</th><th>iy</th><th>max iu</th><th>min iv</th>' +
       '<th>Zx</th><th>Zy</th></tr>'
   },
+  /* The two hollow sections. Their CSVs carry only what the KS table prints —
+     the dimensions, the area, the unit weight — so the headings stop there
+     too. Inventing an Ix to fill a column would be worse than a short table. */
+  squaretube: {
+    url: 'https://macrobim.github.io/design/squaretube.csv',
+    thead:
+      '<tr><th rowspan="2">Designation<br>(A x B x t)</th>' +
+      '<th rowspan="2">Unit Weight<br>(kg/m)</th>' +
+      '<th colspan="4">Sectional Dimension (mm)</th>' +
+      '<th rowspan="2">Area<br>(cm²)</th>' +
+      '<th rowspan="2">Standard</th><th rowspan="2">Order</th>' +
+      '<th rowspan="2">Listed Weight<br>(kg/m)</th></tr>' +
+      '<tr><th>A</th><th>B</th><th>t</th><th>r</th></tr>'
+  },
+  pipe: {
+    url: 'https://macrobim.github.io/design/pipe.csv',
+    thead:
+      '<tr><th rowspan="2">Designation<br>(D x t)</th>' +
+      '<th rowspan="2">Unit Weight<br>(kg/m)</th>' +
+      '<th colspan="2">Sectional Dimension (mm)</th>' +
+      '<th rowspan="2">Area<br>(cm²)</th>' +
+      '<th rowspan="2">Standard</th></tr>' +
+      '<tr><th>D</th><th>t</th></tr>'
+  },
   invertedangle: {
     url: GITHUB_BASE + 'invertedangle.csv',
     thead: '<tr>' +

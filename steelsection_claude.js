@@ -5,7 +5,7 @@ var GITHUB_BASE = 'https://macrobim.github.io/design/';
 var STEEL_CFG = {
   hsection: {
     url: GITHUB_BASE + 'hsection.csv',
-    fig: 'Hsection.jpg',
+    fig: 'Hsection.svg',
     figCap: 'H-Section — H x B, web t1, flange t2, fillet r',
     thead: '<tr>' +
       '<th rowspan="2">Designation<br>(H×B)</th>' +
@@ -25,7 +25,7 @@ var STEEL_CFG = {
   },
   channel: {
     url: GITHUB_BASE + 'channel.csv',
-    fig: 'channel.png',
+    fig: 'channel.svg',
     figCap: 'Channel — H x B, web t1, flange t2, fillets r1 / r2',
     thead: '<tr>' +
       '<th rowspan="2">Designation<br>(H×B)</th>' +
@@ -42,7 +42,7 @@ var STEEL_CFG = {
   },
   equalangle: {
     url: GITHUB_BASE + 'equalangle.csv',
-    fig: 'angle.png',
+    fig: 'equalangle.svg',
     figCap: 'Equal Angle — A x B, thickness t, fillets r1 / r2',
     thead: '<tr>' +
       '<th rowspan="2">Designation<br>(A×B)</th>' +
@@ -60,7 +60,7 @@ var STEEL_CFG = {
   },
   unequalangle: {
     url: GITHUB_BASE + 'unequalangle.csv',
-    fig: 'angle.png',
+    fig: 'unequalangle.svg',
     figCap: 'Unequal Angle — A x B, thickness t, fillets r1 / r2',
     thead: '<tr>' +
       '<th rowspan="2">Designation<br>(A×B)</th>' +
@@ -109,7 +109,7 @@ var STEEL_CFG = {
   },
   invertedangle: {
     url: GITHUB_BASE + 'invertedangle.csv',
-    fig: 'invertedangle.png',
+    fig: 'invertedangle.svg',
     figCap: 'Inverted Angle — A x B, t1 / t2, fillets r1 / r2',
     thead: '<tr>' +
       '<th rowspan="2">Designation<br>(A×B)</th>' +

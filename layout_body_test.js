@@ -750,7 +750,10 @@ function _bindNavigation() {
         var mount = document.getElementById('mount-draw-plate3d');
         if (!mount || mount.firstElementChild) return;
         var fr = document.createElement('iframe');
-        fr.src = 'https://macrobim.github.io/macroBIM/plate3d/embed_test.html?v=81';
+        // 테스트 빌드는 늘 최신을 봐야 한다. 손으로 적는 ?v= 는 올리는 걸 잊는
+        // 순간 조용히 옛 코드를 보여 주고, 그러면 고쳤는지 아닌지를 알 수 없다.
+        // 운영(embed.html)은 반대로 고정 버전을 쓴다 — 방문자는 아는 빌드 위에.
+        fr.src = 'https://macrobim.github.io/macroBIM/plate3d/embed_test.html?v=' + Date.now();
         fr.title = 'PLATE3D';
         fr.allow = 'fullscreen';
         // 높이를 100vh 에서 상수를 빼서 잡던 방식은 추정이었다. 프레임 위에 무엇이

@@ -126,7 +126,7 @@ function initLayout(phpData) {
        — were unreadable mush, and the same picture then showed twice. The
        cards are names now. This follows the selection, so it is always the
        one being looked at. */
-    + '      <div class="steel-fig" id="steel-fig"><img id="steel-fig-img" alt=""><div class="steel-fig-cap" id="steel-fig-cap"></div></div>'
+    + '      <div class="steel-fig" id="steel-fig"><img id="steel-fig-img" alt=""></div>'
     + '      <div class="steel-table-wrap">'
     + '        <table class="steel-table">'
     + '          <thead id="steel-thead"></thead>'

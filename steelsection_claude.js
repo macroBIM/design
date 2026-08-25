@@ -146,14 +146,11 @@ function selectSection(type) {
   var fig = document.getElementById('steel-fig');
   if (fig) {
     var figImg = document.getElementById('steel-fig-img');
-    var figCap = document.getElementById('steel-fig-cap');
     if (cfg.fig) {
       if (figImg) { figImg.src = GITHUB_BASE + cfg.fig; figImg.alt = cfg.figCap || ''; }
-      if (figCap) figCap.textContent = cfg.figCap || '';
       fig.classList.remove('empty');
     } else {
       if (figImg) figImg.removeAttribute('src');
-      if (figCap) figCap.textContent = '';
       fig.classList.add('empty');
     }
   }

@@ -97,40 +97,35 @@ function initLayout(phpData) {
     + '    <div class="page-view" id="page-steel">'
     + '      <h1 class="page-heading">Section Properties</h1>'
     + '      <div class="breadcrumb"><a href="#">Home</a> / <a href="#">Tables</a> / <span>Steel Section</span></div>'
-    + '      <div class="section-selector-row">'
+    + '      <div class="section-selector-row chips">'
     + '        <div class="section-card selected" data-section="hsection" onclick="selectSection(\'hsection\')">'
-    + '          <div class="section-card-img"><img src="https://macrobim.github.io/design/Hsection.svg" alt="H-Section"></div>'
     + '          <div class="section-card-name">H-Section</div>'
     + '        </div>'
     + '        <div class="section-card" data-section="channel" onclick="selectSection(\'channel\')">'
-    + '          <div class="section-card-img"><img src="https://macrobim.github.io/design/channel.svg" alt="Channel"></div>'
     + '          <div class="section-card-name">Channel</div>'
     + '        </div>'
     + '        <div class="section-card" data-section="equalangle" onclick="selectSection(\'equalangle\')">'
-    + '          <div class="section-card-img"><img src="https://macrobim.github.io/design/equalangle.svg" alt="Equal Angle"></div>'
     + '          <div class="section-card-name">Equal Angle</div>'
     + '        </div>'
     + '        <div class="section-card" data-section="unequalangle" onclick="selectSection(\'unequalangle\')">'
-    + '          <div class="section-card-img"><img src="https://macrobim.github.io/design/unequalangle.svg" alt="Unequal Angle"></div>'
     + '          <div class="section-card-name">Unequal Angle</div>'
     + '        </div>'
     + '        <div class="section-card" data-section="squaretube" onclick="selectSection(\'squaretube\')">'
-    + '          <div class="section-card-img"><img src="https://macrobim.github.io/design/squaretube.svg" alt="Square Tube"></div>'
     + '          <div class="section-card-name">Square Tube</div>'
     + '        </div>'
     + '        <div class="section-card" data-section="pipe" onclick="selectSection(\'pipe\')">'
-    + '          <div class="section-card-img"><img src="https://macrobim.github.io/design/pipe.svg" alt="Pipe"></div>'
     + '          <div class="section-card-name">Pipe</div>'
     + '        </div>'
     + '        <div class="section-card" data-section="invertedangle" onclick="selectSection(\'invertedangle\')">'
-    + '          <div class="section-card-img"><img src="https://macrobim.github.io/design/invertedangle.svg" alt="Inverted Angle"></div>'
     + '          <div class="section-card-name">Inverted Angle</div>'
     + '        </div>'
     + '      </div>'
-    /* The dimension drawing, above the table it explains. The cards carry a
-       thumbnail each, which is enough to pick a shape and not enough to read
-       a heading by — D and t on a pipe, A/B/t/r on a tube. It follows the
-       selection, so it is always the one being looked at. */
+    /* The dimension drawing, above the table it explains, and the only place
+       a drawing appears. The cards used to carry a thumbnail each; at 100px
+       the letters a heading is read by — D and t on a pipe, A/B/t/r on a tube
+       — were unreadable mush, and the same picture then showed twice. The
+       cards are names now. This follows the selection, so it is always the
+       one being looked at. */
     + '      <div class="steel-fig" id="steel-fig"><img id="steel-fig-img" alt=""><div class="steel-fig-cap" id="steel-fig-cap"></div></div>'
     + '      <div class="steel-table-wrap">'
     + '        <table class="steel-table">'

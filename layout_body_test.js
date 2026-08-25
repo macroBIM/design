@@ -42,6 +42,13 @@ function initLayout(phpData) {
     + '    </div>'
     + '    <a class="nav-item" href="#" data-page="draw-pier"><i class="bi bi-building"></i> Pier</a>'
     + '    <a class="nav-item" href="#" data-page="draw-plate3d"><i class="bi bi-stack"></i> PLATE3D</a>'
+    /* QuickPlate3D — the same models PLATE3D builds, but typed on the page
+       instead of loaded from a workbook. Its own top-level item rather than a
+       child of PLATE3D, because it is a different way in, not a subset. */
+    + '    <a class="nav-item" href="#" id="quick3dToggle"><i class="bi bi-lightning-charge"></i> QuickPlate3D <span class="arrow">&#8250;</span></a>'
+    + '    <div class="nav-sub" id="quick3d-sub">'
+    + '      <a href="#" data-page="quick-simpleconn">Simple connector</a>'
+    + '    </div>'
     + '    <a class="nav-item" href="#" data-page="draw-pscbox"><i class="bi bi-box-seam"></i> PSCBOX</a>'
     + '    <a class="nav-item" href="#" data-page="qna"><i class="bi bi-question-circle"></i> QnA</a>'
     + '  </div>'
@@ -196,6 +203,7 @@ function initLayout(phpData) {
     + '    <div class="page-view" id="page-draw-pier"><h1 class="page-heading">Pier Input</h1><div class="breadcrumb"><a href="#">Home</a> / <span>Pier</span></div><div id="mount-draw-pier"></div></div>'
     + '    <div class="page-view" id="page-draw-plate3d"><h1 class="page-heading">PLATE3D</h1><div class="breadcrumb"><a href="#">Home</a> / <span>PLATE3D</span></div><div id="mount-draw-plate3d"></div></div>'
     + '    <div class="page-view" id="page-draw-pscbox"><h1 class="page-heading">PSC Box Girder</h1><div class="breadcrumb"><a href="#">Home</a> / <span>PSCBOX</span></div><div id="mount-draw-pscbox"></div></div>'
+    + '    <div class="page-view" id="page-quick-simpleconn"><h1 class="page-heading">Simple connector</h1><div class="breadcrumb"><a href="#">Home</a> / <a href="#">QuickPlate3D</a> / <span>Simple connector</span></div><div id="mount-quick-simpleconn"></div></div>'
     + '    <div class="page-view" id="page-qna"><h1 class="page-heading">QnA Board</h1><div class="breadcrumb"><a href="#">Home</a> / <span>QnA</span></div><div id="mount-qna"></div></div>'
 
     + '  </div>'
@@ -687,6 +695,12 @@ function _bindNavigation() {
             var pm = document.getElementById('mount-draw-plate3d');
             if (pm && pm.firstElementChild) pm.innerHTML = '';
         }
+        // Simple connector carries an iframe of its own, and the same reasoning
+        // applies: drop it on the way out so a model does not follow you around.
+        if (pageId !== 'quick-simpleconn') {
+            var qm = document.getElementById('mount-quick-simpleconn');
+            if (qm && qm.firstElementChild) qm.innerHTML = '';
+        }
 
         if (pageId === 'rebar' && !window._rebarLoaded) { loadRebarTables(); window._rebarLoaded = true; }
         if (pageId === 'rebarleng' && !window._rebarLengLoaded) {
@@ -709,6 +723,7 @@ function _bindNavigation() {
         if (pageId === 'draw-pier') { mountDrawing('pier'); ensurePier(); }
         if (pageId === 'draw-plate3d') { ensurePlate3d(); }
         if (pageId === 'draw-pscbox') { mountDrawing('pscbox'); ensurePscbox(); }
+        if (pageId === 'quick-simpleconn') { ensureQuickSimpleConn(); }
         if (pageId === 'qna') { ensureQna(); }
     }
     window.showPage = showPage;
@@ -763,6 +778,20 @@ function _bindNavigation() {
         });
         window.addEventListener('resize', sizeFrame);
         sizeFrame();
+    }
+
+    /* QuickPlate3D — Simple connector. The form and the model live on one page:
+       the same PLATE3D iframe as above, driven by values typed here instead of
+       a workbook. Loaded on demand like every other module. */
+    function ensureQuickSimpleConn() {
+        if (typeof fquick_simpleconn === 'function') { fquick_simpleconn('mount-quick-simpleconn'); return; }
+        if (window._qscLoading) return;
+        window._qscLoading = true;
+        var sc = document.createElement('script');
+        sc.src = 'https://macrobim.github.io/macroBIM/plate3d/quick_simpleconn_test.js?v=' + Date.now();
+        sc.onload = function () { window._qscLoading = false; if (typeof fquick_simpleconn === 'function') fquick_simpleconn('mount-quick-simpleconn'); };
+        sc.onerror = function () { window._qscLoading = false; var m = document.getElementById('mount-quick-simpleconn'); if (m) m.innerHTML = '<p style="color:#b91c1c;padding:16px;">quick_simpleconn_test.js failed to load.</p>'; };
+        document.head.appendChild(sc);
     }
 
     // PSC Box (1/2-cell) parametric module (bim_pscbox_test.js) — single entry fdraw_pscbox. Load on demand.
@@ -911,6 +940,9 @@ function _bindNavigation() {
     });
     document.getElementById('retainingToggle').addEventListener('click', function(e) {
         e.preventDefault(); this.classList.toggle('open'); document.getElementById('retaining-sub').classList.toggle('show');
+    });
+    document.getElementById('quick3dToggle').addEventListener('click', function(e) {
+        e.preventDefault(); this.classList.toggle('open'); document.getElementById('quick3d-sub').classList.toggle('show');
     });
     document.querySelectorAll('.nav-item[data-page]').forEach(function(el) {
         el.addEventListener('click', function(e) { e.preventDefault(); showPage(this.getAttribute('data-page')); });

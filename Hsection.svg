@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 220" width="260" height="220">
+  <defs><marker id="a" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto-start-reverse"><path d="M0,0 L7,3.5 L0,7 z" fill="#64748b"/></marker></defs>
+  <path d="M62,38 H198 V53 H148.5 A12,12 0 0 0 136.5,65 V145 A12,12 0 0 0 148.5,157 H198 V172 H62 V157 H111.5 A12,12 0 0 0 123.5,145 V65 A12,12 0 0 0 111.5,53 H62 Z" fill="#cbd5e1" fill-rule="evenodd" opacity=".55"/>
+  <path d="M62,38 H198 V53 H148.5 A12,12 0 0 0 136.5,65 V145 A12,12 0 0 0 148.5,157 H198 V172 H62 V157 H111.5 A12,12 0 0 0 123.5,145 V65 A12,12 0 0 0 111.5,53 H62 Z" fill="none" stroke="#0f172a" stroke-width="1.6" stroke-linejoin="round" fill-rule="evenodd"/>
+  <line x1="62" y1="194" x2="198" y2="194" stroke="#64748b" stroke-width="1" marker-start="url(#a)" marker-end="url(#a)"/>
+  <rect x="119" y="186" width="22" height="16" fill="#f8fafc"/>
+  <text x="130" y="198" font-family="Arial" font-size="12" font-weight="700" fill="#0f172a" text-anchor="middle">B</text>
+  <line x1="42" y1="38" x2="42" y2="172" stroke="#64748b" stroke-width="1" marker-start="url(#a)" marker-end="url(#a)"/>
+  <rect x="31" y="97" width="22" height="16" fill="#f8fafc"/>
+  <text x="42" y="109" font-family="Arial" font-size="12" font-weight="700" fill="#0f172a" text-anchor="middle">H</text>
+  <line x1="130" y1="105" x2="226" y2="108" stroke="#64748b" stroke-width="1"/>
+  <text x="229" y="111" font-family="Arial" font-size="12" font-weight="700" fill="#0f172a" text-anchor="start">t1</text>
+  <line x1="92.75" y1="45.5" x2="40" y2="20" stroke="#64748b" stroke-width="1"/>
+  <text x="37" y="23" font-family="Arial" font-size="12" font-weight="700" fill="#0f172a" text-anchor="end">t2</text>
+  <line x1="140.1" y1="56.6" x2="214" y2="52" stroke="#64748b" stroke-width="1"/>
+  <text x="217" y="55" font-family="Arial" font-size="12" font-weight="700" fill="#0f172a" text-anchor="start">r</text>
+  <text x="130" y="212" font-family="Arial" font-size="10.5" fill="#64748b" text-anchor="middle">H-Section · H × B, web t1, flange t2, fillet r</text>
+</svg>

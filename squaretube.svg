@@ -1,41 +1,16 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 220" width="260" height="220">
-  <!-- 각형강관 단면. r is the OUTER corner; the bore keeps the wall round the
-       bend, so the inner radius is r - t and square once t is the larger -->
-  <defs>
-    <marker id="sa" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">
-      <path d="M0,0 L7,3.5 L0,7 z" fill="#64748b"/>
-    </marker>
-  </defs>
-  <path d="M64,46 h132 a14,14 0 0,1 14,14 v104 a14,14 0 0,1 -14,14 h-132
-           a14,14 0 0,1 -14,-14 v-104 a14,14 0 0,1 14,-14 z
-           M66,62 h128 v100 h-128 z"
-        fill="#cbd5e1" fill-rule="evenodd" opacity=".55"/>
-  <g fill="none" stroke="#0f172a" stroke-width="1.6">
-    <rect x="50" y="46" width="160" height="132" rx="14"/>
-    <rect x="66" y="62" width="128" height="100" rx="2"/>
-  </g>
-
-  <!-- A across, B down -->
-  <line x1="50" y1="196" x2="210" y2="196" stroke="#64748b" stroke-width="1"
-        marker-start="url(#sa)" marker-end="url(#sa)"/>
-  <text x="130" y="192" font-family="Arial" font-size="13" fill="#0f172a"
-        text-anchor="middle" font-weight="700">A</text>
-  <line x1="34" y1="46" x2="34" y2="178" stroke="#64748b" stroke-width="1"
-        marker-start="url(#sa)" marker-end="url(#sa)"/>
-  <text x="30" y="116" font-family="Arial" font-size="13" fill="#0f172a"
-        text-anchor="end" font-weight="700">B</text>
-
-  <!-- t, the wall -->
-  <line x1="130" y1="46" x2="130" y2="62" stroke="#64748b" stroke-width="1"
-        marker-start="url(#sa)" marker-end="url(#sa)"/>
-  <line x1="130" y1="54" x2="176" y2="28" stroke="#64748b" stroke-width="1"/>
-  <text x="180" y="26" font-family="Arial" font-size="13" fill="#0f172a" font-weight="700">t</text>
-
-  <!-- r, the outer corner -->
-  <line x1="62" y1="58" x2="26" y2="34" stroke="#64748b" stroke-width="1"/>
-  <text x="22" y="32" font-family="Arial" font-size="13" fill="#0f172a"
-        text-anchor="end" font-weight="700">r</text>
-
-  <text x="130" y="214" font-family="Arial" font-size="11" fill="#64748b"
-        text-anchor="middle">KS · 각형강관 (SPSR / ROLL)</text>
+  <defs><marker id="a" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto-start-reverse"><path d="M0,0 L7,3.5 L0,7 z" fill="#64748b"/></marker></defs>
+  <path d="M78,48 H182 A16,16 0 0 1 198,64 V156 A16,16 0 0 1 182,172 H78 A16,16 0 0 1 62,156 V64 A16,16 0 0 1 78,48 Z M78,62 H182 A2,2 0 0 1 184,64 V156 A2,2 0 0 1 182,158 H78 A2,2 0 0 1 76,156 V64 A2,2 0 0 1 78,62 Z" fill="#cbd5e1" fill-rule="evenodd" opacity=".55"/>
+  <path d="M78,48 H182 A16,16 0 0 1 198,64 V156 A16,16 0 0 1 182,172 H78 A16,16 0 0 1 62,156 V64 A16,16 0 0 1 78,48 Z M78,62 H182 A2,2 0 0 1 184,64 V156 A2,2 0 0 1 182,158 H78 A2,2 0 0 1 76,156 V64 A2,2 0 0 1 78,62 Z" fill="none" stroke="#0f172a" stroke-width="1.6" stroke-linejoin="round" fill-rule="evenodd"/>
+  <line x1="62" y1="194" x2="198" y2="194" stroke="#64748b" stroke-width="1" marker-start="url(#a)" marker-end="url(#a)"/>
+  <rect x="119" y="186" width="22" height="16" fill="#f8fafc"/>
+  <text x="130" y="198" font-family="Arial" font-size="12" font-weight="700" fill="#0f172a" text-anchor="middle">A</text>
+  <line x1="42" y1="48" x2="42" y2="172" stroke="#64748b" stroke-width="1" marker-start="url(#a)" marker-end="url(#a)"/>
+  <rect x="31" y="102" width="22" height="16" fill="#f8fafc"/>
+  <text x="42" y="114" font-family="Arial" font-size="12" font-weight="700" fill="#0f172a" text-anchor="middle">B</text>
+  <line x1="130" y1="55" x2="214" y2="30" stroke="#64748b" stroke-width="1"/>
+  <text x="217" y="33" font-family="Arial" font-size="12" font-weight="700" fill="#0f172a" text-anchor="start">t</text>
+  <line x1="66.8" y1="52.8" x2="40" y2="30" stroke="#64748b" stroke-width="1"/>
+  <text x="37" y="33" font-family="Arial" font-size="12" font-weight="700" fill="#0f172a" text-anchor="end">r</text>
+  <text x="130" y="212" font-family="Arial" font-size="10.5" fill="#64748b" text-anchor="middle">Square Tube · A × B, wall t, outer corner r</text>
 </svg>

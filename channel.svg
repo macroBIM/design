@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 220" width="260" height="220">
+  <defs><marker id="a" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto-start-reverse"><path d="M0,0 L7,3.5 L0,7 z" fill="#64748b"/></marker></defs>
+  <path d="M74,38 H183 A7,7 0 0 1 190,45 V45 A7,7 0 0 1 183,52 H98 A11,11 0 0 0 87,63 V147 A11,11 0 0 0 98,158 H183 A7,7 0 0 1 190,165 V165 A7,7 0 0 1 183,172 H74 Z" fill="#cbd5e1" fill-rule="evenodd" opacity=".55"/>
+  <path d="M74,38 H183 A7,7 0 0 1 190,45 V45 A7,7 0 0 1 183,52 H98 A11,11 0 0 0 87,63 V147 A11,11 0 0 0 98,158 H183 A7,7 0 0 1 190,165 V165 A7,7 0 0 1 183,172 H74 Z" fill="none" stroke="#0f172a" stroke-width="1.6" stroke-linejoin="round" fill-rule="evenodd"/>
+  <line x1="74" y1="194" x2="190" y2="194" stroke="#64748b" stroke-width="1" marker-start="url(#a)" marker-end="url(#a)"/>
+  <rect x="121" y="186" width="22" height="16" fill="#f8fafc"/>
+  <text x="132" y="198" font-family="Arial" font-size="12" font-weight="700" fill="#0f172a" text-anchor="middle">B</text>
+  <line x1="54" y1="38" x2="54" y2="172" stroke="#64748b" stroke-width="1" marker-start="url(#a)" marker-end="url(#a)"/>
+  <rect x="43" y="97" width="22" height="16" fill="#f8fafc"/>
+  <text x="54" y="109" font-family="Arial" font-size="12" font-weight="700" fill="#0f172a" text-anchor="middle">H</text>
+  <line x1="80.5" y1="105" x2="42" y2="118" stroke="#64748b" stroke-width="1"/>
+  <text x="39" y="121" font-family="Arial" font-size="12" font-weight="700" fill="#0f172a" text-anchor="end">t1</text>
+  <line x1="138.5" y1="45" x2="214" y2="20" stroke="#64748b" stroke-width="1"/>
+  <text x="217" y="23" font-family="Arial" font-size="12" font-weight="700" fill="#0f172a" text-anchor="start">t2</text>
+  <line x1="90.3" y1="55.3" x2="224" y2="66" stroke="#64748b" stroke-width="1"/>
+  <text x="227" y="69" font-family="Arial" font-size="12" font-weight="700" fill="#0f172a" text-anchor="start">r1</text>
+  <line x1="187.9" y1="40.1" x2="232" y2="38" stroke="#64748b" stroke-width="1"/>
+  <text x="235" y="41" font-family="Arial" font-size="12" font-weight="700" fill="#0f172a" text-anchor="start">r2</text>
+  <text x="130" y="212" font-family="Arial" font-size="10.5" fill="#64748b" text-anchor="middle">Channel · H × B, web t1, flange t2, fillets r1 / r2</text>
+</svg>

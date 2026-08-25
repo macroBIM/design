@@ -91,7 +91,7 @@ var STEEL_CFG = {
       '<th rowspan="2">Unit Weight<br>(kg/m)</th>' +
       '<th colspan="4">Sectional Dimension (mm)</th>' +
       '<th rowspan="2">Area<br>(cm²)</th>' +
-      '<th rowspan="2">Standard</th><th rowspan="2">Order</th>' +
+      '<th rowspan="2">Standard</th>' +
       '<th rowspan="2">Listed Weight<br>(kg/m)</th></tr>' +
       '<tr><th>A</th><th>B</th><th>t</th><th>r</th></tr>'
   },

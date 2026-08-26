@@ -49,6 +49,12 @@ function initLayout(phpData) {
     + '    <div class="nav-sub" id="quick3d-sub">'
     + '      <a href="#" data-page="quick-simpleconn">Simple connector</a>'
     + '    </div>'
+    /* QuickFrame — 구조해석. 뼈대를 그리는 QuickPlate3D 와 나란히 두되 별개의
+       항목이다: 저쪽은 형상을 만들고 이쪽은 그 형상이 견디는지를 본다. */
+    + '    <a class="nav-item" href="#" id="quickframeToggle"><i class="bi bi-rulers"></i> QuickFrame <span class="arrow">&#8250;</span></a>'
+    + '    <div class="nav-sub" id="quickframe-sub">'
+    + '      <a href="#" data-page="beam-formula">Beam Formula</a>'
+    + '    </div>'
     + '    <a class="nav-item" href="#" data-page="draw-pscbox"><i class="bi bi-box-seam"></i> PSCBOX</a>'
     + '    <a class="nav-item" href="#" data-page="qna"><i class="bi bi-question-circle"></i> QnA</a>'
     + '  </div>'
@@ -212,6 +218,7 @@ function initLayout(phpData) {
     + '    <div class="page-view" id="page-draw-plate3d"><h1 class="page-heading">PLATE3D</h1><div class="breadcrumb"><a href="#">Home</a> / <span>PLATE3D</span></div><div id="mount-draw-plate3d"></div></div>'
     + '    <div class="page-view" id="page-draw-pscbox"><h1 class="page-heading">PSC Box Girder</h1><div class="breadcrumb"><a href="#">Home</a> / <span>PSCBOX</span></div><div id="mount-draw-pscbox"></div></div>'
     + '    <div class="page-view" id="page-quick-simpleconn"><h1 class="page-heading">Simple connector</h1><div class="breadcrumb"><a href="#">Home</a> / <a href="#">QuickPlate3D</a> / <span>Simple connector</span></div><div id="mount-quick-simpleconn"></div></div>'
+    + '    <div class="page-view" id="page-beam-formula"><h1 class="page-heading">Beam Formula</h1><div class="breadcrumb"><a href="#">Home</a> / <a href="#">QuickFrame</a> / <span>Beam Formula</span></div><div id="mount-beam-formula"></div></div>'
     + '    <div class="page-view" id="page-qna"><h1 class="page-heading">QnA Board</h1><div class="breadcrumb"><a href="#">Home</a> / <span>QnA</span></div><div id="mount-qna"></div></div>'
 
     + '  </div>'
@@ -732,6 +739,7 @@ function _bindNavigation() {
         if (pageId === 'draw-plate3d') { ensurePlate3d(); }
         if (pageId === 'draw-pscbox') { mountDrawing('pscbox'); ensurePscbox(); }
         if (pageId === 'quick-simpleconn') { ensureQuickSimpleConn(); }
+        if (pageId === 'beam-formula') { ensureBeamFormula(); }
         if (pageId === 'qna') { ensureQna(); }
     }
     window.showPage = showPage;
@@ -802,6 +810,21 @@ function _bindNavigation() {
         sc.src = 'https://macrobim.github.io/macroBIM/plate3d/quick_simpleconn_test.js?v=' + Date.now();
         sc.onload = function () { window._qscLoading = false; if (typeof fquick_simpleconn === 'function') fquick_simpleconn('mount-quick-simpleconn'); };
         sc.onerror = function () { window._qscLoading = false; var m = document.getElementById('mount-quick-simpleconn'); if (m) m.innerHTML = '<p style="color:#b91c1c;padding:16px;">quick_simpleconn_test.js failed to load.</p>'; };
+        document.head.appendChild(sc);
+    }
+
+    /* QuickFrame — Beam Formula. 단경간 보를 표준 처짐공식으로 푼다.
+       계산은 beam_engine.js 가 하고, beam_formula_test.js 가 그 엔진을 스스로
+       불러온다 — 여기서는 모듈 하나만 붙이면 된다. 테스트 빌드라 ?v= 는
+       Date.now() 다: 늘 최신을 봐야 고쳤는지 아닌지를 알 수 있다. */
+    function ensureBeamFormula() {
+        if (typeof fbeam_formula === 'function') { fbeam_formula('mount-beam-formula'); return; }
+        if (window._bfLoading) return;
+        window._bfLoading = true;
+        var sc = document.createElement('script');
+        sc.src = 'https://macrobim.github.io/macroBIM/beam_formula_test.js?v=' + Date.now();
+        sc.onload = function () { window._bfLoading = false; if (typeof fbeam_formula === 'function') fbeam_formula('mount-beam-formula'); };
+        sc.onerror = function () { window._bfLoading = false; var m = document.getElementById('mount-beam-formula'); if (m) m.innerHTML = '<p style="color:#b91c1c;padding:16px;">beam_formula_test.js failed to load.</p>'; };
         document.head.appendChild(sc);
     }
 
@@ -954,6 +977,9 @@ function _bindNavigation() {
     });
     document.getElementById('quick3dToggle').addEventListener('click', function(e) {
         e.preventDefault(); this.classList.toggle('open'); document.getElementById('quick3d-sub').classList.toggle('show');
+    });
+    document.getElementById('quickframeToggle').addEventListener('click', function(e) {
+        e.preventDefault(); this.classList.toggle('open'); document.getElementById('quickframe-sub').classList.toggle('show');
     });
     document.querySelectorAll('.nav-item[data-page]').forEach(function(el) {
         el.addEventListener('click', function(e) { e.preventDefault(); showPage(this.getAttribute('data-page')); });

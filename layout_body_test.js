@@ -18,6 +18,18 @@ function initLayout(phpData) {
     + '      <a href="#" data-page="steel">Steel Section Tables</a>'
     + '      <a href="#" data-page="bendradius">Rebar Bend Radius</a>'
     + '    </div>'
+    /* Macro* 두 항목은 Tables 바로 아래에 붙여 둔다 — 표를 찾아보는 자리
+       다음이 실제로 무언가를 만들고 검토하는 자리다. 둘은 나란하지만 하는
+       일이 다르다: MacroBEAM 은 견디는지를 보고, MacroPLATE3D 는 형상을
+       만든다. 아래쪽 PLATE3D 는 엑셀 시트로 들어가는 원래 입구 그대로다. */
+    + '    <a class="nav-item" href="#" id="quickframeToggle"><i class="bi bi-rulers"></i> MacroBEAM <span class="arrow">&#8250;</span></a>'
+    + '    <div class="nav-sub" id="quickframe-sub">'
+    + '      <a href="#" data-page="beam-formula">SimpleBEAM</a>'
+    + '    </div>'
+    + '    <a class="nav-item" href="#" id="quick3dToggle"><i class="bi bi-lightning-charge"></i> MacroPLATE3D <span class="arrow">&#8250;</span></a>'
+    + '    <div class="nav-sub" id="quick3d-sub">'
+    + '      <a href="#" data-page="quick-simpleconn">Simple connector</a>'
+    + '    </div>'
     + '    <a class="nav-item" href="#" id="codeToggle"><i class="bi bi-calculator"></i> Code <span class="arrow">&#8250;</span></a>'
     + '    <div class="nav-sub" id="code-sub">'
     + '      <a href="#" data-page="rebarleng">Rebar Anchorage / Splice</a>'
@@ -42,19 +54,6 @@ function initLayout(phpData) {
     + '    </div>'
     + '    <a class="nav-item" href="#" data-page="draw-pier"><i class="bi bi-building"></i> Pier</a>'
     + '    <a class="nav-item" href="#" data-page="draw-plate3d"><i class="bi bi-stack"></i> PLATE3D</a>'
-    /* MacroPLATE3D — the same models PLATE3D builds, but typed on the page
-       instead of loaded from a workbook. Its own top-level item rather than a
-       child of PLATE3D, because it is a different way in, not a subset. */
-    + '    <a class="nav-item" href="#" id="quick3dToggle"><i class="bi bi-lightning-charge"></i> MacroPLATE3D <span class="arrow">&#8250;</span></a>'
-    + '    <div class="nav-sub" id="quick3d-sub">'
-    + '      <a href="#" data-page="quick-simpleconn">Simple connector</a>'
-    + '    </div>'
-    /* MacroBEAM — 구조해석. 뼈대를 그리는 MacroPLATE3D 와 나란히 두되 별개의
-       항목이다: 저쪽은 형상을 만들고 이쪽은 그 형상이 견디는지를 본다. */
-    + '    <a class="nav-item" href="#" id="quickframeToggle"><i class="bi bi-rulers"></i> MacroBEAM <span class="arrow">&#8250;</span></a>'
-    + '    <div class="nav-sub" id="quickframe-sub">'
-    + '      <a href="#" data-page="beam-formula">SimpleBEAM</a>'
-    + '    </div>'
     + '    <a class="nav-item" href="#" data-page="draw-pscbox"><i class="bi bi-box-seam"></i> PSCBOX</a>'
     + '    <a class="nav-item" href="#" data-page="qna"><i class="bi bi-question-circle"></i> QnA</a>'
     + '  </div>'

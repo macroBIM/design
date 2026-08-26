@@ -53,7 +53,7 @@ function initLayout(phpData) {
        항목이다: 저쪽은 형상을 만들고 이쪽은 그 형상이 견디는지를 본다. */
     + '    <a class="nav-item" href="#" id="quickframeToggle"><i class="bi bi-rulers"></i> QuickFrame <span class="arrow">&#8250;</span></a>'
     + '    <div class="nav-sub" id="quickframe-sub">'
-    + '      <a href="#" data-page="beam-formula">Beam Formula</a>'
+    + '      <a href="#" data-page="beam-formula">SimpleBeam</a>'
     + '    </div>'
     + '    <a class="nav-item" href="#" data-page="draw-pscbox"><i class="bi bi-box-seam"></i> PSCBOX</a>'
     + '    <a class="nav-item" href="#" data-page="qna"><i class="bi bi-question-circle"></i> QnA</a>'
@@ -218,7 +218,7 @@ function initLayout(phpData) {
     + '    <div class="page-view" id="page-draw-plate3d"><h1 class="page-heading">PLATE3D</h1><div class="breadcrumb"><a href="#">Home</a> / <span>PLATE3D</span></div><div id="mount-draw-plate3d"></div></div>'
     + '    <div class="page-view" id="page-draw-pscbox"><h1 class="page-heading">PSC Box Girder</h1><div class="breadcrumb"><a href="#">Home</a> / <span>PSCBOX</span></div><div id="mount-draw-pscbox"></div></div>'
     + '    <div class="page-view" id="page-quick-simpleconn"><h1 class="page-heading">Simple connector</h1><div class="breadcrumb"><a href="#">Home</a> / <a href="#">QuickPlate3D</a> / <span>Simple connector</span></div><div id="mount-quick-simpleconn"></div></div>'
-    + '    <div class="page-view" id="page-beam-formula"><h1 class="page-heading">Beam Formula</h1><div class="breadcrumb"><a href="#">Home</a> / <a href="#">QuickFrame</a> / <span>Beam Formula</span></div><div id="mount-beam-formula"></div></div>'
+    + '    <div class="page-view" id="page-beam-formula"><h1 class="page-heading">SimpleBeam</h1><div class="breadcrumb"><a href="#">Home</a> / <a href="#">QuickFrame</a> / <span>SimpleBeam</span></div><div id="mount-beam-formula"></div></div>'
     + '    <div class="page-view" id="page-qna"><h1 class="page-heading">QnA Board</h1><div class="breadcrumb"><a href="#">Home</a> / <span>QnA</span></div><div id="mount-qna"></div></div>'
 
     + '  </div>'
@@ -813,7 +813,7 @@ function _bindNavigation() {
         document.head.appendChild(sc);
     }
 
-    /* QuickFrame — Beam Formula. 단경간 보를 표준 처짐공식으로 푼다.
+    /* QuickFrame — SimpleBeam. 단경간 보를 표준 처짐공식으로 푼다.
        계산은 beam_engine.js 가 하고, beam_formula_test.js 가 그 엔진을 스스로
        불러온다 — 여기서는 모듈 하나만 붙이면 된다. 테스트 빌드라 ?v= 는
        Date.now() 다: 늘 최신을 봐야 고쳤는지 아닌지를 알 수 있다. */

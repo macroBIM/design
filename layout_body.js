@@ -18,6 +18,14 @@ function initLayout(phpData) {
     + '      <a href="#" data-page="steel">Steel Section Tables</a>'
     + '      <a href="#" data-page="bendradius">Rebar Bend Radius</a>'
     + '    </div>'
+    /* Tables 바로 아래는 실제로 무언가를 만들고 검토하는 자리다 — 표를
+       찾아보고 나면 다음은 이쪽이다. MacroBEAM 은 견디는지를 보고,
+       PLATE3D 는 시트로 형상을 만든다. */
+    + '    <a class="nav-item" href="#" id="macrobeamToggle"><i class="bi bi-rulers"></i> MacroBEAM <span class="arrow">&#8250;</span></a>'
+    + '    <div class="nav-sub" id="macrobeam-sub">'
+    + '      <a href="#" data-page="beam-formula">SimpleBEAM</a>'
+    + '    </div>'
+    + '    <a class="nav-item active" href="#" data-page="draw-plate3d"><i class="bi bi-stack"></i> PLATE3D</a>'
     + '    <a class="nav-item" href="#" id="codeToggle"><i class="bi bi-calculator"></i> Code <span class="arrow">&#8250;</span></a>'
     + '    <div class="nav-sub" id="code-sub">'
     + '      <a href="#" data-page="rebarleng">Rebar Anchorage / Splice</a>'
@@ -41,7 +49,6 @@ function initLayout(phpData) {
     + '      <a href="#" data-page="draw-lwall">L-shaped Wall</a>'
     + '    </div>'
     + '    <a class="nav-item" href="#" data-page="draw-pier"><i class="bi bi-building"></i> Pier</a>'
-    + '    <a class="nav-item active" href="#" data-page="draw-plate3d"><i class="bi bi-stack"></i> PLATE3D</a>'
     + '    <a class="nav-item" href="#" data-page="qna"><i class="bi bi-question-circle"></i> QnA</a>'
     + '  </div>'
     + '</nav>'
@@ -176,6 +183,7 @@ function initLayout(phpData) {
     + '    <div class="page-view" id="page-draw-lwall"><h1 class="page-heading">L-shaped Wall Layout</h1><div class="breadcrumb"><a href="#">Home</a> / <a href="#">Retaining Wall</a> / <span>L-shaped Wall</span></div><div id="mount-draw-lwall"></div></div>'
     + '    <div class="page-view" id="page-draw-pier"><h1 class="page-heading">Pier Input</h1><div class="breadcrumb"><a href="#">Home</a> / <span>Pier</span></div><div id="mount-draw-pier"></div></div>'
     + '    <div class="page-view active" id="page-draw-plate3d"><h1 class="page-heading">PLATE3D</h1><div class="breadcrumb"><a href="#">Home</a> / <span>PLATE3D</span></div><div id="mount-draw-plate3d"></div></div>'
+    + '    <div class="page-view" id="page-beam-formula"><h1 class="page-heading">SimpleBEAM</h1><div class="breadcrumb"><a href="#">Home</a> / <a href="#">MacroBEAM</a> / <span>SimpleBEAM</span></div><div id="mount-beam-formula"></div></div>'
     + '    <div class="page-view" id="page-qna"><h1 class="page-heading">QnA Board</h1><div class="breadcrumb"><a href="#">Home</a> / <span>QnA</span></div><div id="mount-qna"></div></div>'
 
     + '  </div>'
@@ -590,6 +598,7 @@ function _bindNavigation() {
         if (pageId === 'draw-lwall') { mountDrawing('lwall'); ensureLWall(); }
         if (pageId === 'draw-pier') { mountDrawing('pier'); ensurePier(); }
         if (pageId === 'draw-plate3d') { ensurePlate3d(); }
+        if (pageId === 'beam-formula') { ensureBeamFormula(); }
         if (pageId === 'qna') { ensureQna(); }
     }
     window.showPage = showPage;
@@ -655,6 +664,21 @@ function _bindNavigation() {
         });
         window.addEventListener('resize', sizeFrame);
         sizeFrame();
+    }
+
+    /* MacroBEAM — SimpleBEAM. 단경간 보를 표준 처짐공식으로 푼다.
+       계산은 beam_engine.js 가 하고, beam_formula.js 가 그 엔진을 스스로
+       불러온다 — 여기서는 모듈 하나만 붙이면 된다. 운영이므로 ?v= 는 고정이다:
+       방문자는 아는 빌드 위에 있어야 하고, 올릴 때는 손으로 올린다. */
+    function ensureBeamFormula() {
+        if (typeof fbeam_formula === 'function') { fbeam_formula('mount-beam-formula'); return; }
+        if (window._bfLoading) return;
+        window._bfLoading = true;
+        var sc = document.createElement('script');
+        sc.src = 'https://macrobim.github.io/macroBIM/beam_formula.js?v=1';
+        sc.onload = function () { window._bfLoading = false; if (typeof fbeam_formula === 'function') fbeam_formula('mount-beam-formula'); };
+        sc.onerror = function () { window._bfLoading = false; var m = document.getElementById('mount-beam-formula'); if (m) m.innerHTML = '<p style="color:#b91c1c;padding:16px;">beam_formula.js failed to load.</p>'; };
+        document.head.appendChild(sc);
     }
 
     // Gravity wall module (bim_gravitywall.js) may not be in the page's script list — load on demand.
@@ -788,6 +812,9 @@ function _bindNavigation() {
     });
     document.getElementById('drawingsToggle').addEventListener('click', function(e) {
         e.preventDefault(); this.classList.toggle('open'); document.getElementById('drawings-sub').classList.toggle('show');
+    });
+    document.getElementById('macrobeamToggle').addEventListener('click', function(e) {
+        e.preventDefault(); this.classList.toggle('open'); document.getElementById('macrobeam-sub').classList.toggle('show');
     });
     document.getElementById('retainingToggle').addEventListener('click', function(e) {
         e.preventDefault(); this.classList.toggle('open'); document.getElementById('retaining-sub').classList.toggle('show');

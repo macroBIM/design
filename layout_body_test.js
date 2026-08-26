@@ -21,8 +21,8 @@ function initLayout(phpData) {
     /* Tables 바로 아래는 실제로 무언가를 만들고 검토하는 자리다 — 표를
        찾아보고 나면 다음은 이쪽이다. MacroBEAM 은 견디는지를 보고,
        PLATE3D 는 시트로 형상을 만든다. */
-    + '    <a class="nav-item" href="#" id="quickframeToggle"><i class="bi bi-rulers"></i> MacroBEAM <span class="arrow">&#8250;</span></a>'
-    + '    <div class="nav-sub" id="quickframe-sub">'
+    + '    <a class="nav-item" href="#" id="macrobeamToggle"><i class="bi bi-rulers"></i> MacroBEAM <span class="arrow">&#8250;</span></a>'
+    + '    <div class="nav-sub" id="macrobeam-sub">'
     + '      <a href="#" data-page="beam-formula">SimpleBEAM</a>'
     + '    </div>'
     + '    <a class="nav-item" href="#" data-page="draw-plate3d"><i class="bi bi-stack"></i> PLATE3D</a>'
@@ -978,8 +978,8 @@ function _bindNavigation() {
     document.getElementById('quick3dToggle').addEventListener('click', function(e) {
         e.preventDefault(); this.classList.toggle('open'); document.getElementById('quick3d-sub').classList.toggle('show');
     });
-    document.getElementById('quickframeToggle').addEventListener('click', function(e) {
-        e.preventDefault(); this.classList.toggle('open'); document.getElementById('quickframe-sub').classList.toggle('show');
+    document.getElementById('macrobeamToggle').addEventListener('click', function(e) {
+        e.preventDefault(); this.classList.toggle('open'); document.getElementById('macrobeam-sub').classList.toggle('show');
     });
     document.querySelectorAll('.nav-item[data-page]').forEach(function(el) {
         el.addEventListener('click', function(e) { e.preventDefault(); showPage(this.getAttribute('data-page')); });

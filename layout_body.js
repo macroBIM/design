@@ -22,7 +22,7 @@ function initLayout(phpData) {
     /* Tables 바로 아래는 실제로 무언가를 만들고 검토하는 자리다 — 표를
        찾아보고 나면 다음은 이쪽이다. MacroBEAM 은 견디는지를 보고,
        PLATE3D 는 시트로 형상을 만든다. */
-    + '    <a class="nav-item" href="#" id="macrobeamToggle"><i class="bi bi-rulers"></i> MacroBEAM <span class="arrow">&#8250;</span></a>'
+    + '    <a class="nav-item" href="#" id="macrobeamToggle"><i class="bi bi-bar-chart-line"></i> MacroBEAM <span class="arrow">&#8250;</span></a>'
     + '    <div class="nav-sub" id="macrobeam-sub">'
     + '      <a href="#" data-page="beam-formula">SimpleBEAM</a>'
     + '      <a href="#" data-page="beam-multi">MultiBEAM</a>'

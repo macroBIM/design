@@ -822,7 +822,7 @@ function _bindNavigation() {
         if (window._bfLoading) return;
         window._bfLoading = true;
         var sc = document.createElement('script');
-        sc.src = 'https://cdn.jsdelivr.net/gh/macroBIM/macroBIM@main/beam_formula_test.js?v=' + Date.now();   // Pages 우회 — ?v= 는 브라우저 캐시용(jsDelivr 은 질의문자열을 무시한다)
+        sc.src = 'https://raw.githack.com/macroBIM/macroBIM/main/beam_formula_test.js?v=' + Date.now();   // Pages 우회 — jsDelivr 은 브랜치를 12시간 붙들어 옛 코드를 준다
         sc.onload = function () { window._bfLoading = false; if (typeof fbeam_formula === 'function') fbeam_formula('mount-beam-formula'); };
         sc.onerror = function () { window._bfLoading = false; var m = document.getElementById('mount-beam-formula'); if (m) m.innerHTML = '<p style="color:#b91c1c;padding:16px;">beam_formula_test.js failed to load.</p>'; };
         document.head.appendChild(sc);

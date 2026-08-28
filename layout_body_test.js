@@ -828,13 +828,14 @@ function _bindNavigation() {
     /* MacroBEAM — SimpleBEAM. 단경간 보를 표준 처짐공식으로 푼다.
        계산은 beam_engine.js 가 하고, beam_formula_test.js 가 그 엔진을 스스로
        불러온다 — 여기서는 모듈 하나만 붙이면 된다. 테스트 빌드라 ?v= 는
-       Date.now() 다: 늘 최신을 봐야 고쳤는지 아닌지를 알 수 있다. */
+       Date.now() 다: 늘 최신을 봐야 고쳤는지 아닌지를 알 수 있다.
+       Pages 가 08-28 00:14 UTC 에 되살아나 githack 우회를 걷었다. */
     function ensureBeamFormula() {
         if (typeof fbeam_formula === 'function') { fbeam_formula('mount-beam-formula'); return; }
         if (window._bfLoading) return;
         window._bfLoading = true;
         var sc = document.createElement('script');
-        sc.src = 'https://raw.githack.com/macroBIM/macroBIM/main/beam_formula_test.js?v=' + Date.now();   // Pages 우회 — jsDelivr 은 브랜치를 12시간 붙들어 옛 코드를 준다
+        sc.src = 'https://macrobim.github.io/macroBIM/beam_formula_test.js?v=' + Date.now();
         sc.onload = function () { window._bfLoading = false; if (typeof fbeam_formula === 'function') fbeam_formula('mount-beam-formula'); };
         sc.onerror = function () { window._bfLoading = false; var m = document.getElementById('mount-beam-formula'); if (m) m.innerHTML = '<p style="color:#b91c1c;padding:16px;">beam_formula_test.js failed to load.</p>'; };
         document.head.appendChild(sc);
@@ -843,7 +844,7 @@ function _bindNavigation() {
     /* MacroBEAM — MultiBEAM. 연속보(1~5경간)를 모멘트분배법으로 푼다.
        SimpleBEAM 과 같은 방식이다: 모듈이 beam_engine.js 를 스스로 챙기므로
        여기서는 스크립트 하나만 붙인다. Pages 가 되살아나서 이 줄은 우회 없이
-       macrobim.github.io 를 본다 — SimpleBEAM 쪽은 아직 githack 이라 되돌려야 한다. */
+       macrobim.github.io 를 본다. */
     function ensureBeamMulti() {
         if (typeof fbeam_multi === 'function') { fbeam_multi('mount-beam-multi'); return; }
         if (window._bmLoading) return;

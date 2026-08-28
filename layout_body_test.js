@@ -15,6 +15,7 @@ function initLayout(phpData) {
     + '    <a class="nav-item" href="#" id="tablesToggle"><i class="bi bi-table"></i> Tables <span class="arrow">&#8250;</span></a>'
     + '    <div class="nav-sub" id="tables-sub">'
     + '      <a href="#" data-page="rebar">Rebar Tables</a>'
+    + '      <a href="#" data-page="strength">Steel Strength</a>'
     + '      <a href="#" data-page="steel">Steel Section Tables</a>'
     + '      <a href="#" data-page="bendradius">Rebar Bend Radius</a>'
     + '    </div>'
@@ -97,6 +98,13 @@ function initLayout(phpData) {
     + '      <div class="table-card"><div class="table-card-header"><div class="table-card-title">1. KS D 3504 (Korean Standard)</div><div class="table-card-desc">Deformed bars for concrete reinforcement</div></div><table class="ea-table striped rebar"><thead id="rebar-ks-head"></thead><tbody id="rebar-ks-body"><tr><td colspan="7" class="loading-row"><span class="spinner"></span> Loading...</td></tr></tbody></table></div>'
     + '      <div class="table-card"><div class="table-card-header"><div class="table-card-title">2. ASTM A615M (US Standard)</div><div class="table-card-desc">Standard specification for deformed bars</div></div><table class="ea-table striped rebar"><thead id="rebar-astm-head"></thead><tbody id="rebar-astm-body"><tr><td colspan="7" class="loading-row"><span class="spinner"></span> Loading...</td></tr></tbody></table></div>'
     + '      <div class="table-card"><div class="table-card-header"><div class="table-card-title">3. BS 4449 (British Standard)</div><div class="table-card-desc">Steel for the reinforcement of concrete</div></div><table class="ea-table striped rebar"><thead id="rebar-bs-head"></thead><tbody id="rebar-bs-body"><tr><td colspan="7" class="loading-row"><span class="spinner"></span> Loading...</td></tr></tbody></table></div>'
+    + '    </div>'
+
+    /* ── STEEL STRENGTH ── */
+    + '    <div class="page-view" id="page-strength">'
+    + '      <h1 class="page-heading">Steel Strength</h1>'
+    + '      <div class="breadcrumb"><a href="#">Home</a> / <a href="#">Tables</a> / <span>Steel Strength</span></div>'
+    + '      <div id="strength-mount"><div class="table-card"><div class="loading-row"><span class="spinner"></span> Loading strength data...</div></div></div>'
     + '    </div>'
 
     /* ── STEEL SECTION TABLES ── */
@@ -718,6 +726,7 @@ function _bindNavigation() {
         }
 
         if (pageId === 'rebar' && !window._rebarLoaded) { loadRebarTables(); window._rebarLoaded = true; }
+        if (pageId === 'strength' && !window._strengthLoaded) { loadStrengthTables(); window._strengthLoaded = true; }
         if (pageId === 'rebarleng' && !window._rebarLengLoaded) {
             if (typeof mod_rebar_leng !== 'undefined') { mod_rebar_leng.init('mount-rebarleng'); window._rebarLengLoaded = true; }
             else { document.getElementById('mount-rebarleng').innerHTML = '<p style="color:#b91c1c;padding:16px;">mod_rebar_leng.js / mod_rebar.js / mod_concrete.js 스크립트가 로드되지 않았습니다.</p>'; }
@@ -1002,4 +1011,334 @@ function _bindNavigation() {
         sc.onerror = function() { window._qnaLoading = false; var m = document.getElementById('mount-qna'); if (m) m.innerHTML = '<p style="color:#b91c1c;padding:16px;">mod_qna.js failed to load.</p>'; };
         document.head.appendChild(sc);
     }
+}
+
+
+/* ══════════════════════════════════════════════════════════════════════
+   Tables › Steel Strength
+
+   Everything for the page rides in this file on purpose: the PHP test
+   page carries a fixed <script> list, and only layout_body_test.js is
+   fetched with ?t=<time()>, so a new file or a layout_style.css edit
+   would need a PHP change and a cache-buster bump to show up.
+
+   On merge this splits the way the rebar page already is:
+     mod_strength          → mod_strength.js  (+ steel_strength_*.csv)
+     loadStrengthTables()  → steelstrength_claude.js
+     _STRENGTHCSS()        → four rules in layout_style.css
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* The five rules the page adds. Colours are taken from pairs already in
+   layout_style.css — .nav-item.active for the divider, .qna-badge-reply
+   for the badge — so nothing new enters the palette. */
+function _STRENGTHCSS() {
+    return '<style id="strength-css">'
+      + '.steel-table thead th small{display:block;font-size:10px;font-weight:400;color:#94a3b8;margin-top:2px;}'
+      + '.steel-table tbody tr.group-row td{background:#eff6ff !important;color:#2563eb;font-size:11px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;text-align:left;padding:8px 12px;border-right:none;position:static;}'
+      + '.eq{display:inline-block;padding:2px 7px;border-radius:4px;background:#e0e7ff;color:#3730a3;font-weight:600;font-size:11.5px;}'
+      + '.na{color:#cbd5e1;}'
+      + '.sub{color:#94a3b8;font-weight:400;}'
+      + '</style>';
+}
+
+/* Data module — same shape as mod_rebar.js.
+   In a grade cell, a leading '*' marks a grade whose Fy and Fu are
+   effectively identical to the KS grade on that row, a leading '-'
+   greys the text out, and a bare '-' means the standard does not
+   define one. In a KDS/JIS row, fy is the per-thickness-band list and
+   fy1 the single value used where the grade takes no reduction. */
+var mod_strength = new function () {
+
+    /* ── 1. Grade equivalents ── */
+    var equiv = [
+        { group: 'Rolled Steel for General Structure &middot; KS D 3503' },
+        { ks:'SS235', old:'SS330', jis:'SS330', en:'*S235JR', astm:'A283 Gr.C', gb:'Q235' },
+        { ks:'SS275', old:'SS400', jis:'SS400', en:'*S275JR', astm:'*A36', gb:'Q235B' },
+        { ks:'SS315', old:'SS490', jis:'SS490', en:'between S275 &amp; S355', astm:'A572 Gr.42', gb:'Q355' },
+        { ks:'SS410', old:'SS540', jis:'SS540', en:'S420N', astm:'A572 Gr.60', gb:'Q420' },
+        { ks:'SS450', old:'SS590', jis:'SS590', en:'*S450J0', astm:'A572 Gr.65', gb:'Q460' },
+        { ks:'SS550', old:'-', jis:'-', en:'S550Q', astm:'A514 (partial)', gb:'-' },
+
+        { group: 'Rolled Steel for Welded Structure &middot; KS D 3515' },
+        { ks:'SM275', old:'SM400', jis:'SM400 A/B/C', en:'*S275J0/J2', astm:'A36', gb:'Q235B' },
+        { ks:'SM355', old:'SM490', jis:'SM490Y / SM520', en:'*S355J0/J2', astm:'*A572 Gr.50 &middot; A992', gb:'Q355' },
+        { ks:'SM420', old:'SM490Y &middot; SM520', jis:'SM520 B/C', en:'*S420N/NL', astm:'A572 Gr.60', gb:'Q420' },
+        { ks:'SM460', old:'SM570', jis:'*SM570', en:'*S460N/NL', astm:'A572 Gr.65 &middot; A913 Gr.65', gb:'Q460' },
+
+        { group: 'Atmospheric Corrosion Resisting Steel for Welded Structure &middot; KS D 3529' },
+        { ks:'SMA275', old:'SMA400W', jis:'SMA400 AW/BW/CW', en:'*S235J0W/J2W', astm:'A242 &middot; A588', gb:'Q235NH' },
+        { ks:'SMA355', old:'SMA490W', jis:'SMA490 AW/BW/CW', en:'*S355J0W/J2W/K2W', astm:'*A588 &middot; A709 Gr.50W', gb:'Q355NH' },
+        { ks:'SMA460', old:'SMA570W', jis:'SMA570W', en:'-no equivalent grade', astm:'A709 HPS 70W', gb:'Q460NH' },
+
+        { group: 'High-Performance Steel for Bridges &amp; Buildings &middot; KS D 3868 / KS D 5994' },
+        { ks:'HSB380', old:'HSB500', jis:'*SBHS400', en:'S420M &middot; S460M', astm:'A709 Gr.50W &middot; HPS 50W', gb:'-' },
+        { ks:'HSB460', old:'HSB600', jis:'*SBHS500', en:'*S500Q', astm:'*A709 HPS 70W', gb:'-' },
+        { ks:'HSB690', old:'HSB800', jis:'*SBHS700', en:'*S690Q', astm:'*A709 HPS 100W &middot; A514', gb:'Q690' },
+        { ks:'HSA650', old:'HSA800', jis:'-Korea-developed', en:'S620Q ~ S690Q', astm:'A514 (approx.)', gb:'-' },
+
+        { group: 'Thermo-Mechanical Control Process (TMCP)' },
+        { ks:'SM275-TMC', old:'SM400-TMC', jis:'SM400-TMC', en:'*S275M/ML', astm:'-', gb:'-' },
+        { ks:'SM355-TMC', old:'SM490-TMC', jis:'SM490-TMC', en:'*S355M/ML', astm:'-', gb:'-' },
+        { ks:'SM420-TMC', old:'SM520-TMC', jis:'SM520-TMC', en:'*S420M/ML', astm:'-', gb:'-' },
+        { ks:'SM460-TMC', old:'SM570-TMC', jis:'SM570-TMC', en:'*S460M/ML', astm:'-', gb:'-' }
+    ];
+
+    /* ── 2. KDS 14 31 05 Table 3.4-1 — fy bands [t<=16, 16-40, 40-75, 75-100, t>100] ── */
+    var kds = [
+        { g:'SS235', fy:[235,225,205,205,195], fu:330 },
+        { g:'SS275', fy:[275,265,245,245,235], fu:410 },
+        { g:'SM275 &middot; SMA275<sup>1)</sup>', fy:[275,265,255,245,235], fu:410 },
+        { g:'SS315', fy:[315,305,295,295,275], fu:490 },
+        { g:'SM355 &middot; SMA355<sup>1)</sup>', fy:[355,345,335,325,305], fu:490 },
+        { g:'SS410', fy:[410,400,'-','-','-'], fu:540 },
+        { g:'SM420', fy:[420,410,400,390,380], fu:520 },
+        { g:'SS450', fy:[450,440,'-','-','-'], fu:590 },
+        { g:'SM460<sup>2)</sup> &middot; SMA460<sup>3)</sup>', fy:[460,450,430,420,'-'], fu:570 },
+        { g:'SS550', fy:[550,540,'-','-','-'], fu:690 },
+
+        { group: 'No thickness reduction — High-Performance &amp; TMCP steels' },
+        { g:'HSB380 &middot; HSM380<sup>4)</sup>', fy1:380, note:'(HSB: t &le; 100mm)', fu:500 },
+        { g:'HSB460', fy1:460, note:'(t &le; 100mm)', fu:600 },
+        { g:'HSB690<sup>5)</sup>', fy1:690, note:'(t &le; 80mm)', fu:800 },
+        { g:'HSA650<sup>5)</sup>', fy1:650, note:'(t &le; 80mm)', fu:800 },
+        { g:'SM275-TMC<sup>6)</sup>', fy1:275, fu:410 },
+        { g:'SM355-TMC<sup>6)</sup>', fy1:355, fu:490 },
+        { g:'SM420-TMC<sup>6)</sup>', fy1:420, fu:520 },
+        { g:'SM460-TMC<sup>6)</sup>', fy1:460, fu:570 }
+    ];
+
+    /* ── 3. EN 1993-1-1 Table 3.1 — fy / fu : [t<=40, 40<t<=80] ── */
+    var en = [
+        { group: 'EN 10025-2 &nbsp;— Non-alloy structural steels' },
+        { g:'S235', fy:[235,215], fu:[360,360], ks:'&#8776; SS235' },
+        { g:'S275', fy:[275,255], fu:[430,410], ks:'&#8776; SS275 &middot; SM275' },
+        { g:'S355', fy:[355,335], fu:[490,470], ks:'&#8776; SM355' },
+        { g:'S450', fy:[440,410], fu:[550,550], ks:'&#8776; SS450' },
+        { group: 'EN 10025-3 &nbsp;— Normalized (N / NL)' },
+        { g:'S275 N/NL', fy:[275,255], fu:[390,370], ks:'&#8776; SM275' },
+        { g:'S355 N/NL', fy:[355,335], fu:[490,470], ks:'&#8776; SM355' },
+        { g:'S420 N/NL', fy:[420,390], fu:[520,520], ks:'&#8776; SM420' },
+        { g:'S460 N/NL', fy:[460,430], fu:[540,540], ks:'&#8776; SM460' },
+        { group: 'EN 10025-4 &nbsp;— Thermomechanical rolled (M / ML) = TMCP' },
+        { g:'S275 M/ML', fy:[275,255], fu:[370,360], ks:'&#8776; SM275-TMC' },
+        { g:'S355 M/ML', fy:[355,335], fu:[470,450], ks:'&#8776; SM355-TMC' },
+        { g:'S420 M/ML', fy:[420,390], fu:[520,500], ks:'&#8776; SM420-TMC' },
+        { g:'S460 M/ML', fy:[460,430], fu:[540,530], ks:'&#8776; SM460-TMC' },
+        { group: 'EN 10025-5 / -6 &nbsp;— Weathering (W) &middot; Quenched &amp; tempered (Q)' },
+        { g:'S235 W', fy:[235,215], fu:[360,340], ks:'&#8776; SMA275' },
+        { g:'S355 W', fy:[355,335], fu:[490,490], ks:'&#8776; SMA355' },
+        { g:'S460 Q/QL/QL1', fy:[460,440], fu:[570,550], ks:'&#8776; SM460' }
+    ];
+
+    /* ── 4. ASTM / AISC 360 ── */
+    var astm = [
+        { group: 'Buildings &amp; general plate' },
+        { g:'A36', fyk:'36', fuk:'58&ndash;80', fym:'250', fum:'400&ndash;550', use:'Plate &amp; shapes, general &nbsp;&#8776; SS275' },
+        { g:'A572 Gr.42', fyk:'42', fuk:'60', fym:'290', fum:'415', use:'&#8776; SS315' },
+        { g:'A572 Gr.50', fyk:'50', fuk:'65', fym:'345', fum:'450', use:'Most common &nbsp;&#8776; SM355' },
+        { g:'A572 Gr.55', fyk:'55', fuk:'70', fym:'380', fum:'485', use:'' },
+        { g:'A572 Gr.60', fyk:'60', fuk:'75', fym:'415', fum:'520', use:'t &le; 32mm &nbsp;&#8776; SM420' },
+        { g:'A572 Gr.65', fyk:'65', fuk:'80', fym:'450', fum:'550', use:'t &le; 32mm &nbsp;&#8776; SM460' },
+        { g:'A992', fyk:'50&ndash;65', fuk:'&ge; 65', fym:'345&ndash;450', fum:'450', use:'W-shapes only &nbsp;&#8776; SM355' },
+        { g:'A529 Gr.50 / 55', fyk:'50 / 55', fuk:'65&ndash;100', fym:'345 / 380', fum:'450&ndash;620', use:'' },
+        { g:'A913 Gr.50/60/65/70', fyk:'50/60/65/70', fuk:'65/75/80/90', fym:'345/415/450/485', fum:'450/520/550/620', use:'QST shapes' },
+        { group: 'Bridges &middot; weathering &middot; quenched and tempered' },
+        { g:'A588', fyk:'50', fuk:'70', fym:'345', fum:'485', use:'Weathering &nbsp;&#8776; SMA355' },
+        { g:'A709 Gr.50W', fyk:'50', fuk:'70', fym:'345', fum:'485', use:'Bridge weathering &nbsp;&#8776; SMA355' },
+        { g:'A709 HPS 70W', fyk:'70', fuk:'85&ndash;110', fym:'485', fum:'585&ndash;760', use:'Bridge high-performance &nbsp;&#8776; HSB460' },
+        { g:'A709 HPS 100W', fyk:'100', fuk:'110&ndash;130', fym:'690', fum:'760&ndash;895', use:'Bridge high-performance &nbsp;&#8776; HSB690' },
+        { g:'A514', fyk:'100', fuk:'110&ndash;130', fym:'690', fum:'760&ndash;895', use:'t &le; 65mm &nbsp;&#8776; HSB690' }
+    ];
+
+    /* ── 5. JIS — fy bands [t<=16, 16-40, 40-75, 75-100] ── */
+    var jis = [
+        { group: 'JIS G3101 &middot; G3106 — General &amp; welded structure' },
+        { g:'SS400', fy:[245,235,215,215], fu:'400&ndash;510', ks:'SS275 <span class="na">(lower F<sub>y</sub>)</span>' },
+        { g:'SS490', fy:[285,275,255,245], fu:'490&ndash;610', ks:'SS315 <span class="na">(lower F<sub>y</sub>)</span>' },
+        { g:'SM400 A/B/C', fy:[245,235,215,215], fu:'400&ndash;510', ks:'SM275 <span class="na">(lower F<sub>y</sub>)</span>' },
+        { g:'SM490 A/B/C', fy:[325,315,295,295], fu:'490&ndash;610', ks:'<span class="na">not SM355</span>' },
+        { g:'SM490Y A/B', fy:[365,355,335,325], fu:'490&ndash;610', ks:'*SM355' },
+        { g:'SM520 B/C', fy:[365,355,335,325], fu:'520&ndash;640', ks:'*SM355' },
+        { g:'SM570', fy:[460,450,430,420], fu:'570&ndash;720', ks:'*SM460' },
+        { group: 'JIS G3114 — Weathering' },
+        { g:'SMA400 W', fy:[245,235,215,215], fu:'400&ndash;540', ks:'SMA275 <span class="na">(lower F<sub>y</sub>)</span>' },
+        { g:'SMA490 W', fy:[365,355,335,325], fu:'490&ndash;610', ks:'*SMA355' },
+        { g:'SMA570 W', fy:[460,450,430,420], fu:'570&ndash;720', ks:'*SMA460' },
+        { group: 'JIS G3140 — Higher yield strength plates for bridges (SBHS, no thickness reduction)' },
+        { g:'SBHS400', fy1:400, note:'(t &le; 100)', fu:'&ge; 490', ks:'HSB380' },
+        { g:'SBHS500', fy1:500, note:'(t &le; 100)', fu:'&ge; 570', ks:'HSB460' },
+        { g:'SBHS700', fy1:700, note:'(t &le; 75)', fu:'&ge; 780', ks:'*HSB690' }
+    ];
+
+    /* ── 6. GB/T 1591 ── */
+    var gb = [
+        { g:'Q235B', fy:235, fu:'370&ndash;500', ks:'SS235 &middot; SM275', en:'S235' },
+        { g:'Q355 <span class="sub">(formerly Q345)</span>', fy:355, fu:'470&ndash;630', ks:'SM355', en:'S355' },
+        { g:'Q390', fy:390, fu:'490&ndash;650', ks:'-', en:'-' },
+        { g:'Q420', fy:420, fu:'520&ndash;680', ks:'SM420', en:'S420' },
+        { g:'Q460', fy:460, fu:'550&ndash;720', ks:'SM460', en:'S460' }
+    ];
+
+    /* ── 7. What actually differs between the codes ── */
+    var caution = [
+        { item:'F<sub>y</sub> thickness bands', kds:'5 bands<br><span class="sub">16 / 40 / 75 / 100 / over</span>', en:'2 bands<br><span class="sub">40 / 80</span>', astm:'no reduction', jis:'5 bands<br><span class="sub">same as KDS</span>' },
+        { item:'How F<sub>u</sub> is specified', kds:'single minimum', en:'single design value', astm:'range (min&ndash;max)', jis:'range (min&ndash;max)' },
+        { item:'Modulus of elasticity E', kds:'210,000 MPa', en:'210,000 MPa', astm:'200,000 MPa<br><span class="sub">29,000 ksi</span>', jis:'205,000 MPa' },
+        { item:'Naming basis', kds:'yield strength<br><span class="sub">revised 2016&ndash;2018</span>', en:'yield strength', astm:'ksi grade', jis:'tensile strength' }
+    ];
+
+    this.get_EQUIV   = function () { return equiv; };
+    this.get_KDS     = function () { return kds; };
+    this.get_EN      = function () { return en; };
+    this.get_ASTM    = function () { return astm; };
+    this.get_JIS     = function () { return jis; };
+    this.get_GB      = function () { return gb; };
+    this.get_CAUTION = function () { return caution; };
+
+};
+
+/* Builds every card on the Steel Strength page. Named and shaped after
+   loadRebarTables() in rebartable_claude.js; helpers stay local because
+   this file shares global scope with every other module the page loads. */
+function loadStrengthTables() {
+
+    if (!document.getElementById('strength-css')) {
+        document.head.insertAdjacentHTML('beforeend', _STRENGTHCSS());
+    }
+
+    function fmt(v) {
+        if (v === undefined || v === null || v === '' || v === '-') return '<span class="na">&ndash;</span>';
+        v = String(v);
+        if (v.charAt(0) === '*') return '<span class="eq">' + v.slice(1) + '</span>';
+        if (v.charAt(0) === '-') return '<span class="na">' + v.slice(1) + '</span>';
+        return v;
+    }
+    function tds(vals) {
+        var out = '', i;
+        for (i = 0; i < vals.length; i++) out += '<td>' + fmt(vals[i]) + '</td>';
+        return out;
+    }
+    function card(title, desc, minw, thead, tbody) {
+        return '<div class="table-card">'
+             +   '<div class="table-card-header">'
+             +     '<div class="table-card-title">' + title + '</div>'
+             +     '<div class="table-card-desc">' + desc + '</div>'
+             +   '</div>'
+             +   '<div class="steel-table-wrap">'
+             +     '<table class="steel-table" style="min-width:' + minw + 'px;">'
+             +       '<thead>' + thead + '</thead><tbody>' + tbody + '</tbody>'
+             +     '</table>'
+             +   '</div>'
+             + '</div>';
+    }
+    /* one <tr> per record; a record carrying .group becomes a full-width divider */
+    function rows(data, ncol, rowFn) {
+        var out = '', i, r;
+        for (i = 0; i < data.length; i++) {
+            r = data[i];
+            if (r.group) out += '<tr class="group-row"><td colspan="' + ncol + '">' + r.group + '</td></tr>';
+            else out += '<tr>' + rowFn(r) + '</tr>';
+        }
+        return out;
+    }
+    /* banded Fy, or one value spanning every band where the grade takes no reduction */
+    function fyCells(r, bands) {
+        if (r.fy) return tds(r.fy);
+        return '<td colspan="' + bands + '">' + r.fy1
+             + (r.note ? ' <span class="sub">' + r.note + '</span>' : '') + '</td>';
+    }
+    function note(html) { return '<div class="table-note">' + html + '</div>'; }
+
+    var m = mod_strength, h = '';
+
+    h += card('1. Grade Equivalents &mdash; KS &amp; Overseas Standards',
+          'Current KS symbols follow the same <b>yield-strength</b> naming as EN', 880,
+          '<tr><th style="text-align:left;">KS Grade<small>current</small></th>'
+        + '<th>Old Symbol<small>before 2016</small></th><th>JIS<small>Japan</small></th>'
+        + '<th>EN 10025<small>Europe</small></th><th>ASTM<small>USA</small></th>'
+        + '<th>GB/T<small>China</small></th></tr>',
+          rows(m.get_EQUIV(), 6, function (r) {
+              return '<td>' + r.ks + '</td>' + tds([r.old, r.jis, r.en, r.astm, r.gb]);
+          }));
+
+    h += note('&bull; A <span class="eq">shaded</span> entry has essentially the <b>same</b> yield and tensile strength. All others are approximate &mdash; verify the design values directly.<br>'
+        + '&bull; <b>A matching JIS name does not mean a matching value.</b> Current KS SM355 (F<sub>y</sub> 355) corresponds to <b>JIS SM490Y / SM520</b> (F<sub>y</sub> 355), <b>not</b> JIS SM490 (F<sub>y</sub> 325). This is the most common error when substituting legacy material or sourcing overseas.<br>'
+        + '&bull; The 2016&ndash;2018 KS revision changed grade naming from <b>tensile strength to yield strength</b> (SS400 &rarr; SS275) &mdash; the same system EN 10025 uses for S355.');
+
+    h += card('2. KDS 14 31 05 (Table 3.4-1) &mdash; Korea',
+          '<b>Five</b> thickness bands &middot; MPa', 860,
+          '<tr><th rowspan="2" style="text-align:left;">Designation</th>'
+        + '<th colspan="5">F<sub>y</sub> &mdash; Yield Strength<small>Plate Thickness (mm)</small></th>'
+        + '<th rowspan="2">F<sub>u</sub><small>Tensile Strength</small></th></tr>'
+        + '<tr><th>t &le; 16</th><th>16 &lt; t<br>&le; 40</th><th>40 &lt; t<br>&le; 75</th>'
+        + '<th>75 &lt; t<br>&le; 100</th><th>t &gt; 100</th></tr>',
+          rows(m.get_KDS(), 7, function (r) {
+              return '<td>' + r.g + '</td>' + fyCells(r, 5) + '<td>' + r.fu + '</td>';
+          }));
+
+    h += note('Note 1) SMA275CW, CP &middot; SMA355CW, CP &mdash; applicable thickness 100mm or less &nbsp;&bull;&nbsp;'
+        + 'Note 2) SM460B, C &mdash; plates up to 150mm may be produced by agreement between purchaser and manufacturer &nbsp;&bull;&nbsp;'
+        + 'Note 3) SMA460W, P &mdash; applicable thickness 100mm or less<br>'
+        + 'Note 4) HSM380 &mdash; applicable thickness 40mm or less &nbsp;&bull;&nbsp;'
+        + 'Note 5) HSA650, HSB690 &mdash; applicable thickness 80mm or less &nbsp;&bull;&nbsp;'
+        + 'Note 6) For thermo-mechanical controlled (TMC) steel, the base value (yield strength for t &le; 16mm) applies with no reduction for thickness. TMC steel used in steel building structures: applicable thickness 80mm or less.');
+
+    h += card('3. EN 1993-1-1 Table 3.1 &mdash; Eurocode 3',
+          'Only <b>two</b> thickness bands defined &middot; MPa', 740,
+          '<tr><th rowspan="2" style="text-align:left;">Designation</th>'
+        + '<th colspan="2">f<sub>y</sub> &mdash; Yield Strength</th>'
+        + '<th colspan="2">f<sub>u</sub> &mdash; Tensile Strength</th>'
+        + '<th rowspan="2">KS Equivalent</th></tr>'
+        + '<tr><th>t &le; 40</th><th>40 &lt; t &le; 80</th><th>t &le; 40</th><th>40 &lt; t &le; 80</th></tr>',
+          rows(m.get_EN(), 6, function (r) {
+              return '<td>' + r.g + '</td>' + tds([r.fy[0], r.fy[1], r.fu[0], r.fu[1], r.ks]);
+          }));
+
+    h += card('4. ASTM / AISC 360 &mdash; USA',
+          '<b>No</b> reduction for thickness &middot; graded in ksi', 820,
+          '<tr><th rowspan="2" style="text-align:left;">Designation</th>'
+        + '<th colspan="2">Original (ksi)</th><th colspan="2">Converted (MPa)</th>'
+        + '<th rowspan="2">Use &amp; KS Equivalent</th></tr>'
+        + '<tr><th>F<sub>y</sub></th><th>F<sub>u</sub></th><th>F<sub>y</sub></th><th>F<sub>u</sub></th></tr>',
+          rows(m.get_ASTM(), 6, function (r) {
+              return '<td>' + r.g + '</td><td>' + r.fyk + '</td><td>' + r.fuk + '</td>'
+                   + '<td>' + r.fym + '</td><td>' + r.fum + '</td><td>' + (r.use || '') + '</td>';
+          }));
+
+    h += card('5. JIS &mdash; Japan',
+          '<b>Tensile-strength</b> naming, same as legacy KS &middot; MPa', 820,
+          '<tr><th rowspan="2" style="text-align:left;">Designation</th>'
+        + '<th colspan="4">F<sub>y</sub> &mdash; Yield Point<small>Plate Thickness (mm)</small></th>'
+        + '<th rowspan="2">F<sub>u</sub><small>Tensile Strength</small></th>'
+        + '<th rowspan="2">Current KS Equivalent</th></tr>'
+        + '<tr><th>t &le; 16</th><th>16&ndash;40</th><th>40&ndash;75</th><th>75&ndash;100</th></tr>',
+          rows(m.get_JIS(), 7, function (r) {
+              return '<td>' + r.g + '</td>' + fyCells(r, 4)
+                   + '<td>' + r.fu + '</td><td>' + fmt(r.ks) + '</td>';
+          }));
+
+    h += card('6. GB/T 1591 &mdash; China (reference)',
+          'Follows EN &middot; yield-strength naming &middot; MPa', 600,
+          '<tr><th style="text-align:left;">Designation</th>'
+        + '<th>F<sub>y</sub><small>t &le; 16</small></th><th>F<sub>u</sub></th>'
+        + '<th>KS Equivalent</th><th>EN Equivalent</th></tr>',
+          rows(m.get_GB(), 5, function (r) {
+              return '<td>' + r.g + '</td>' + tds([r.fy, r.fu, r.ks, r.en]);
+          }));
+
+    h += card('Before Substituting Across Standards',
+          'A matching grade name is not a matching design value', 720,
+          '<tr><th style="text-align:left;">Item</th><th>KDS 14 31 05</th>'
+        + '<th>EN 1993-1-1</th><th>AISC 360</th><th>JIS</th></tr>',
+          rows(m.get_CAUTION(), 5, function (r) {
+              return '<td>' + r.item + '</td><td>' + r.kds + '</td><td>' + r.en + '</td>'
+                   + '<td>' + r.astm + '</td><td>' + r.jis + '</td>';
+          }));
+
+    h += note('&bull; <b>Equivalence depends on thickness.</b> At t = 60mm, KS SM355 = 335 and EN S355 = 335 happen to agree; at t = 90mm, KS gives 325 while EN Table 3.1 is outside its defined range. Compare <b>design values at the actual member thickness</b>, not grade names.<br>'
+        + '&bull; <b>E differs by 5%.</b> AISC (200,000) against KDS/EN (210,000) shows up directly in buckling and deflection checks.<br>'
+        + '&bull; For steels whose yield and tensile strengths are not defined in Table 3.4-1, use the material strength values given in the relevant KS standard listed in Table 3.1-1.');
+
+    var mount = document.getElementById('strength-mount');
+    if (mount) mount.innerHTML = h;
 }

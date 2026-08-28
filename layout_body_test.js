@@ -25,6 +25,7 @@ function initLayout(phpData) {
     + '    <a class="nav-item" href="#" id="macrobeamToggle"><i class="bi bi-rulers"></i> MacroBEAM <span class="arrow">&#8250;</span></a>'
     + '    <div class="nav-sub" id="macrobeam-sub">'
     + '      <a href="#" data-page="beam-formula">SimpleBEAM</a>'
+    + '      <a href="#" data-page="beam-multi">MultiBEAM</a>'
     + '    </div>'
     + '    <a class="nav-item" href="#" data-page="draw-plate3d"><i class="bi bi-stack"></i> PLATE3D</a>'
     + '    <a class="nav-item" href="#" id="codeToggle"><i class="bi bi-calculator"></i> Code <span class="arrow">&#8250;</span></a>'
@@ -227,6 +228,7 @@ function initLayout(phpData) {
     + '    <div class="page-view" id="page-draw-pscbox"><h1 class="page-heading">PSC Box Girder</h1><div class="breadcrumb"><a href="#">Home</a> / <span>PSCBOX</span></div><div id="mount-draw-pscbox"></div></div>'
     + '    <div class="page-view" id="page-quick-simpleconn"><h1 class="page-heading">Simple connector</h1><div class="breadcrumb"><a href="#">Home</a> / <a href="#">MacroPLATE3D</a> / <span>Simple connector</span></div><div id="mount-quick-simpleconn"></div></div>'
     + '    <div class="page-view" id="page-beam-formula"><h1 class="page-heading">SimpleBEAM</h1><div class="breadcrumb"><a href="#">Home</a> / <a href="#">MacroBEAM</a> / <span>SimpleBEAM</span></div><div id="mount-beam-formula"></div></div>'
+    + '    <div class="page-view" id="page-beam-multi"><h1 class="page-heading">MultiBEAM</h1><div class="breadcrumb"><a href="#">Home</a> / <a href="#">MacroBEAM</a> / <span>MultiBEAM</span></div><div id="mount-beam-multi"></div></div>'
     + '    <div class="page-view" id="page-qna"><h1 class="page-heading">QnA Board</h1><div class="breadcrumb"><a href="#">Home</a> / <span>QnA</span></div><div id="mount-qna"></div></div>'
 
     + '  </div>'
@@ -749,6 +751,7 @@ function _bindNavigation() {
         if (pageId === 'draw-pscbox') { mountDrawing('pscbox'); ensurePscbox(); }
         if (pageId === 'quick-simpleconn') { ensureQuickSimpleConn(); }
         if (pageId === 'beam-formula') { ensureBeamFormula(); }
+        if (pageId === 'beam-multi') { ensureBeamMulti(); }
         if (pageId === 'qna') { ensureQna(); }
     }
     window.showPage = showPage;
@@ -834,6 +837,21 @@ function _bindNavigation() {
         sc.src = 'https://raw.githack.com/macroBIM/macroBIM/main/beam_formula_test.js?v=' + Date.now();   // Pages 우회 — jsDelivr 은 브랜치를 12시간 붙들어 옛 코드를 준다
         sc.onload = function () { window._bfLoading = false; if (typeof fbeam_formula === 'function') fbeam_formula('mount-beam-formula'); };
         sc.onerror = function () { window._bfLoading = false; var m = document.getElementById('mount-beam-formula'); if (m) m.innerHTML = '<p style="color:#b91c1c;padding:16px;">beam_formula_test.js failed to load.</p>'; };
+        document.head.appendChild(sc);
+    }
+
+    /* MacroBEAM — MultiBEAM. 연속보(1~5경간)를 모멘트분배법으로 푼다.
+       SimpleBEAM 과 같은 방식이다: 모듈이 beam_engine.js 를 스스로 챙기므로
+       여기서는 스크립트 하나만 붙인다. Pages 가 되살아나서 이 줄은 우회 없이
+       macrobim.github.io 를 본다 — SimpleBEAM 쪽은 아직 githack 이라 되돌려야 한다. */
+    function ensureBeamMulti() {
+        if (typeof fbeam_multi === 'function') { fbeam_multi('mount-beam-multi'); return; }
+        if (window._bmLoading) return;
+        window._bmLoading = true;
+        var sc = document.createElement('script');
+        sc.src = 'https://macrobim.github.io/macroBIM/beam_multi_test.js?v=' + Date.now();
+        sc.onload = function () { window._bmLoading = false; if (typeof fbeam_multi === 'function') fbeam_multi('mount-beam-multi'); };
+        sc.onerror = function () { window._bmLoading = false; var m = document.getElementById('mount-beam-multi'); if (m) m.innerHTML = '<p style="color:#b91c1c;padding:16px;">beam_multi_test.js failed to load.</p>'; };
         document.head.appendChild(sc);
     }
 

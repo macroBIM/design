@@ -675,7 +675,7 @@ function _bindNavigation() {
         if (window._bfLoading) return;
         window._bfLoading = true;
         var sc = document.createElement('script');
-        sc.src = 'https://cdn.jsdelivr.net/gh/macroBIM/macroBIM@b99b8c9/beam_formula.js';   // Pages 가 멈춰 있는 동안의 우회 — 복구되면 위 주소로
+        sc.src = 'https://cdn.jsdelivr.net/gh/macroBIM/macroBIM@5c923f3/beam_formula.js';   // Pages 가 멈춰 있는 동안의 우회 — 복구되면 위 주소로
         sc.onload = function () { window._bfLoading = false; if (typeof fbeam_formula === 'function') fbeam_formula('mount-beam-formula'); };
         sc.onerror = function () { window._bfLoading = false; var m = document.getElementById('mount-beam-formula'); if (m) m.innerHTML = '<p style="color:#b91c1c;padding:16px;">beam_formula.js failed to load.</p>'; };
         document.head.appendChild(sc);

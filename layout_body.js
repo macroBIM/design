@@ -675,7 +675,7 @@ function _bindNavigation() {
         if (window._bfLoading) return;
         window._bfLoading = true;
         var sc = document.createElement('script');
-        sc.src = 'https://macrobim.github.io/macroBIM/beam_formula.js?v=4';
+        sc.src = 'https://cdn.jsdelivr.net/gh/macroBIM/macroBIM@ae801f2/beam_formula.js';   // Pages 가 멈춰 있는 동안의 우회 — 복구되면 위 주소로
         sc.onload = function () { window._bfLoading = false; if (typeof fbeam_formula === 'function') fbeam_formula('mount-beam-formula'); };
         sc.onerror = function () { window._bfLoading = false; var m = document.getElementById('mount-beam-formula'); if (m) m.innerHTML = '<p style="color:#b91c1c;padding:16px;">beam_formula.js failed to load.</p>'; };
         document.head.appendChild(sc);

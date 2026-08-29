@@ -77,7 +77,7 @@ function initLayout(phpData) {
     + '          <a href="#" onclick="event.preventDefault();showPage(\'beam-formula\')" style="background:#fff;border:1px solid #e0e7f1;border-radius:12px;padding:24px;text-decoration:none;display:block;cursor:pointer;transition:border-color .2s;" onmouseover="this.style.borderColor=\'#2563eb\'" onmouseout="this.style.borderColor=\'#e0e7f1\'">'
     + '            <div style="font-size:26px;color:#2563eb;margin-bottom:12px;"><i class="bi bi-bar-chart-line"></i></div>'
     + '            <h3 style="font-size:17px;font-weight:700;color:#0f172a;margin:0 0 8px;">MacroBEAM</h3>'
-    + '            <p style="font-size:13px;color:#3b4963;line-height:1.65;margin:0 0 12px;">Fast beam drawing directly in the browser. Input loads, supports, and section properties — get shear, moment, and deflection diagrams instantly.</p>'
+    + '            <p style="font-size:13px;color:#3b4963;line-height:1.65;margin:0 0 12px;">Fast beam analysis directly in the browser. Input loads, supports, and section properties — get shear, moment, and deflection results instantly.</p>'
     + '            <div style="display:flex;flex-wrap:wrap;gap:6px;">'
     + '              <span style="font-size:10.5px;font-weight:600;padding:3px 10px;border-radius:6px;background:rgba(37,99,235,0.1);color:#2563eb;">SimpleBEAM</span>'
     + '              <span style="font-size:10.5px;font-weight:600;padding:3px 10px;border-radius:6px;background:rgba(37,99,235,0.1);color:#2563eb;">MultiBEAM</span>'

@@ -917,7 +917,7 @@ function _bindNavigation() {
         });
     });
     // default landing page (Dashboard removed) — open Pier and load its module
-    showPage('draw-plate3d');            // the site opens on PLATE3D
+    showPage('home');                     // the site opens on Home
 }
 
 

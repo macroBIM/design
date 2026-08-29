@@ -1,1 +1,14 @@
-[]
+[
+  {
+    "date": "2026-08-28",
+    "type": "new",
+    "title": "MultiBEAM — continuous beam analysis",
+    "desc": "Continuous beams of 1 to 5 spans. Every node takes Free / Roller / Fixed, and each span carries its own length, modulus, section and loads. An interior node may be left Free — the beam simply runs through and the node drops; a free end node makes an overhang. SFD, BMD and deflection are drawn across the whole beam as one, so the shear stepping by the reaction at each support is visible. Hover the diagrams to read a value anywhere, or type a span and x to get M, V, deflection, rotation and the stress there. Sections come from the same H-section, channel, square-tube and pipe tables as SimpleBEAM. Solved by moment distribution and checked against 36 closed-form and equivalent-model cases."
+  },
+  {
+    "date": "2026-08-26",
+    "type": "new",
+    "title": "SimpleBEAM — single-span beam analysis",
+    "desc": "Single-span beams by the standard deflection formulas. Free / Roller / Fixed at each end covers the simple, fixed-fixed, propped and cantilever cases, and several distributed and point loads can act at once. When the case matches a standard one the textbook formula is shown beside the value; otherwise the results are given with a note on how they were solved. The section is entered directly or picked from the steel tables, and bending stress follows from the section modulus. Checked against a direct-stiffness reference in 890 cases."
+  }
+]

@@ -107,8 +107,8 @@ function initLayout(phpData) {
     + '        </div>'
     + '        <h2 style="font-size:20px;font-weight:700;color:#0f172a;margin:0 0 6px;padding-left:14px;border-left:4px solid #2563eb;">Parametric Sections &amp; Structures</h2>'
     + '        <p style="font-size:13px;color:#64748b;margin:0 0 36px;">Pier, Retaining Walls (Gravity / Inverted-T / L-shaped), H Section, Channel, I Beam, BOX 1-Cell, Circle, Octagon, Track, Rect, Bolt Splice, Lifting Lug — multi-view 3D parametric drawings with batch CSV input and DXF export</p>'
-    + '        <h2 style="font-size:20px;font-weight:700;color:#0f172a;margin:0 0 6px;padding-left:14px;border-left:4px solid #2563eb;">Recent Updates</h2>'
-    + '        <p style="font-size:13px;color:#64748b;margin:0 0 16px;">No updates yet.</p>'
+    + '        <h2 style="font-size:20px;font-weight:700;color:#0f172a;margin:0 0 12px;padding-left:14px;border-left:4px solid #2563eb;">Recent Updates</h2>'
+    + '        <div id="recent-updates" style="margin-bottom:36px;"><p style="font-size:13px;color:#64748b;margin:0;">No updates yet.</p></div>'
     + '        <div style="background:#f1f5f9;border-top:2px solid #cbd5e1;border-radius:12px;padding:20px 32px;margin-top:32px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;">'
     + '          <div>'
     + '            <h2 style="font-size:16px;font-weight:700;color:#0f172a;margin:0 0 4px;">Contact Us</h2>'
@@ -269,6 +269,7 @@ function initLayout(phpData) {
 
     _createTemplates();
     _bindNavigation();
+    loadRecentUpdates();
 }
 
 /* ══ TEMPLATES ══ */
@@ -1251,4 +1252,38 @@ function loadStrengthTables() {
 
     var mount = document.getElementById('strength-mount');
     if (mount) mount.innerHTML = h;
+}
+
+/* 대시보드의 Recent Updates — design/updates.json 을 읽어 그린다.
+   테스트 레이아웃에 있던 것을 그대로 옮긴다. 운영에는 렌더러가 아예 없고
+   "No updates yet." 이 마크업에 박혀 있어서, json 에 무엇을 적어도 화면에
+   나올 길이 없었다. */
+function loadRecentUpdates() {
+    var container = document.getElementById('recent-updates');
+    if (!container) return;
+    var typeColors = { 'new': '#10b981', 'feat': '#2563eb', 'fix': '#f59e0b', 'remove': '#ef4444' };
+    var typeLabels = { 'new': 'NEW', 'feat': 'FEATURE', 'fix': 'FIX', 'remove': 'REMOVED' };
+    fetch('https://macrobim.github.io/design/updates.json?t=' + Date.now())
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (!data || !data.length) {
+                container.innerHTML = '<p style="font-size:13px;color:#64748b;margin:0;">No updates yet.</p>';
+                return;
+            }
+            var html = '';
+            data.forEach(function(item) {
+                var color = typeColors[item.type] || '#64748b';
+                var label = typeLabels[item.type] || item.type.toUpperCase();
+                html += '<div style="display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:1px solid #e0e7f1;">'
+                    + '<span style="font-size:12px;color:#94a3b8;min-width:70px;padding-top:2px;">' + item.date + '</span>'
+                    + '<span style="width:8px;height:8px;border-radius:50%;background:' + color + ';margin-top:6px;flex-shrink:0;"></span>'
+                    + '<div style="flex:1;">'
+                    + '<span style="font-size:13px;font-weight:600;color:#0f172a;">' + item.title + '</span>'
+                    + ' <span style="font-size:10px;font-weight:600;padding:2px 8px;border-radius:4px;background:' + color + '18;color:' + color + ';margin-left:6px;">' + label + '</span>'
+                    + (item.desc ? '<p style="font-size:12px;color:#64748b;margin:4px 0 0;line-height:1.5;">' + item.desc + '</p>' : '')
+                    + '</div></div>';
+            });
+            container.innerHTML = html;
+        })
+        .catch(function() {});
 }

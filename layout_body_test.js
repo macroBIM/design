@@ -119,7 +119,7 @@ function initLayout(phpData) {
     + '        <div style="background:#f1f5f9;border-top:1px solid #e0e7f1;border-radius:12px;padding:28px 32px;margin-top:32px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;">'
     + '          <div>'
     + '            <h2 style="font-size:16px;font-weight:700;color:#0f172a;margin:0 0 4px;">Get in Touch</h2>'
-    + '            <p style="font-size:12px;color:#64748b;margin:0;max-width:480px;line-height:1.6;">Built by <strong style="color:#0f172a;">MacroEngineering</strong> — engineering automation, simplified. From civil and structural to architectural and mechanical, we turn repetitive work into one-click solutions. Got a project or idea? Let\'s talk.</p>'
+    + '            <p style="font-size:12px;color:#64748b;margin:0;max-width:480px;line-height:1.6;">Built by <strong style="color:#0f172a;">MacroEngineering</strong> — engineering automation, simplified. From civil and structural to architectural and mechanical, we pursue one-click solutions for repetitive engineering work. Business inquiries, custom automation requests, and collaboration are always welcome.</p>'
     + '          </div>'
     + '          <div style="display:flex;flex-direction:column;gap:10px;align-items:flex-end;">'
     + '            <a href="http://www.macrobim.com" style="display:flex;align-items:center;gap:8px;font-size:13px;color:#2563eb;text-decoration:none;font-weight:500;"><i class="bi bi-globe2"></i> www.macrobim.com</a>'

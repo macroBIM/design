@@ -108,7 +108,7 @@ function initLayout(phpData) {
     + '        <h2 style="font-size:20px;font-weight:700;color:#0f172a;margin:0 0 6px;padding-left:14px;border-left:4px solid #2563eb;">Parametric Sections &amp; Structures</h2>'
     + '        <p style="font-size:13px;color:#64748b;margin:0 0 36px;">Pier, Retaining Walls (Gravity / Inverted-T / L-shaped), H Section, Channel, I Beam, BOX 1-Cell, Circle, Octagon, Track, Rect, Bolt Splice, Lifting Lug — multi-view 3D parametric drawings with batch CSV input and DXF export</p>'
     + '        <h2 style="font-size:20px;font-weight:700;color:#0f172a;margin:0 0 12px;padding-left:14px;border-left:4px solid #2563eb;">Recent Updates</h2>'
-    + '        <div id="recent-updates" style="margin-bottom:36px;"><p style="font-size:13px;color:#64748b;margin:0;">No updates yet.</p></div>'
+    + '        <div id="recent-updates" style="margin-bottom:36px;max-height:240px;overflow-y:auto;"><p style="font-size:13px;color:#64748b;margin:0;">No updates yet.</p></div>'
     + '        <div style="background:#f1f5f9;border-top:2px solid #cbd5e1;border-radius:12px;padding:20px 32px;margin-top:32px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;">'
     + '          <div>'
     + '            <h2 style="font-size:16px;font-weight:700;color:#0f172a;margin:0 0 4px;">Contact Us</h2>'

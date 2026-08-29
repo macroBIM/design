@@ -9,7 +9,7 @@ function initLayout(phpData) {
     var html = ''
     /* ══ SIDEBAR ══ */
     + '<nav id="sidebar">'
-    + '  <div class="sidebar-header"><div class="logo-info"><div class="name">macroBIM</div></div></div>'
+    + '  <div class="sidebar-header"><div class="logo-info"><a href="http://www.macrobim.com" class="name" style="text-decoration:none;color:inherit;">macroBIM</a></div></div>'
     + '  <div class="nav-menu">'
     + '    <a class="nav-item" href="#" data-page="home"><i class="bi bi-house-door"></i> Home</a>'
     + '    <a class="nav-item" href="#" id="dashboardMenu" data-page="dashboard"><i class="bi bi-grid-fill"></i> Dashboard</a>'

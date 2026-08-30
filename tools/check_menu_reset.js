@@ -88,6 +88,9 @@ const local = p => {
   return null;
 };
 
+/* Pages this run types into before re-clicking, so the "only after you have
+   touched it" half of the rule is exercised and not just asserted. */
+const TYPES = ['draw-hsection'];
 /* Pages with no mount of their own, and the function that rebuilds them. */
 const BUILDER = { rebar: 'loadRebarTables', strength: 'loadStrengthTables',
                   steel: 'selectSection', dashboard: 'loadVisitChart' };
@@ -113,6 +116,14 @@ const BUILDER = { rebar: 'loadRebarTables', strength: 'loadStrengthTables',
 
   const errs = [];
   page.on('pageerror', e => errs.push(String(e.message || e)));
+  /* Re-clicking asks before it throws the page away, so the run has to answer.
+     `asked` records whether a dialog appeared, which is itself under test:
+     a page with nothing to lose must NOT ask. */
+  let asked = null, answer = true;
+  page.on('dialog', async d => {
+    asked = d.message();
+    await (answer ? d.accept() : d.dismiss());
+  });
   await page.goto('https://menu.test/host.html', { waitUntil: 'domcontentloaded' });
   await page.waitForTimeout(1500);
 
@@ -148,13 +159,29 @@ const BUILDER = { rebar: 'loadRebarTables', strength: 'loadStrengthTables',
       const m = document.getElementById('mount-' + a.id);
       if (m) m.querySelectorAll('*').forEach(k => k.setAttribute('data-stale', '1'));
       return { active: !!p && p.classList.contains('active'), mount: !!m,
+               iframe: !!(m && m.querySelector('iframe')),
                kids: m ? m.querySelectorAll('*').length : 0,
                calls: a.b ? window.__calls[a.b] : null };
     }, { id: id, b: BUILDER[id] || null });
     ok(before.active, id + ': the menu item opens its page');
 
+    if (TYPES.indexOf(id) >= 0) {
+      const typed = await page.evaluate(id => {
+        const f = document.querySelector('#mount-' + id + ' input, #mount-' + id + ' select');
+        if (!f) return false;
+        f.value = f.tagName === 'SELECT' ? f.value : '999';
+        f.dispatchEvent(new Event('input', { bubbles: true }));
+        return true;
+      }, id);
+      ok(typed, id + ': the run found a field to type into');
+    }
+    asked = null;
     await click();                                    // the same item, again
     await page.waitForTimeout(900);
+    const wants = before.mount && (before.iframe || TYPES.indexOf(id) >= 0);
+    ok(!!asked === wants, id + (wants ? ': asks before discarding the page'
+                                      : ': resets without asking, having nothing to lose'),
+       asked ? 'asked: ' + asked.replace(/\n+/g, ' ') : 'no dialog');
     const after = await page.evaluate(a => {
       const p = document.getElementById('page-' + a.id);
       const m = document.getElementById('mount-' + a.id);
@@ -176,6 +203,39 @@ const BUILDER = { rebar: 'loadRebarTables', strength: 'loadStrengthTables',
       console.log('  --    ' + id + ': static markup, nothing built at runtime');
     }
   }
+
+  /* Saying no has to leave the page exactly as it was. A confirmation that
+     resets anyway is worse than none: it teaches that the question is
+     decorative. */
+  console.log('');
+  await page.evaluate(() => {
+    const a = document.querySelector('.nav-item[data-page="draw-plate3d"]');
+    a.click();
+  });
+  await page.waitForTimeout(900);
+  await page.evaluate(() => {
+    const m = document.getElementById('mount-draw-plate3d');
+    m.querySelectorAll('*').forEach(k => k.setAttribute('data-kept', '1'));
+  });
+  answer = false; asked = null;
+  await page.evaluate(() => {
+    const a = document.querySelector('.nav-item[data-page="draw-plate3d"]');
+    a.click();
+  });
+  await page.waitForTimeout(900);
+  const declined = await page.evaluate(() => {
+    const m = document.getElementById('mount-draw-plate3d');
+    const p = document.getElementById('page-draw-plate3d');
+    return { kept: m.querySelectorAll('[data-kept]').length,
+             all: m.querySelectorAll('*').length,
+             active: p.classList.contains('active') };
+  });
+  answer = true;
+  ok(!!asked, 'saying no: it asked');
+  ok(declined.kept > 0 && declined.kept === declined.all,
+     'saying no leaves the page exactly as it was',
+     declined.kept + ' of ' + declined.all + ' nodes are the originals');
+  ok(declined.active, 'saying no leaves you on the page');
 
   const real = errs.filter(e => !HARNESS_NOISE.some(n => e.indexOf(n) >= 0));
   ok(real.length === 0, 'no page errors beyond what this harness causes',

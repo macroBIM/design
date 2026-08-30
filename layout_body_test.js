@@ -848,13 +848,51 @@ function _bindNavigation() {
         if (m) m.innerHTML = '';
         var f = PAGE_BUILT_FLAG[pageId];
         if (f) window[f] = false;
+        delete pageTouched[pageId];
+    }
+
+    /* 다시 누르면 화면이 버려진다. 그러니 버릴 게 있을 때만 묻는다.
+
+       어느 페이지에서 물을지를 목록으로 박아두지 않는다. 목록은 페이지가
+       늘 때마다 손으로 고쳐야 하고, 고치는 걸 잊으면 새 페이지가 조용히
+       아무것도 안 묻는 쪽으로 떨어진다. 대신 규칙 두 개로 본다:
+
+         · 그 페이지 입력칸을 한 번이라도 건드렸다 — 사람이 적어 넣은 것이
+           있다는 뜻이다
+         · mount 안에 iframe 이 있다 — PLATE3D 와 Simple connector 다.
+           안에 무엇이 들어 있는지 밖에서 볼 수 없으므로 있다고 본다
+
+       그래서 표(Rebar·Steel·Strength·Bend Radius)와 Home 은 묻지 않는다.
+       읽기만 하는 화면이라 버릴 것이 없다. 물어볼 일이 없는 곳에서 묻는
+       상자는 몇 번 만에 그냥 눌러 넘기는 것이 되고, 그러면 정작 물어야 할
+       때도 눌러 넘긴다.
+
+       확인은 브라우저의 confirm 이다. 새 대화상자를 그리면 이 사이트에
+       없던 모양이 하나 생기고, 그건 물어보고 정할 일이다. */
+    var pageTouched = {};
+    document.addEventListener('input', markTouched, true);
+    document.addEventListener('change', markTouched, true);
+    function markTouched(e) {
+        var t = e.target;
+        var m = t && t.closest ? t.closest('[id^="mount-"]') : null;
+        if (m) pageTouched[m.id.slice(6)] = true;      // 'mount-' 는 여섯 글자
+    }
+    function hasSomethingToLose(pageId) {
+        if (pageTouched[pageId]) return true;
+        var m = document.getElementById('mount-' + pageId);
+        return !!(m && m.querySelector('iframe'));
     }
     /* 메뉴에서 들어오는 길. 대시보드 카드처럼 다른 곳에서 부르는 showPage 는
        그대로 둔다 — 거기서는 지금 보고 있지 않은 페이지로 가므로 초기화할
        것이 없고, 있다 해도 그건 이동이지 다시 누른 게 아니다. */
     function goPage(pageId) {
         var p = document.getElementById('page-' + pageId);
-        if (p && p.classList.contains('active')) resetPage(pageId);
+        if (p && p.classList.contains('active')) {
+            if (hasSomethingToLose(pageId) && !window.confirm(
+                    'Start this page over?\n\n' +
+                    'Whatever is loaded or typed on it will be discarded.')) return;
+            resetPage(pageId);
+        }
         showPage(pageId);
     }
 

@@ -5,6 +5,15 @@
                  / Retaining Wall(Gravity·Inverted-T·L-shaped) / Pier / QnA
     - Dashboard 제외, 기본 랜딩 페이지는 Home
     GitHub에서 관리, PHP에서 로드하여 innerHTML로 주입
+
+    ── 동기화 ───────────────────────────────────────────────────────
+    layout_body_test.js 를 이 파일 위에 덮지 않는다. 두 파일은 실수로
+    벌어진 게 아니라 일부러 다르다 — 운영에는 Dashboard, MacroPLATE3D
+    (Simple connector), PSCBOX 가 없고, 도면 카드 스타일도 이전 것이다.
+    동기화란 이번에 만든 변경만 옮기는 것이다. 파일 전체가 아니라.
+       node tools/check_sync_scope.js   ← 새어 들어갔는지 본다
+    까닭과 목록은 SYNC.md.
+    ─────────────────────────────────────────────────────────────────
 */
 function initLayout(phpData) {
     var html = ''

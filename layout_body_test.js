@@ -1,6 +1,13 @@
 /*
     layout_body_test.js — <body> 내부 HTML 레이아웃 (테스트: Circle/Octagon/Track 추가)
     GitHub에서 관리, PHP에서 로드하여 innerHTML로 주입
+
+    ── 동기화 ───────────────────────────────────────────────────────
+    이 파일을 layout_body.js 위에 덮지 않는다. 운영은 검증이 끝난 것만
+    담는 곳이고, 여기에는 아직 손보는 중인 것이 있다 — Dashboard,
+    MacroPLATE3D(Simple connector), PSCBOX, 그리고 도면 카드 스타일.
+    옮길 때는 이번에 만든 변경만 옮긴다. 까닭과 목록은 SYNC.md.
+    ─────────────────────────────────────────────────────────────────
 */
 function initLayout(phpData) {
     var visits = phpData && phpData.visits ? Number(phpData.visits).toLocaleString() : '0';

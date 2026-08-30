@@ -116,14 +116,19 @@ const BUILDER = { rebar: 'loadRebarTables', strength: 'loadStrengthTables',
 
   const errs = [];
   page.on('pageerror', e => errs.push(String(e.message || e)));
-  /* Re-clicking asks before it throws the page away, so the run has to answer.
-     `asked` records whether a dialog appeared, which is itself under test:
-     a page with nothing to lose must NOT ask. */
-  let asked = null, answer = true;
-  page.on('dialog', async d => {
-    asked = d.message();
-    await (answer ? d.accept() : d.dismiss());
+  /* The confirmation is the site's own MB.confirm, not the browser's, so it is
+     answered by clicking a button like a person would. Whether it appeared at
+     all is itself under test: a page with nothing to lose must NOT ask. */
+  const dialogText = () => page.evaluate(() => {
+    const b = document.querySelector('.mb-back');
+    return b ? b.innerText.replace(/\s+/g, ' ').trim() : null;
   });
+  const answerDialog = yes => page.evaluate(yes => {
+    const b = document.querySelector('.mb-back');
+    if (!b) return false;
+    b.querySelector(yes ? '[data-mb="yes"]' : '[data-mb="no"]').click();
+    return true;
+  }, yes);
   await page.goto('https://menu.test/host.html', { waitUntil: 'domcontentloaded' });
   await page.waitForTimeout(1500);
 
@@ -175,13 +180,15 @@ const BUILDER = { rebar: 'loadRebarTables', strength: 'loadStrengthTables',
       }, id);
       ok(typed, id + ': the run found a field to type into');
     }
-    asked = null;
     await click();                                    // the same item, again
-    await page.waitForTimeout(900);
+    await page.waitForTimeout(350);
+    const asked = await dialogText();
     const wants = before.mount && (before.iframe || TYPES.indexOf(id) >= 0);
     ok(!!asked === wants, id + (wants ? ': asks before discarding the page'
                                       : ': resets without asking, having nothing to lose'),
-       asked ? 'asked: ' + asked.replace(/\n+/g, ' ') : 'no dialog');
+       asked ? 'asked: ' + asked : 'no dialog');
+    if (asked) await answerDialog(true);
+    await page.waitForTimeout(900);
     const after = await page.evaluate(a => {
       const p = document.getElementById('page-' + a.id);
       const m = document.getElementById('mount-' + a.id);
@@ -217,11 +224,57 @@ const BUILDER = { rebar: 'loadRebarTables', strength: 'loadStrengthTables',
     const m = document.getElementById('mount-draw-plate3d');
     m.querySelectorAll('*').forEach(k => k.setAttribute('data-kept', '1'));
   });
-  answer = false; asked = null;
   await page.evaluate(() => {
     const a = document.querySelector('.nav-item[data-page="draw-plate3d"]');
     a.click();
   });
+  await page.waitForTimeout(350);
+  /* The parts that make it a dialog rather than a picture of one. */
+  const shape = await page.evaluate(() => {
+    const b = document.querySelector('.mb-back');
+    if (!b) return null;
+    const box = b.querySelector('.mb-box');
+    const bar = getComputedStyle(b.querySelector('.mb-hd h2'), '::before');
+    return { title: (b.querySelector('.mb-hd h2') || {}).textContent.trim(),
+             ok: (b.querySelector('[data-mb="yes"]') || {}).textContent.trim(),
+             cancel: (b.querySelector('[data-mb="no"]') || {}).textContent.trim(),
+             focusOnCancel: document.activeElement === b.querySelector('[data-mb="no"]'),
+             modal: b.getAttribute('aria-modal') === 'true',
+             barColour: bar.backgroundColor,
+             headBg: getComputedStyle(b.querySelector('.mb-hd')).backgroundColor,
+             radius: getComputedStyle(box).borderTopLeftRadius,
+             onTop: +getComputedStyle(b).zIndex > 100 };
+  });
+  ok(!!shape, 'the site dialog is what appears, not the browser one');
+  if (shape) {
+    ok(shape.focusOnCancel, 'focus starts on Cancel, so a stray Enter loses nothing',
+       'focus is elsewhere');
+    ok(shape.modal, 'it is marked as a modal dialog');
+    ok(shape.barColour === 'rgb(37, 99, 235)', 'the title carries the site blue bar',
+       shape.barColour);
+    ok(shape.headBg === 'rgb(241, 245, 249)', 'the header strip is the site grey',
+       shape.headBg);
+    ok(shape.radius === '12px', 'the corner is the site radius', shape.radius);
+    ok(shape.onTop, 'it sits above the page');
+    ok(shape.ok === 'Start over' && shape.cancel === 'Cancel',
+       'the buttons say what they do', shape.cancel + ' / ' + shape.ok);
+  }
+  /* Escape has to cancel, and cancel has to mean nothing happened. */
+  await page.keyboard.press('Escape');
+  await page.waitForTimeout(300);
+  ok(await dialogText() === null, 'Escape closes it');
+  const afterEsc = await page.evaluate(() => {
+    const m = document.getElementById('mount-draw-plate3d');
+    return m.querySelectorAll('*').length;
+  });
+  ok(afterEsc > 0, 'Escape left the page alone', afterEsc + ' nodes');
+
+  await page.evaluate(() => {
+    const a = document.querySelector('.nav-item[data-page="draw-plate3d"]');
+    a.click();
+  });
+  await page.waitForTimeout(350);
+  await answerDialog(false);
   await page.waitForTimeout(900);
   const declined = await page.evaluate(() => {
     const m = document.getElementById('mount-draw-plate3d');
@@ -230,8 +283,6 @@ const BUILDER = { rebar: 'loadRebarTables', strength: 'loadStrengthTables',
              all: m.querySelectorAll('*').length,
              active: p.classList.contains('active') };
   });
-  answer = true;
-  ok(!!asked, 'saying no: it asked');
   ok(declined.kept > 0 && declined.kept === declined.all,
      'saying no leaves the page exactly as it was',
      declined.kept + ' of ' + declined.all + ' nodes are the originals');

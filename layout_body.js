@@ -15,6 +15,142 @@
     까닭과 목록은 SYNC.md.
     ─────────────────────────────────────────────────────────────────
 */
+/* ── MB.confirm — 사이트의 확인 상자 ────────────────────────────────
+
+   브라우저의 confirm() 은 "www.macrobim.com의 메시지" 를 달고 나오고,
+   버튼 글자는 브라우저 언어를 따르며, 생김새를 우리가 정할 수 없다.
+   묻는 것 자체는 맞았으니 상자만 우리 것으로 바꾼다.
+
+   생김새는 지어내지 않았다. 파란 막대와 회색 머리띠는 이 사이트의
+   .table-card 가 이미 쓰는 것이고, 라운드·그림자·글꼴·포커스 링도
+   layout_style.css 에서 그대로 가져왔다. 새 모양이 하나 생기는 게 아니라
+   있던 모양을 한 번 더 쓰는 것이다.
+
+   여기 있고 layout_style.css 에 없는 까닭: 이 파일은 페이지가 이미
+   불러오지만, CSS 는 페이지가 ?v= 를 달고 부를 수 있어서 그 숫자를 올리지
+   않으면 새 규칙이 조용히 안 나온다. 상자가 통째로 한 파일에 있으면 그
+   어긋남이 생길 자리가 없다. 같은 이유로 강도표(strength-css)도 이렇게 한다.
+
+   쓰는 쪽:
+
+       MB.confirm({ title: '...', body: '...', ok: 'Start over' })
+         .then(function (yes) { if (yes) ... });
+
+   Esc 와 바깥 클릭은 취소. 열리면 포커스가 상자 안에 갇히고 먼저 취소에
+   앉으므로, 무심코 친 Enter 는 취소가 된다 — 잃는 쪽이 기본이 되면 안 된다.
+   닫히면 포커스는 원래 있던 자리로 돌아간다.
+
+   body 는 글자로만 넣는다(HTML 로 안 새긴다). 상자에 표시할 문구가 밖에서
+   오는 값일 수 있고, 그때 마크업이 통과하면 그건 구멍이다. */
+window.MB = window.MB || {};
+(function () {
+    var CSS = [
+        '.mb-back{position:fixed;left:0;top:0;right:0;bottom:0;z-index:9000;',
+        '  background:rgba(15,23,42,.45);display:flex;align-items:center;',
+        '  justify-content:center;padding:20px}',
+        ".mb-box{background:#fff;border-radius:12px;width:100%;max-width:430px;overflow:hidden;",
+        '  box-shadow:0 12px 34px rgba(15,23,42,.16),0 2px 6px rgba(15,23,42,.06);',
+        "  font-family:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif}",
+        '.mb-hd{display:flex;align-items:center;padding:13px 20px;',
+        '  border-bottom:1px solid #e2e8f0;background:#f1f5f9}',
+        '.mb-hd h2{display:flex;align-items:center;margin:0;font-size:15px;font-weight:600;',
+        '  color:#0f172a}',
+        // .table-card-title 이 쓰는 그 막대
+        ".mb-hd h2::before{content:'';display:inline-block;width:4px;height:15px;",
+        '  border-radius:2px;background:#2563eb;margin-right:9px;flex-shrink:0}',
+        '.mb-bd{padding:18px 20px;font-size:13px;color:#64748b;line-height:1.6}',
+        '.mb-ft{display:flex;justify-content:flex-end;gap:8px;padding:0 20px 18px}',
+        '.mb-btn{font:inherit;font-size:13px;font-weight:600;padding:8px 16px;',
+        '  border-radius:8px;cursor:pointer;border:1px solid #e2e8f0;background:#fff;',
+        '  color:#475569;transition:background .13s,border-color .13s,box-shadow .13s}',
+        '.mb-btn:hover{background:#f1f5f9}',
+        // 사이트가 입력칸에 쓰는 바로 그 포커스 링
+        '.mb-btn:focus{outline:none;box-shadow:0 0 0 3px rgba(37,99,235,.1)}',
+        '.mb-btn.pri{background:#2563eb;border-color:#2563eb;color:#fff}',
+        '.mb-btn.pri:hover{background:#1d4ed8;border-color:#1d4ed8;',
+        '  box-shadow:0 2px 8px rgba(37,99,235,.32)}',
+        '.mb-btn.pri:focus{box-shadow:0 0 0 3px rgba(37,99,235,.35)}'
+    ].join('');
+
+    function ensureCSS() {
+        if (document.getElementById('mb-dialog-css')) return;
+        var st = document.createElement('style');
+        st.id = 'mb-dialog-css';
+        st.textContent = CSS;
+        document.head.appendChild(st);
+    }
+    function esc(s) {
+        return String(s === undefined || s === null ? '' : s)
+            .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+    }
+
+    var open = null;                       // 한 번에 하나만
+
+    window.MB.confirm = function (o) {
+        o = o || {};
+        return new Promise(function (resolve) {
+            /* 이미 하나 떠 있으면 새로 열지 않는다. 두 장이 겹치면 어느 쪽에
+               대답하는지 알 수 없고, 뒤엣것이 앞엣것을 영영 매달아 둔다. */
+            if (open) { resolve(false); return; }
+            ensureCSS();
+            var was = document.activeElement;
+            var back = document.createElement('div');
+            back.className = 'mb-back';
+            back.setAttribute('role', 'dialog');
+            back.setAttribute('aria-modal', 'true');
+            back.setAttribute('aria-labelledby', 'mb-dlg-t');
+            back.innerHTML =
+                '<div class="mb-box">' +
+                '  <div class="mb-hd"><h2 id="mb-dlg-t">' + esc(o.title || 'Are you sure?') +
+                '  </h2></div>' +
+                '  <div class="mb-bd">' + esc(o.body || '') + '</div>' +
+                '  <div class="mb-ft">' +
+                '    <button type="button" class="mb-btn" data-mb="no">' +
+                       esc(o.cancel || 'Cancel') + '</button>' +
+                '    <button type="button" class="mb-btn pri" data-mb="yes">' +
+                       esc(o.ok || 'OK') + '</button>' +
+                '  </div></div>';
+            document.body.appendChild(back);
+            open = back;
+
+            var no = back.querySelector('[data-mb="no"]');
+            var yes = back.querySelector('[data-mb="yes"]');
+
+            function done(v) {
+                if (!open) return;
+                open = null;
+                document.removeEventListener('keydown', onKey, true);
+                if (back.parentNode) back.parentNode.removeChild(back);
+                if (was && was.focus) { try { was.focus(); } catch (e) {} }
+                resolve(v);
+            }
+            function onKey(e) {
+                if (e.key === 'Escape') { e.preventDefault(); done(false); return; }
+                /* Enter 는 가로채지 않는다. 포커스가 앉은 버튼이 알아서 눌리는
+                   것이 맞고, 포커스는 취소에서 시작한다. 여기서 Enter 를 확인
+                   으로 처리하면, 취소로 옮겨 놓고 Enter 를 친 사람이 확인을
+                   누른 것이 된다 — 안 잃으려고 옮겼는데 잃는다. */
+                if (e.key !== 'Tab') return;
+                /* 포커스를 상자 안에 가둔다. 안 가두면 Tab 이 뒤에 깔린 화면의
+                   버튼으로 넘어가고, 사람은 대답한 줄 알고 그것을 누른다. */
+                var f = [no, yes];
+                var i = f.indexOf(document.activeElement);
+                e.preventDefault();
+                f[(i + (e.shiftKey ? f.length - 1 : 1) + f.length) % f.length].focus();
+            }
+            no.addEventListener('click', function () { done(false); });
+            yes.addEventListener('click', function () { done(true); });
+            // 바깥은 취소. 상자 위를 눌렀다가 바깥에서 뗀 것까지 취소로 세지 않게
+            // mousedown 이 아니라 click 의 target 을 본다.
+            back.addEventListener('click', function (e) { if (e.target === back) done(false); });
+            document.addEventListener('keydown', onKey, true);
+            // 취소에 먼저 앉힌다 — 무심코 누른 Enter 로 잃는 것이 없도록
+            no.focus();
+        });
+    };
+})();
+
 function initLayout(phpData) {
     var html = ''
     /* ══ SIDEBAR ══ */
@@ -748,13 +884,18 @@ function _bindNavigation() {
        것이 없고, 있다 해도 그건 이동이지 다시 누른 게 아니다. */
     function goPage(pageId) {
         var p = document.getElementById('page-' + pageId);
-        if (p && p.classList.contains('active')) {
-            if (hasSomethingToLose(pageId) && !window.confirm(
-                    'Start this page over?\n\n' +
-                    'Whatever is loaded or typed on it will be discarded.')) return;
+        if (!(p && p.classList.contains('active'))) { showPage(pageId); return; }
+        if (!hasSomethingToLose(pageId)) { resetPage(pageId); showPage(pageId); return; }
+        /* 물어보는 동안 아무 일도 일어나지 않는다. 대답이 오고 나서 버린다. */
+        MB.confirm({
+            title: 'Start this page over?',
+            body: 'Whatever is loaded or typed on it will be discarded.',
+            ok: 'Start over'
+        }).then(function (yes) {
+            if (!yes) return;
             resetPage(pageId);
-        }
-        showPage(pageId);
+            showPage(pageId);
+        });
     }
 
     function ensureQna() {

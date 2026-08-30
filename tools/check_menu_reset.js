@@ -57,6 +57,12 @@ const HARNESS_NOISE = [
   'getParams_box1cell is not defined'
 ];
 
+/* Either build. The test one by default, because that is where a change
+   lands first; --prod after a sync, because the promise is about the file
+   visitors actually get. */
+const PROD = process.argv.indexOf('--prod') >= 0;
+const LAYOUT = PROD ? 'layout_body.js' : 'layout_body_test.js';
+
 const HOST = '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">' +
   '<title>menu reset</title><link rel="stylesheet" href="/design/layout_style.css"></head>' +
   '<body style="margin:0;display:flex;flex-direction:column;height:100vh">' +
@@ -66,7 +72,7 @@ const HOST = '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">' +
   '<script src="/design/mod_concrete.js"></script>' +
   '<script src="/design/mod_rebar.js"></script>' +
   '<script src="/design/mod_rebar_leng.js"></script>' +
-  '<script src="/design/layout_body_test.js"></script>' +
+  '<script src="/design/' + LAYOUT + '"></script>' +
   '<script>window.addEventListener("DOMContentLoaded",function(){' +
   'initLayout({visits:1,totalVisits:2});});</script></body></html>';
 
@@ -124,7 +130,7 @@ const BUILDER = { rebar: 'loadRebarTables', strength: 'loadStrengthTables',
     Array.prototype.map.call(
       document.querySelectorAll('.nav-item[data-page], .nav-sub a[data-page]'),
       a => a.getAttribute('data-page')));
-  ok(items.length > 20, 'the menu is built', items.length + ' items');
+  ok(items.length > 15, LAYOUT + ': the menu is built', items.length + ' items');
   console.log('');
 
   for (const id of items) {

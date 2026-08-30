@@ -680,6 +680,36 @@ function _bindNavigation() {
     }
     window.showPage = showPage;
 
+    /* 이미 보고 있는 메뉴를 다시 누르면 "이 화면을 처음부터" 라는 뜻이다.
+       PLATE3D 에 시트를 하나 올려놓고 처음 화면으로 돌아가려면 지금까지는
+       브라우저를 새로 고치는 수밖에 없었다.
+
+       페이지별 초기화 코드는 없다. 여기 있는 페이지는 전부 mount 요소 안에
+       지어지고, 그 빌더들은 mount 가 비어 있을 때만(또는 "이미 지었다" 플래그가
+       내려가 있을 때만) 짓는다 — showPage 가 페이지를 떠날 때와 들어올 때
+       쓰는 그 두 짝이다. 그래서 초기화는 "내용을 버리고, 플래그를 내리고,
+       showPage 에게 다시 짓게 한다" 하나면 된다. 나중에 페이지가 늘어도
+       "이미 지었다"를 기억하는 제3의 방법을 새로 만들지만 않으면 여기 손댈
+       것이 없다. */
+    var PAGE_BUILT_FLAG = {
+        rebar: '_rebarLoaded', strength: '_strengthLoaded',
+        steel: '_steelLoaded', rebarleng: '_rebarLengLoaded'
+    };
+    function resetPage(pageId) {
+        var m = document.getElementById('mount-' + pageId);
+        if (m) m.innerHTML = '';
+        var f = PAGE_BUILT_FLAG[pageId];
+        if (f) window[f] = false;
+    }
+    /* 메뉴에서 들어오는 길. 대시보드 카드처럼 다른 곳에서 부르는 showPage 는
+       그대로 둔다 — 거기서는 지금 보고 있지 않은 페이지로 가므로 초기화할
+       것이 없고, 있다 해도 그건 이동이지 다시 누른 게 아니다. */
+    function goPage(pageId) {
+        var p = document.getElementById('page-' + pageId);
+        if (p && p.classList.contains('active')) resetPage(pageId);
+        showPage(pageId);
+    }
+
     function ensureQna() {
         if (typeof QNA !== 'undefined') { QNA.init('mount-qna'); return; }
         if (window._qnaLoading) return;
@@ -713,7 +743,7 @@ function _bindNavigation() {
         var mount = document.getElementById('mount-draw-plate3d');
         if (!mount || mount.firstElementChild) return;
         var fr = document.createElement('iframe');
-        fr.src = 'https://macrobim.github.io/macroBIM/plate3d/embed.html?v=85';
+        fr.src = 'https://macrobim.github.io/macroBIM/plate3d/embed.html?v=86';
         fr.title = 'PLATE3D';
         fr.allow = 'fullscreen';
         // 높이를 100vh 에서 상수를 빼서 잡던 방식은 추정이었다. 프레임 위에 무엇이
@@ -911,11 +941,11 @@ function _bindNavigation() {
         e.preventDefault(); this.classList.toggle('open'); document.getElementById('retaining-sub').classList.toggle('show');
     });
     document.querySelectorAll('.nav-item[data-page]').forEach(function(el) {
-        el.addEventListener('click', function(e) { e.preventDefault(); showPage(this.getAttribute('data-page')); });
+        el.addEventListener('click', function(e) { e.preventDefault(); goPage(this.getAttribute('data-page')); });
     });
     document.querySelectorAll('.nav-sub a[data-page]').forEach(function(el) {
         el.addEventListener('click', function(e) {
-            e.preventDefault(); showPage(this.getAttribute('data-page'));
+            e.preventDefault(); goPage(this.getAttribute('data-page'));
             var pt = this.closest('.nav-sub').previousElementSibling;
             if (pt) { pt.classList.add('open'); this.closest('.nav-sub').classList.add('show'); }
         });

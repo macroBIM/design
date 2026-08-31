@@ -1,17 +1,5 @@
 [
   {
-    "date": "2026-08-30",
-    "type": "feat",
-    "title": "PLATE3D — a tutorial that builds a sheet a step at a time",
-    "desc": "Tutorial, between Guide and Example, walks a bolted beam splice from one row to a finished joint in eight steps. Every step is a whole sheet that builds: load it into the viewer, or save it as a workbook and change a number. The last step is the Beam splice example itself, row for row."
-  },
-  {
-    "date": "2026-08-30",
-    "type": "fix",
-    "title": "Clicking the menu item you are on starts that page over",
-    "desc": "There was no way back to PLATE3D's opening screen without reloading the browser. Clicking the menu item you are already on now rebuilds the page. Note that it discards what is on it — the sheet you loaded, or values you typed."
-  },
-  {
     "date": "2026-08-29",
     "type": "feat",
     "title": "PLATE3D — VIEW and PLOT rows name the drawings",

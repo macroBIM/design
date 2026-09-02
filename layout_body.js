@@ -8,8 +8,9 @@
 
     ── 동기화 ───────────────────────────────────────────────────────
     layout_body_test.js 를 이 파일 위에 덮지 않는다. 두 파일은 실수로
-    벌어진 게 아니라 일부러 다르다 — 운영에는 Dashboard, MacroPLATE3D
-    (Simple connector), PSCBOX 가 없고, 도면 카드 스타일도 이전 것이다.
+    벌어진 게 아니라 일부러 다르다 — 운영에는 Dashboard 와 PSCBOX 가 없고,
+    도면 카드 스타일도 이전 것이다. MacroPLATE3D(Simple connector)는
+    2026-09-02 에 런칭해서 이제 여기에도 있다.
     동기화란 이번에 만든 변경만 옮기는 것이다. 파일 전체가 아니라.
        node tools/check_sync_scope.js   ← 새어 들어갔는지 본다
     까닭과 목록은 SYNC.md.
@@ -172,6 +173,13 @@ function initLayout(phpData) {
     + '    <div class="nav-sub" id="macrobeam-sub">'
     + '      <a href="#" data-page="beam-formula">SimpleBEAM</a>'
     + '      <a href="#" data-page="beam-multi">MultiBEAM</a>'
+    + '    </div>'
+    /* MacroPLATE3D — PLATE3D 가 만드는 모델을 시트 대신 화면에서 적는 방식.
+       PLATE3D 바로 위에 둔다: 같은 엔진을 쓰고, 시트를 쓸지 폼을 쓸지가
+       고르는 자리이므로 둘이 붙어 있어야 고를 수 있다. */
+    + '    <a class="nav-item" href="#" id="quick3dToggle"><i class="bi bi-lightning-charge"></i> MacroPLATE3D <span class="arrow">&#8250;</span></a>'
+    + '    <div class="nav-sub" id="quick3d-sub">'
+    + '      <a href="#" data-page="quick-simpleconn">Simple connector</a>'
     + '    </div>'
     + '    <a class="nav-item" href="#" data-page="draw-plate3d"><i class="bi bi-stack"></i> PLATE3D</a>'
     + '    <a class="nav-item" href="#" id="codeToggle"><i class="bi bi-calculator"></i> Code <span class="arrow">&#8250;</span></a>'
@@ -401,6 +409,7 @@ function initLayout(phpData) {
     + '    <div class="page-view" id="page-draw-lwall"><h1 class="page-heading">L-shaped Wall Layout</h1><div class="breadcrumb"><a href="#">Home</a> / <a href="#">Retaining Wall</a> / <span>L-shaped Wall</span></div><div id="mount-draw-lwall"></div></div>'
     + '    <div class="page-view" id="page-draw-pier"><h1 class="page-heading">Pier Input</h1><div class="breadcrumb"><a href="#">Home</a> / <span>Pier</span></div><div id="mount-draw-pier"></div></div>'
     + '    <div class="page-view" id="page-draw-plate3d"><h1 class="page-heading">PLATE3D</h1><div class="breadcrumb"><a href="#">Home</a> / <span>PLATE3D</span></div><div id="mount-draw-plate3d"></div></div>'
+    + '    <div class="page-view" id="page-quick-simpleconn"><h1 class="page-heading">Simple connector</h1><div class="breadcrumb"><a href="#">Home</a> / <a href="#">MacroPLATE3D</a> / <span>Simple connector</span></div><div id="mount-quick-simpleconn"></div></div>'
     + '    <div class="page-view" id="page-beam-formula"><h1 class="page-heading">SimpleBEAM</h1><div class="breadcrumb"><a href="#">Home</a> / <a href="#">MacroBEAM</a> / <span>SimpleBEAM</span></div><div id="mount-beam-formula"></div></div>'
     + '    <div class="page-view" id="page-beam-multi"><h1 class="page-heading">MultiBEAM</h1><div class="breadcrumb"><a href="#">Home</a> / <a href="#">MacroBEAM</a> / <span>MultiBEAM</span></div><div id="mount-beam-multi"></div></div>'
     + '    <div class="page-view" id="page-qna"><h1 class="page-heading">QnA Board</h1><div class="breadcrumb"><a href="#">Home</a> / <span>QnA</span></div><div id="mount-qna"></div></div>'
@@ -797,6 +806,12 @@ function _bindNavigation() {
             var pm = document.getElementById('mount-draw-plate3d');
             if (pm && pm.firstElementChild) pm.innerHTML = '';
         }
+        // Simple connector carries an iframe of its own, and the same reasoning
+        // applies: drop it on the way out so a model does not follow you around.
+        if (pageId !== 'quick-simpleconn') {
+            var qm = document.getElementById('mount-quick-simpleconn');
+            if (qm && qm.firstElementChild) qm.innerHTML = '';
+        }
 
         if (pageId === 'rebar' && !window._rebarLoaded) { loadRebarTables(); window._rebarLoaded = true; }
         if (pageId === 'strength' && !window._strengthLoaded) { loadStrengthTables(); window._strengthLoaded = true; }
@@ -819,6 +834,7 @@ function _bindNavigation() {
         if (pageId === 'draw-lwall') { mountDrawing('lwall'); ensureLWall(); }
         if (pageId === 'draw-pier') { mountDrawing('pier'); ensurePier(); }
         if (pageId === 'draw-plate3d') { ensurePlate3d(); }
+        if (pageId === 'quick-simpleconn') { ensureQuickSimpleConn(); }
         if (pageId === 'beam-formula') { ensureBeamFormula(); }
         if (pageId === 'beam-multi') { ensureBeamMulti(); }
         if (pageId === 'qna') { ensureQna(); }
@@ -927,11 +943,25 @@ function _bindNavigation() {
     // its globals off the host page. showPage drops the frame whenever you
     // navigate away, so a sheet you loaded does not follow you around: come back
     // and PLATE3D is on its built-in model again.
+    /* MacroPLATE3D — Simple connector. The form and the model live on one page:
+       the same PLATE3D iframe as below, driven by values typed here instead of
+       a workbook. Loaded on demand like every other module. */
+    function ensureQuickSimpleConn() {
+        if (typeof fquick_simpleconn === 'function') { fquick_simpleconn('mount-quick-simpleconn'); return; }
+        if (window._qscLoading) return;
+        window._qscLoading = true;
+        var sc = document.createElement('script');
+        sc.src = 'https://macrobim.github.io/macroBIM/plate3d/quick_simpleconn.js?v=88';
+        sc.onload = function () { window._qscLoading = false; if (typeof fquick_simpleconn === 'function') fquick_simpleconn('mount-quick-simpleconn'); };
+        sc.onerror = function () { window._qscLoading = false; var m = document.getElementById('mount-quick-simpleconn'); if (m) m.innerHTML = '<p style="color:#b91c1c;padding:16px;">quick_simpleconn.js failed to load.</p>'; };
+        document.head.appendChild(sc);
+    }
+
     function ensurePlate3d() {
         var mount = document.getElementById('mount-draw-plate3d');
         if (!mount || mount.firstElementChild) return;
         var fr = document.createElement('iframe');
-        fr.src = 'https://macrobim.github.io/macroBIM/plate3d/embed.html?v=87';
+        fr.src = 'https://macrobim.github.io/macroBIM/plate3d/embed.html?v=88';
         fr.title = 'PLATE3D';
         fr.allow = 'fullscreen';
         // 높이를 100vh 에서 상수를 빼서 잡던 방식은 추정이었다. 프레임 위에 무엇이
@@ -1121,6 +1151,9 @@ function _bindNavigation() {
     });
     document.getElementById('drawingsToggle').addEventListener('click', function(e) {
         e.preventDefault(); this.classList.toggle('open'); document.getElementById('drawings-sub').classList.toggle('show');
+    });
+    document.getElementById('quick3dToggle').addEventListener('click', function(e) {
+        e.preventDefault(); this.classList.toggle('open'); document.getElementById('quick3d-sub').classList.toggle('show');
     });
     document.getElementById('macrobeamToggle').addEventListener('click', function(e) {
         e.preventDefault(); this.classList.toggle('open'); document.getElementById('macrobeam-sub').classList.toggle('show');

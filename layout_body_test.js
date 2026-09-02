@@ -171,6 +171,13 @@ function initLayout(phpData) {
     + '      <a href="#" data-page="beam-formula">SimpleBEAM</a>'
     + '      <a href="#" data-page="beam-multi">MultiBEAM</a>'
     + '    </div>'
+    /* MacroPLATE3D — PLATE3D 가 만드는 모델을 시트 대신 화면에서 적는 방식.
+       PLATE3D 바로 위에 둔다: 같은 엔진을 쓰고, 시트를 쓸지 폼을 쓸지가
+       고르는 자리이므로 둘이 붙어 있어야 고를 수 있다. */
+    + '    <a class="nav-item" href="#" id="quick3dToggle"><i class="bi bi-lightning-charge"></i> MacroPLATE3D <span class="arrow">&#8250;</span></a>'
+    + '    <div class="nav-sub" id="quick3d-sub">'
+    + '      <a href="#" data-page="quick-simpleconn">Simple connector</a>'
+    + '    </div>'
     + '    <a class="nav-item" href="#" data-page="draw-plate3d"><i class="bi bi-stack"></i> PLATE3D</a>'
     + '    <a class="nav-item" href="#" id="codeToggle"><i class="bi bi-calculator"></i> Code <span class="arrow">&#8250;</span></a>'
     + '    <div class="nav-sub" id="code-sub">'
@@ -195,12 +202,6 @@ function initLayout(phpData) {
     + '      <a href="#" data-page="draw-lwall">L-shaped Wall</a>'
     + '    </div>'
     + '    <a class="nav-item" href="#" data-page="draw-pier"><i class="bi bi-building"></i> Pier</a>'
-    /* MacroPLATE3D — PLATE3D 가 만드는 모델을 시트 대신 화면에서 적는 방식.
-       아직 손보는 중이라 원래 자리에 둔다. */
-    + '    <a class="nav-item" href="#" id="quick3dToggle"><i class="bi bi-lightning-charge"></i> MacroPLATE3D <span class="arrow">&#8250;</span></a>'
-    + '    <div class="nav-sub" id="quick3d-sub">'
-    + '      <a href="#" data-page="quick-simpleconn">Simple connector</a>'
-    + '    </div>'
     + '    <a class="nav-item" href="#" data-page="draw-pscbox"><i class="bi bi-box-seam"></i> PSCBOX</a>'
     + '    <a class="nav-item" href="#" data-page="qna"><i class="bi bi-question-circle"></i> QnA</a>'
     + '  </div>'

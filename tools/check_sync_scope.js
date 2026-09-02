@@ -19,8 +19,10 @@ const TEST = fs.readFileSync(path.join(D, 'layout_body_test.js'), 'utf-8');
 /* 운영에 없어야 하는 페이지. 늘리려면 SYNC.md 의 표도 같이 고친다. */
 const TEST_ONLY = [
   { id: 'dashboard',        what: 'Dashboard — 방문자 통계, 운영 랜딩은 Home' },
-  { id: 'quick-simpleconn', what: 'MacroPLATE3D → Simple connector — 손보는 중' },
   { id: 'draw-pscbox',      what: 'PSCBOX — 손보는 중' }
+  /* quick-simpleconn 은 2026-09-02 에 런칭했다. 「손보는 중」이라 막고 있었고,
+     다 만들었으니 막을 이유가 없어졌다. 막는 목록에서 빠졌다는 것은 이제
+     운영에 있어야 한다는 뜻이지, 있든 없든 상관없다는 뜻이 아니다. */
 ];
 /* 갈라진 채로 두는 스타일. 막지 않고 세기만 한다. */
 const DRIFT = [

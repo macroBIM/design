@@ -13,8 +13,12 @@
 | | 왜 |
 |---|---|
 | **Dashboard** (`dashboard`) | 방문자 수 통계. 운영 랜딩은 Home 이다 |
-| **MacroPLATE3D → Simple connector** (`quick-simpleconn`) | 아직 손보는 중 |
 | **PSCBOX** (`draw-pscbox`) | 아직 손보는 중 |
+
+**MacroPLATE3D → Simple connector 는 2026-09-02 에 런칭했다.** 여기 있던
+줄이다. 옮길 때 메뉴만 옮기려다 안 되는 것을 알았다 — 운영에는 그 페이지의
+스크립트(`quick_simpleconn.js`)가 아예 없었고, 운영 엔진은 폼이 내보내는
+`NOTCH ... BY` 를 모르고 있었다. **메뉴 한 줄이 딸고 오는 것이 엔진까지다.**
 
 `tools/check_sync_scope.js` 가 이 셋이 `layout_body.js` 에 들어갔는지 본다.
 들어갔으면 실패한다 — 잊어버릴 수 있는 규칙은 검사가 지킨다.

@@ -951,7 +951,7 @@ function _bindNavigation() {
         if (window._qscLoading) return;
         window._qscLoading = true;
         var sc = document.createElement('script');
-        sc.src = 'https://macrobim.github.io/macroBIM/plate3d/quick_simpleconn.js?v=90';
+        sc.src = 'https://macrobim.github.io/macroBIM/plate3d/quick_simpleconn.js?v=91';
         sc.onload = function () { window._qscLoading = false; if (typeof fquick_simpleconn === 'function') fquick_simpleconn('mount-quick-simpleconn'); };
         sc.onerror = function () { window._qscLoading = false; var m = document.getElementById('mount-quick-simpleconn'); if (m) m.innerHTML = '<p style="color:#b91c1c;padding:16px;">quick_simpleconn.js failed to load.</p>'; };
         document.head.appendChild(sc);
@@ -961,7 +961,7 @@ function _bindNavigation() {
         var mount = document.getElementById('mount-draw-plate3d');
         if (!mount || mount.firstElementChild) return;
         var fr = document.createElement('iframe');
-        fr.src = 'https://macrobim.github.io/macroBIM/plate3d/embed.html?v=90';
+        fr.src = 'https://macrobim.github.io/macroBIM/plate3d/embed.html?v=91';
         fr.title = 'PLATE3D';
         fr.allow = 'fullscreen';
         // 높이를 100vh 에서 상수를 빼서 잡던 방식은 추정이었다. 프레임 위에 무엇이

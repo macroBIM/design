@@ -951,7 +951,7 @@ function _bindNavigation() {
         if (window._qscLoading) return;
         window._qscLoading = true;
         var sc = document.createElement('script');
-        sc.src = 'https://macrobim.github.io/macroBIM/plate3d/quick_simpleconn.js?v=91';
+        sc.src = 'https://macrobim.github.io/macroBIM/plate3d/quick_simpleconn.js?v=92';
         sc.onload = function () { window._qscLoading = false; if (typeof fquick_simpleconn === 'function') fquick_simpleconn('mount-quick-simpleconn'); };
         sc.onerror = function () { window._qscLoading = false; var m = document.getElementById('mount-quick-simpleconn'); if (m) m.innerHTML = '<p style="color:#b91c1c;padding:16px;">quick_simpleconn.js failed to load.</p>'; };
         document.head.appendChild(sc);

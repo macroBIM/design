@@ -48,6 +48,17 @@ PLATE3D 는 **두 군데를 같이** 올린다.
 테스트 쪽(`embed_test.html`, `layout_body_test.js`)은 `Date.now()` 를 쓰므로
 손댈 것이 없다 — 테스트는 늘 최신을 봐야 고쳤는지 아닌지를 알 수 있다.
 
+**세 번째 핀은 저 쌍에 딸린 것이 아니다.** `layout_body.js` 의
+`quick_simpleconn.js?v=` 는 그 파일 하나만 가리킨다. 폼만 고쳤으면 이것만
+올리고 위의 둘은 그대로 둔다 — 셋이 서로 다른 숫자인 것은 잊어버린 게 아니라
+**바뀐 파일만 번호가 올라간** 것이다. 안 바뀐 파일의 번호를 같이 올리면
+번호가 "무엇이 바뀌었나" 를 더 이상 말해주지 않는다.
+
+| 고친 것 | 올릴 핀 |
+|---|---|
+| 엔진 (`plate_builder.js`) | `embed.html` 의 것 **과** `layout_body.js` 의 `embed.html?v=` — 반드시 둘 다 |
+| 폼 (`quick_simpleconn.js`) | `layout_body.js` 의 `quick_simpleconn.js?v=` 하나 |
+
 ## 동기화 순서
 
 ```bash

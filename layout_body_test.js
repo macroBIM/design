@@ -177,6 +177,10 @@ function initLayout(phpData) {
     + '    <a class="nav-item" href="#" id="quick3dToggle"><i class="bi bi-lightning-charge"></i> MacroPLATE3D <span class="arrow">&#8250;</span></a>'
     + '    <div class="nav-sub" id="quick3d-sub">'
     + '      <a href="#" data-page="quick-simpleconn">Simple connector</a>'
+    /* Crossbeam — 판형교의 거더 사이. 아직 손보는 중이라 테스트 빌드에만 있다.
+       이름은 사장님이 정했다: 강교 표준 용어는 diaphragm(한 본짜리)과
+       cross frame(트러스)로 갈리지만, 메뉴는 부르기 쉬운 한 단어로 간다. */
+    + '      <a href="#" data-page="quick-crossbeam">Crossbeam</a>'
     + '    </div>'
     + '    <a class="nav-item" href="#" data-page="draw-plate3d"><i class="bi bi-stack"></i> PLATE3D</a>'
     + '    <a class="nav-item" href="#" id="codeToggle"><i class="bi bi-calculator"></i> Code <span class="arrow">&#8250;</span></a>'
@@ -435,6 +439,7 @@ function initLayout(phpData) {
     + '    <div class="page-view" id="page-draw-plate3d"><h1 class="page-heading">PLATE3D</h1><div class="breadcrumb"><a href="#">Home</a> / <span>PLATE3D</span></div><div id="mount-draw-plate3d"></div></div>'
     + '    <div class="page-view" id="page-draw-pscbox"><h1 class="page-heading">PSC Box Girder</h1><div class="breadcrumb"><a href="#">Home</a> / <span>PSCBOX</span></div><div id="mount-draw-pscbox"></div></div>'
     + '    <div class="page-view" id="page-quick-simpleconn"><h1 class="page-heading">Simple connector</h1><div class="breadcrumb"><a href="#">Home</a> / <a href="#">MacroPLATE3D</a> / <span>Simple connector</span></div><div id="mount-quick-simpleconn"></div></div>'
+    + '    <div class="page-view" id="page-quick-crossbeam"><h1 class="page-heading">Crossbeam</h1><div class="breadcrumb"><a href="#">Home</a> / <a href="#">MacroPLATE3D</a> / <span>Crossbeam</span></div><div id="mount-quick-crossbeam"></div></div>'
     + '    <div class="page-view" id="page-beam-formula"><h1 class="page-heading">SimpleBEAM</h1><div class="breadcrumb"><a href="#">Home</a> / <a href="#">MacroBEAM</a> / <span>SimpleBEAM</span></div><div id="mount-beam-formula"></div></div>'
     + '    <div class="page-view" id="page-beam-multi"><h1 class="page-heading">MultiBEAM</h1><div class="breadcrumb"><a href="#">Home</a> / <a href="#">MacroBEAM</a> / <span>MultiBEAM</span></div><div id="mount-beam-multi"></div></div>'
     + '    <div class="page-view" id="page-qna"><h1 class="page-heading">QnA Board</h1><div class="breadcrumb"><a href="#">Home</a> / <span>QnA</span></div><div id="mount-qna"></div></div>'
@@ -935,6 +940,11 @@ function _bindNavigation() {
             var qm = document.getElementById('mount-quick-simpleconn');
             if (qm && qm.firstElementChild) qm.innerHTML = '';
         }
+        // Crossbeam 도 같은 이유로 같은 대접을 받는다.
+        if (pageId !== 'quick-crossbeam') {
+            var cm = document.getElementById('mount-quick-crossbeam');
+            if (cm && cm.firstElementChild) cm.innerHTML = '';
+        }
 
         if (pageId === 'rebar' && !window._rebarLoaded) { loadRebarTables(); window._rebarLoaded = true; }
         if (pageId === 'strength' && !window._strengthLoaded) { loadStrengthTables(); window._strengthLoaded = true; }
@@ -959,6 +969,7 @@ function _bindNavigation() {
         if (pageId === 'draw-plate3d') { ensurePlate3d(); }
         if (pageId === 'draw-pscbox') { mountDrawing('pscbox'); ensurePscbox(); }
         if (pageId === 'quick-simpleconn') { ensureQuickSimpleConn(); }
+        if (pageId === 'quick-crossbeam') { ensureQuickCrossbeam(); }
         if (pageId === 'beam-formula') { ensureBeamFormula(); }
         if (pageId === 'beam-multi') { ensureBeamMulti(); }
         if (pageId === 'qna') { ensureQna(); }
@@ -1104,6 +1115,28 @@ function _bindNavigation() {
         sc.src = 'https://macrobim.github.io/macroBIM/plate3d/quick_simpleconn_test.js?v=' + Date.now();
         sc.onload = function () { window._qscLoading = false; if (typeof fquick_simpleconn === 'function') fquick_simpleconn('mount-quick-simpleconn'); };
         sc.onerror = function () { window._qscLoading = false; var m = document.getElementById('mount-quick-simpleconn'); if (m) m.innerHTML = '<p style="color:#b91c1c;padding:16px;">quick_simpleconn_test.js failed to load.</p>'; };
+        document.head.appendChild(sc);
+    }
+
+    /* MacroPLATE3D — Crossbeam. 판형교의 거더 사이 — 가로보와 수직브레이싱,
+       그리고 그 위에 얹히는 슬래브·방호벽. Simple connector 와 같은 방식으로
+       불러온다.
+
+       모듈은 아직 없다. 메뉴 자리부터 잡아 두는 것이라, 없을 때는 빨간
+       오류 대신 「아직 만드는 중」이라고 말한다 — 테스트 빌드는 원래 손보는
+       중인 것을 담는 곳이고, 못 만든 것과 고장난 것은 다르다. */
+    function ensureQuickCrossbeam() {
+        if (typeof fquick_crossbeam === 'function') { fquick_crossbeam('mount-quick-crossbeam'); return; }
+        if (window._qcbLoading) return;
+        window._qcbLoading = true;
+        var sc = document.createElement('script');
+        sc.src = 'https://macrobim.github.io/macroBIM/plate3d/quick_crossbeam_test.js?v=' + Date.now();
+        sc.onload = function () { window._qcbLoading = false; if (typeof fquick_crossbeam === 'function') fquick_crossbeam('mount-quick-crossbeam'); };
+        sc.onerror = function () {
+            window._qcbLoading = false;
+            var m = document.getElementById('mount-quick-crossbeam');
+            if (m) m.innerHTML = '<p style="color:#64748b;padding:16px;">Under construction — the cross-section form is not built yet.</p>';
+        };
         document.head.appendChild(sc);
     }
 

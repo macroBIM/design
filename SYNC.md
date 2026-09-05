@@ -14,6 +14,7 @@
 |---|---|
 | **Dashboard** (`dashboard`) | 방문자 수 통계. 운영 랜딩은 Home 이다 |
 | **PSCBOX** (`draw-pscbox`) | 아직 손보는 중 |
+| **Crossbeam** (`quick-crossbeam`) | 판형교의 거더 사이 — 가로보·수직브레이싱·슬래브·방호벽. 메뉴 자리만 잡아 뒀고 모듈(`quick_crossbeam_test.js`)은 아직 없다 |
 
 **MacroPLATE3D → Simple connector 는 2026-09-02 에 런칭했다.** 여기 있던
 줄이다. 옮길 때 메뉴만 옮기려다 안 되는 것을 알았다 — 운영에는 그 페이지의

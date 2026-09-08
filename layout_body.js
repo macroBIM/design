@@ -192,7 +192,7 @@ function initLayout(phpData) {
     + '      <a href="#" data-page="draw-channel">Channel</a>'
     + '      <a href="#" data-page="draw-liftinglug">Lifting Lug</a>'
     + '      <a href="#" data-page="draw-ibeam">I Beam</a>'
-    + '      <a href="#" data-page="draw-box1cell">BOX1CELL</a>'
+    + '      <a href="#" data-page="draw-psc">PSC</a>'
     + '      <a href="#" data-page="draw-rect">Rect</a>'
     + '      <a href="#" data-page="draw-circle">Circle</a>'
     + '      <a href="#" data-page="draw-octagon">Octagon</a>'
@@ -398,9 +398,9 @@ function initLayout(phpData) {
     + '    <div class="page-view" id="page-draw-hsection"><h1 class="page-heading">H Section Drawing</h1><div class="breadcrumb"><a href="#">Home</a> / <a href="#">Drawings</a> / <span>H Section</span></div><div id="mount-draw-hsection"></div></div>'
     + '    <div class="page-view" id="page-draw-channel"><h1 class="page-heading">Channel Drawing</h1><div class="breadcrumb"><a href="#">Home</a> / <a href="#">Drawings</a> / <span>Channel</span></div><div id="mount-draw-channel"></div></div>'
     + '    <div class="page-view" id="page-draw-ibeam"><h1 class="page-heading">I Beam Drawing</h1><div class="breadcrumb"><a href="#">Home</a> / <a href="#">Drawings</a> / <span>I Beam</span></div><div id="mount-draw-ibeam"></div></div>'
+    + '    <div class="page-view" id="page-draw-psc"><h1 class="page-heading">PSC Box Girder</h1><div class="breadcrumb"><a href="#">Home</a> / <a href="#">Drawings</a> / <span>PSC</span></div><div id="mount-draw-psc"></div></div>'
     + '    <div class="page-view" id="page-draw-liftinglug"><h1 class="page-heading">Lifting Lug Drawing</h1><div class="breadcrumb"><a href="#">Home</a> / <a href="#">Drawings</a> / <span>Lifting Lug</span></div><div id="mount-draw-liftinglug"></div></div>'
     + '    <div class="page-view" id="page-draw-rect"><h1 class="page-heading">Rect Section Drawing</h1><div class="breadcrumb"><a href="#">Home</a> / <a href="#">Drawings</a> / <span>Rect</span></div><div id="mount-draw-rect"></div></div>'
-    + '    <div class="page-view" id="page-draw-box1cell"><h1 class="page-heading">BOX 1-Cell Drawing</h1><div class="breadcrumb"><a href="#">Home</a> / <a href="#">Drawings</a> / <span>BOX1CELL</span></div><div id="mount-draw-box1cell"></div></div>'
     + '    <div class="page-view" id="page-draw-circle"><h1 class="page-heading">Circle Section Drawing</h1><div class="breadcrumb"><a href="#">Home</a> / <a href="#">Drawings</a> / <span>Circle</span></div><div id="mount-draw-circle"></div></div>'
     + '    <div class="page-view" id="page-draw-octagon"><h1 class="page-heading">Octagon Section Drawing</h1><div class="breadcrumb"><a href="#">Home</a> / <a href="#">Drawings</a> / <span>Octagon</span></div><div id="mount-draw-octagon"></div></div>'
     + '    <div class="page-view" id="page-draw-track"><h1 class="page-heading">Track Section Drawing</h1><div class="breadcrumb"><a href="#">Home</a> / <a href="#">Drawings</a> / <span>Track</span></div><div id="mount-draw-track"></div></div>'
@@ -603,58 +603,7 @@ function _createTemplates() {
       + '</div></div>'
     );
 
-    /* ── BOX1CELL ── */
-    _addTemplate(root, 'tpl-draw-box1cell', _beTpl({
-      name: 'box1cell', plot: 'box1cellplot', bar: 'box1cell-viewbar', dxf: 'Box1Cell.dxf', guide: 'https://macrobim.github.io/macroBIM/box1cell_vars.png',
-      hint: 'line1: Begin (23) / line2: End (23) / line3: L', brows: 5,
-      bdef: '6600,12000,6000,1500,1500,1500,300,300,600,600,300,300,840,500,200,200,100,300,200,400,-2,5,3\n8000,12000,6000,1500,1500,1500,300,300,600,600,300,300,840,500,200,200,100,300,200,400,-2,5,3\n5000', len: 5000,
-      rows: [['h', 'Section height', 'dh', 6600, 8000], ['bt', 'Top slab width', 'dbt', 12000, 12000], ['bb', 'Bottom slab width', 'dbb', 6000, 6000],
-        ['btsh', 'Top slab haunch', 'dbth', 1500, 1500], ['bcanh', 'Cantilever haunch', 'dbch', 1500, 1500], ['bcan', 'Cantilever', 'dbc', 1500, 1500],
-        ['t1', 'Slab t1', 'dt1', 300, 300], ['t2', 'Slab t2', 'dt2', 300, 300], ['t3', 'Slab t3', 'dt3', 600, 600], ['t4', 'Slab t4', 'dt4', 600, 600], ['t5', 'Slab t5', 'dt5', 300, 300], ['t6', 'Slab t6', 'dt6', 300, 300],
-        ['tb', 'Bottom slab thick', 'dtb', 840, 840], ['tw', 'Web thickness', 'dtw', 500, 500], ['bh', 'Bottom haunch', 'dbbh', 200, 200], ['vh1', 'Void haunch 1', 'dbh1', 200, 200], ['vh2', 'Void haunch 2', 'dbh2', 100, 100],
-        ['rwt', 'Web-top fillet R', 'drwt', 300, 300], ['rwtin', 'Web-top inner R', 'drwtin', 200, 200], ['rb', 'Bottom fillet R', 'drb', 400, 400],
-        ['sl_tl', 'Top-left slope %', 'dsltl', -2, -2], ['sl_tr', 'Top-right slope %', 'dsltr', 5, 5], ['sl_b', 'Bottom slope %', 'dslb', 3, 3]]
-    }));
-
-    /* ── TAPERED BEGIN/END SECTIONS (rect / circle / track / octagon) ──
-       Retaining-wall style: left Layout card (header view buttons + SVG plot),
-       right Dimension Input card with Front/Back columns. Rendering is provided
-       by bim_section_test.js (window.makeSectionTest), loaded on demand. */
-    var HSCSS = _HSCSS();
-
-    function _sectDrawTpl(o) {
-      var setview = o.name + '_setview', fdraw = 'fdraw_' + o.name, odxf = 'odxf_' + o.name, putp = 'putParams_' + o.name;
-      function vb(v, label, active) { return '<button type="button" class="hs-vbtn" data-sview="' + v + '" onclick="' + setview + '(\'' + v + '\')"' + (active ? ' style="background:#2563eb;color:#fff;border-color:#2563eb;"' : '') + '>' + label + '</button>'; }
-      var buttons = vb('front', 'Front', true) + vb('back', 'Back') + vb('left', 'Left') + vb('center', 'Center') + vb('right', 'Right') + vb('top', 'Top') + vb('bottom', 'Bottom') + vb('3d', '3D')
-        + '<button type="button" class="hs-btn" onclick="' + fdraw + '()"><i class="bi bi-arrow-repeat"></i> Regen</button>';
-      var rows = o.rows.map(function (r) {
-        return '<div class="hs-inrow be"><label><span class="var">' + r[0] + '</span><span class="desc">' + r[1] + '</span></label>'
-          + '<input type="number" id="' + r[2] + '_s" value="' + r[3] + '" onchange="' + fdraw + '()">'
-          + '<input type="number" id="' + r[2] + '_e" value="' + r[4] + '" onchange="' + fdraw + '()"></div>';
-      }).join('');
-      return HSCSS
-        + '<div class="hs-root"><div class="hs-grid">'
-        + '  <div class="hs-card">'
-        + '    <div class="hs-hd"><span class="hs-ttl">Layout</span>'
-        + '      <span id="' + o.bar + '" style="display:flex;gap:4px;flex-wrap:wrap;align-items:center;">' + buttons + '</span></div>'
-        + '    <div class="hs-plot"><div id="' + o.plot + '"></div></div>'
-        + '  </div>'
-        + '  <div class="hs-card">'
-        + '    <div class="hs-hd"><span class="hs-ttl">Dimension Input &mdash; Front / Back</span>'
-        + '      <button type="button" class="hs-btn" onclick="' + odxf + '.download(\'' + o.dxf + '\')">DXF out</button></div>'
-        + '    <div class="hs-inputs">'
-        + '      <div class="hs-batch-wrap"><div class="hs-batch-lbl">Batch Input (CSV) <span class="hs-batch-hint">' + o.hint + '</span></div>'
-        + '        <textarea class="hs-batch" id="sUserText" rows="' + o.brows + '" spellcheck="false" onchange="' + putp + '(\'sUserText\'); ' + fdraw + '();">' + o.bdef + '</textarea></div>'
-        + '      <div class="hs-behd"><span>Variable</span><span class="c">Front</span><span class="c">Back</span></div>'
-        + rows
-        + '      <div class="hs-inrow"><label><span class="var">L</span><span class="desc">Segment length</span></label><span><input type="number" id="dseg_leng" value="' + o.len + '" onchange="' + fdraw + '()"><span class="hs-unit">mm</span></span></div>'
-        + '      <div class="hs-inrow"><label><span class="var">Hollow</span><span class="desc">Hollow section</span></label><span><input type="checkbox" id="' + o.hollow + '" checked onchange="' + fdraw + '()" style="width:16px;height:16px;accent-color:#2563eb;vertical-align:middle;"></span></div>'
-        + '    </div>'
-        + '  </div>'
-        + '</div></div>';
-    }
-
-    /* ── Cross-section preview builds (bim_xsect_test.js, window.XSECT) ── */
+/* ── Cross-section preview builds (bim_xsect_test.js, window.XSECT) ── */
     _addTemplate(root, 'tpl-draw-rect', _xsectTpl({ name: 'rect', rows: [
       ['H', 'Outer height', 800], ['B', 'Outer width', 600],
       ['twl', 'Wall thickness left', 120], ['twr', 'Wall thickness right', 120],
@@ -742,7 +691,7 @@ function _HSCSS() {
       + '</style>';
 }
 
-// Begin/End drawing template builder (retaining-wall style), used by ibeam & box1cell.
+// Begin/End drawing template builder (retaining-wall style), used by ibeam.
 // o = { name, plot, bar, dxf, hint, brows, bdef, len, rows:[[var,desc,idBase,vFront,vBack],...], guide? }
 function _beTpl(o) {
     var setview = o.name + '_setview', fdraw = 'fdraw_' + o.name, odxf = 'odxf_' + o.name, putp = 'putParams_' + o.name;
@@ -823,8 +772,8 @@ function _bindNavigation() {
         if (pageId === 'draw-hsection') { mountDrawing('hsection'); ensureHsectionTest(function(){ if (typeof fdraw_hsection === 'function') fdraw_hsection(); }); }
         if (pageId === 'draw-channel') { mountDrawing('channel'); ensureChannelTest(function(){ if (typeof fdraw_channel === 'function') fdraw_channel(); }); }
         if (pageId === 'draw-ibeam') { mountDrawing('ibeam'); ensureIbeamTest(function(){ if (typeof fdraw_ibeam === 'function') fdraw_ibeam(); }); }
+        if (pageId === 'draw-psc') { mountDrawing('psc'); ensurePsc(); }
         if (pageId === 'draw-liftinglug') { mountDrawing('liftinglug'); ensureLugTest(function(){ if (typeof fdraw_liftinglug === 'function') fdraw_liftinglug(); }); }
-        if (pageId === 'draw-box1cell') { mountDrawing('box1cell'); ensureBox1cellTest(function(){ if (typeof fdraw_box1cell === 'function') fdraw_box1cell(); }); }
         if (pageId === 'draw-rect') { mountDrawing('rect'); ensureXsect('rect'); }
         if (pageId === 'draw-circle') { mountDrawing('circle'); ensureXsect('circle'); }
         if (pageId === 'draw-octagon') { mountDrawing('octagon'); ensureXsect('octagon'); }
@@ -1097,7 +1046,7 @@ function _bindNavigation() {
     }
 
     // Shared draw-test core (bim_draw_test_core.js — window.RWSVG) then a section
-    // module (lifting lug / I-beam / box1cell). Loads the core once, then the module.
+    // module (lifting lug / I-beam). Loads the core once, then the module.
     // Uses a per-module load-completion flag (the production fdraw_* already exists,
     // so we must not gate on function existence — the test module OVERRIDES it).
     function ensureRWModule(moduleFile, flag, cb) {
@@ -1124,12 +1073,23 @@ function _bindNavigation() {
     }
     function ensureLugTest(cb) { ensureRWModule('bim_liftinglug_test.js?v=1', 'lugTest', cb); }
     function ensureIbeamTest(cb) { ensureRWModule('bim_ibeam_test.js?v=2', 'ibeamTest', cb); }
-    function ensureBox1cellTest(cb) { ensureRWModule('bim_box1cell_test.js?v=3', 'box1cellTest', cb); }
     // Cross-section preview builds (bim_xsect_test.js — window.XSECT) on the shared core.
     function ensureXsect(name) { ensureRWModule('bim_xsect_test.js?v=10', 'xsect', function () { if (window.XSECT) { window.XSECT.install(name); window.XSECT.mount(name); } }); }
 
+    // PSC concrete-section module (bim_psc_test.js) — 철근 없이 콘크리트 단면만. 단일 진입점 fdraw_psc.
+    function ensurePsc() {
+        if (typeof fdraw_psc === 'function') { fdraw_psc('mount-draw-psc'); return; }
+        if (window._pscLoading) return;
+        window._pscLoading = true;
+        var sc = document.createElement('script');
+        sc.src = 'https://macrobim.github.io/macroBIM/bim_psc_test.js?v=' + Date.now();
+        sc.onload = function () { window._pscLoading = false; if (typeof fdraw_psc === 'function') fdraw_psc('mount-draw-psc'); };
+        sc.onerror = function () { window._pscLoading = false; var m = document.getElementById('mount-draw-psc'); if (m) m.innerHTML = '<p style="color:#b91c1c;padding:16px;">bim_psc_test.js failed to load.</p>'; };
+        document.head.appendChild(sc);
+    }
+
     function mountDrawing(kind) {
-        ['hsection','channel','ibeam','liftinglug','box1cell','rect','circle','octagon','track','gravitywall','invtwall','lwall','pier'].forEach(function(k) {
+        ['hsection','channel','ibeam','liftinglug','psc','rect','circle','octagon','track','gravitywall','invtwall','lwall','pier'].forEach(function(k) {
             if (k !== kind) {
                 var other = document.getElementById('mount-draw-' + k);
                 if (other) other.innerHTML = '';

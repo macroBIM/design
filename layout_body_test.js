@@ -152,7 +152,7 @@ function initLayout(phpData) {
     var html = ''
     /* ══ SIDEBAR ══ */
     + '<nav id="sidebar">'
-    + '  <div class="sidebar-header"><div class="logo-info"><a href="http://www.macrobim.com" class="name" style="text-decoration:none;color:inherit;">macroBIM</a></div></div>'
+    + '  <div class="sidebar-header"><div class="logo-info"><a href="http://www.macrobim.com" class="name" style="text-decoration:none;color:inherit;display:flex;align-items:center;gap:8px;"><svg viewBox="0 6 64 52" fill="none" style="width:28px;height:23px;flex-shrink:0;overflow:visible;"><path d="M32 10 L50 20 L50 40 L32 50 L14 40 L14 20 Z" stroke="#2563eb" stroke-width="3.5" fill="none" stroke-linejoin="round"/><line x1="32" y1="30" x2="32" y2="50" stroke="#2563eb" stroke-width="2.5"/><line x1="32" y1="30" x2="14" y2="20" stroke="#2563eb" stroke-width="2.5"/><line x1="32" y1="30" x2="50" y2="20" stroke="#2563eb" stroke-width="2.5"/><path d="M 4 44 A 28 8 0 0 1 14 38" stroke="#2563eb" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M 54 39 A 28 8 0 0 1 60 44" stroke="#2563eb" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M 4 44 A 28 8 0 1 1 54 49" stroke="#2563eb" stroke-width="3" fill="none" stroke-linecap="round"/><polygon points="61,44 53,38 53,50" fill="#2563eb"/></svg><span style="font-weight:700;color:#1e293b;">macro</span><span style="font-weight:800;color:#2563eb;">BIM</span></a></div></div>'
     + '  <div class="nav-menu">'
     + '    <a class="nav-item" href="#" data-page="home"><i class="bi bi-house-door"></i> Home</a>'
     + '    <a class="nav-item" href="#" id="dashboardMenu" data-page="dashboard"><i class="bi bi-grid-fill"></i> Dashboard</a>'
@@ -207,6 +207,7 @@ function initLayout(phpData) {
     + '    </div>'
     + '    <a class="nav-item" href="#" data-page="draw-pier"><i class="bi bi-building"></i> Pier</a>'
     + '    <a class="nav-item" href="#" data-page="draw-pscbox"><i class="bi bi-box-seam"></i> PSCBOX</a>'
+    + '    <a class="nav-item" href="#" data-page="draw-pscboxdia"><i class="bi bi-layout-split"></i> PSCBOX DIAPHRAGM</a>'
     + '    <a class="nav-item" href="#" data-page="qna"><i class="bi bi-question-circle"></i> QnA</a>'
     + '  </div>'
     + '</nav>'
@@ -437,6 +438,7 @@ function initLayout(phpData) {
     + '    <div class="page-view" id="page-draw-pier"><h1 class="page-heading">Pier Input</h1><div class="breadcrumb"><a href="#">Home</a> / <span>Pier</span></div><div id="mount-draw-pier"></div></div>'
     + '    <div class="page-view" id="page-draw-plate3d"><h1 class="page-heading">PLATE3D</h1><div class="breadcrumb"><a href="#">Home</a> / <span>PLATE3D</span></div><div id="mount-draw-plate3d"></div></div>'
     + '    <div class="page-view" id="page-draw-pscbox"><h1 class="page-heading">PSC Box Girder</h1><div class="breadcrumb"><a href="#">Home</a> / <span>PSCBOX</span></div><div id="mount-draw-pscbox"></div></div>'
+    + '    <div class="page-view" id="page-draw-pscboxdia"><h1 class="page-heading">PSC Box Girder Diaphragm</h1><div class="breadcrumb"><a href="#">Home</a> / <span>PSCBOX DIAPHRAGM</span></div><div id="mount-draw-pscboxdia"></div></div>'
     + '    <div class="page-view" id="page-draw-psc"><h1 class="page-heading">PSC Box Girder</h1><div class="breadcrumb"><a href="#">Home</a> / <a href="#">Drawings</a> / <span>PSC</span></div><div id="mount-draw-psc"></div></div>'
     + '    <div class="page-view" id="page-quick-simpleconn"><h1 class="page-heading">Simple connector</h1><div class="breadcrumb"><a href="#">Home</a> / <a href="#">MacroPLATE3D</a> / <span>Simple connector</span></div><div id="mount-quick-simpleconn"></div></div>'
     + '    <div class="page-view" id="page-quick-crossbeam"><h1 class="page-heading">Crossbeam</h1><div class="breadcrumb"><a href="#">Home</a> / <a href="#">MacroPLATE3D</a> / <span>Crossbeam</span></div><div id="mount-quick-crossbeam"></div></div>'
@@ -916,6 +918,7 @@ function _bindNavigation() {
         if (pageId === 'draw-pier') { mountDrawing('pier'); ensurePier(); }
         if (pageId === 'draw-plate3d') { ensurePlate3d(); }
         if (pageId === 'draw-pscbox') { mountDrawing('pscbox'); ensurePscbox(); }
+        if (pageId === 'draw-pscboxdia') { mountDrawing('pscboxdia'); ensurePscboxDia(); }
         if (pageId === 'draw-psc') { mountDrawing('psc'); ensurePsc(); }
         if (pageId === 'quick-simpleconn') { ensureQuickSimpleConn(); }
         if (pageId === 'quick-crossbeam') { ensureQuickCrossbeam(); }
@@ -1144,6 +1147,18 @@ function _bindNavigation() {
         document.head.appendChild(sc);
     }
 
+    // PSC Box diaphragm (격벽) — bim_pscbox_test.js 를 복사해 전역만 가른 판. 진입점 fdraw_pscboxdia.
+    function ensurePscboxDia() {
+        if (typeof fdraw_pscboxdia === 'function') { fdraw_pscboxdia('mount-draw-pscboxdia'); return; }
+        if (window._pscboxDiaLoading) return;
+        window._pscboxDiaLoading = true;
+        var sc = document.createElement('script');
+        sc.src = 'https://macrobim.github.io/macroBIM/bim_pscbox_diaphragm_test.js?v=' + Date.now();   // 개발 중 캐시 고정 방지
+        sc.onload = function () { window._pscboxDiaLoading = false; if (typeof fdraw_pscboxdia === 'function') fdraw_pscboxdia('mount-draw-pscboxdia'); };
+        sc.onerror = function () { window._pscboxDiaLoading = false; var m = document.getElementById('mount-draw-pscboxdia'); if (m) m.innerHTML = '<p style="color:#b91c1c;padding:16px;">bim_pscbox_diaphragm_test.js failed to load.</p>'; };
+        document.head.appendChild(sc);
+    }
+
     // Gravity wall module (bim_gravitywall.js) may not be in the page's script list — load on demand.
     function ensureGravityWall() {
         if (typeof fdraw_gravitywall === 'function') { fdraw_gravitywall('mount-draw-gravitywall'); return; }
@@ -1252,7 +1267,7 @@ function _bindNavigation() {
     function ensureXsect(name) { ensureRWModule('bim_xsect_test.js?v=10', 'xsect', function () { if (window.XSECT) { window.XSECT.install(name); window.XSECT.mount(name); } }); }
 
     function mountDrawing(kind) {
-        ['hsection','channel','ibeam','liftinglug','rect','circle','octagon','track','gravitywall','invtwall','lwall','pier','pscbox','psc'].forEach(function(k) {
+        ['hsection','channel','ibeam','liftinglug','rect','circle','octagon','track','gravitywall','invtwall','lwall','pier','pscbox','pscboxdia','psc'].forEach(function(k) {
             if (k !== kind) {
                 var other = document.getElementById('mount-draw-' + k);
                 if (other) other.innerHTML = '';

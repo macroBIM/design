@@ -3,7 +3,7 @@
     "date": "2026-09-08",
     "type": "new",
     "title": "PSC — box girder section and slab plans",
-    "desc": "A 1- or 2-cell PSC box girder under Drawings. The 65 dimensions are entered for the begin and end sections side by side, or pasted as one CSV block, and the DXF carries both sections with the top and bottom slab plans, webs and haunches on a hidden layer. The plan length is taken as the box width, and reinforcement is not included."
+    "desc": "A 1- or 2-cell PSC box girder section drawing under the Drawings menu. It replaces BOX1CELL."
   },
   {
     "date": "2026-09-02",

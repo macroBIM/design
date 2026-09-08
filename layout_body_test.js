@@ -152,7 +152,7 @@ function initLayout(phpData) {
     var html = ''
     /* ══ SIDEBAR ══ */
     + '<nav id="sidebar">'
-    + '  <div class="sidebar-header"><div class="logo-info"><a href="http://www.macrobim.com" class="name" style="text-decoration:none;color:inherit;">macroBIM</a></div></div>'
+    + '  <div class="sidebar-header"><div class="logo-info"><a href="http://www.macrobim.com" class="name" style="text-decoration:none;color:inherit;display:flex;align-items:center;gap:8px;"><svg viewBox="0 0 64 64" fill="none" style="width:24px;height:24px;flex-shrink:0;"><path d="M32 10 L50 20 L50 40 L32 50 L14 40 L14 20 Z" stroke="#2563eb" stroke-width="3.5" fill="none" stroke-linejoin="round"/><line x1="32" y1="30" x2="32" y2="50" stroke="#2563eb" stroke-width="2.5"/><line x1="32" y1="30" x2="14" y2="20" stroke="#2563eb" stroke-width="2.5"/><line x1="32" y1="30" x2="50" y2="20" stroke="#2563eb" stroke-width="2.5"/><path d="M 4 44 A 28 8 0 0 1 14 38" stroke="#2563eb" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M 54 39 A 28 8 0 0 1 60 44" stroke="#2563eb" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M 4 44 A 28 8 0 1 1 54 49" stroke="#2563eb" stroke-width="3" fill="none" stroke-linecap="round"/><polygon points="61,44 53,38 53,50" fill="#2563eb"/></svg>macroBIM</a></div></div>'
     + '  <div class="nav-menu">'
     + '    <a class="nav-item" href="#" data-page="home"><i class="bi bi-house-door"></i> Home</a>'
     + '    <a class="nav-item" href="#" id="dashboardMenu" data-page="dashboard"><i class="bi bi-grid-fill"></i> Dashboard</a>'

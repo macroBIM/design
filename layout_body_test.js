@@ -194,6 +194,7 @@ function initLayout(phpData) {
     + '      <a href="#" data-page="draw-liftinglug">Lifting Lug</a>'
     + '      <a href="#" data-page="draw-ibeam">I Beam</a>'
     + '      <a href="#" data-page="draw-box1cell">BOX1CELL</a>'
+    + '      <a href="#" data-page="draw-psc">PSC</a>'
     + '      <a href="#" data-page="draw-rect">Rect</a>'
     + '      <a href="#" data-page="draw-circle">Circle</a>'
     + '      <a href="#" data-page="draw-octagon">Octagon</a>'
@@ -438,6 +439,7 @@ function initLayout(phpData) {
     + '    <div class="page-view" id="page-draw-pier"><h1 class="page-heading">Pier Input</h1><div class="breadcrumb"><a href="#">Home</a> / <span>Pier</span></div><div id="mount-draw-pier"></div></div>'
     + '    <div class="page-view" id="page-draw-plate3d"><h1 class="page-heading">PLATE3D</h1><div class="breadcrumb"><a href="#">Home</a> / <span>PLATE3D</span></div><div id="mount-draw-plate3d"></div></div>'
     + '    <div class="page-view" id="page-draw-pscbox"><h1 class="page-heading">PSC Box Girder</h1><div class="breadcrumb"><a href="#">Home</a> / <span>PSCBOX</span></div><div id="mount-draw-pscbox"></div></div>'
+    + '    <div class="page-view" id="page-draw-psc"><h1 class="page-heading">PSC Box Girder (Concrete)</h1><div class="breadcrumb"><a href="#">Home</a> / <span>PSC</span></div><div id="mount-draw-psc"></div></div>'
     + '    <div class="page-view" id="page-quick-simpleconn"><h1 class="page-heading">Simple connector</h1><div class="breadcrumb"><a href="#">Home</a> / <a href="#">MacroPLATE3D</a> / <span>Simple connector</span></div><div id="mount-quick-simpleconn"></div></div>'
     + '    <div class="page-view" id="page-quick-crossbeam"><h1 class="page-heading">Crossbeam</h1><div class="breadcrumb"><a href="#">Home</a> / <a href="#">MacroPLATE3D</a> / <span>Crossbeam</span></div><div id="mount-quick-crossbeam"></div></div>'
     + '    <div class="page-view" id="page-beam-formula"><h1 class="page-heading">SimpleBEAM</h1><div class="breadcrumb"><a href="#">Home</a> / <a href="#">MacroBEAM</a> / <span>SimpleBEAM</span></div><div id="mount-beam-formula"></div></div>'
@@ -968,6 +970,7 @@ function _bindNavigation() {
         if (pageId === 'draw-pier') { mountDrawing('pier'); ensurePier(); }
         if (pageId === 'draw-plate3d') { ensurePlate3d(); }
         if (pageId === 'draw-pscbox') { mountDrawing('pscbox'); ensurePscbox(); }
+        if (pageId === 'draw-psc') { mountDrawing('psc'); ensurePsc(); }
         if (pageId === 'quick-simpleconn') { ensureQuickSimpleConn(); }
         if (pageId === 'quick-crossbeam') { ensureQuickCrossbeam(); }
         if (pageId === 'beam-formula') { ensureBeamFormula(); }
@@ -1183,6 +1186,18 @@ function _bindNavigation() {
         document.head.appendChild(sc);
     }
 
+    // PSC concrete-section module (bim_psc_test.js) — 철근 없이 콘크리트 단면만. 단일 진입점 fdraw_psc.
+    function ensurePsc() {
+        if (typeof fdraw_psc === 'function') { fdraw_psc('mount-draw-psc'); return; }
+        if (window._pscLoading) return;
+        window._pscLoading = true;
+        var sc = document.createElement('script');
+        sc.src = 'https://macrobim.github.io/macroBIM/bim_psc_test.js?v=' + Date.now();   // 개발 중 캐시 고정 방지 — 항상 최신 로드
+        sc.onload = function () { window._pscLoading = false; if (typeof fdraw_psc === 'function') fdraw_psc('mount-draw-psc'); };
+        sc.onerror = function () { window._pscLoading = false; var m = document.getElementById('mount-draw-psc'); if (m) m.innerHTML = '<p style="color:#b91c1c;padding:16px;">bim_psc_test.js failed to load.</p>'; };
+        document.head.appendChild(sc);
+    }
+
     // Gravity wall module (bim_gravitywall.js) may not be in the page's script list — load on demand.
     function ensureGravityWall() {
         if (typeof fdraw_gravitywall === 'function') { fdraw_gravitywall('mount-draw-gravitywall'); return; }
@@ -1292,7 +1307,7 @@ function _bindNavigation() {
     function ensureXsect(name) { ensureRWModule('bim_xsect_test.js?v=10', 'xsect', function () { if (window.XSECT) { window.XSECT.install(name); window.XSECT.mount(name); } }); }
 
     function mountDrawing(kind) {
-        ['hsection','channel','ibeam','liftinglug','box1cell','rect','circle','octagon','track','gravitywall','invtwall','lwall','pier','pscbox'].forEach(function(k) {
+        ['hsection','channel','ibeam','liftinglug','box1cell','rect','circle','octagon','track','gravitywall','invtwall','lwall','pier','pscbox','psc'].forEach(function(k) {
             if (k !== kind) {
                 var other = document.getElementById('mount-draw-' + k);
                 if (other) other.innerHTML = '';

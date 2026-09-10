@@ -15,6 +15,7 @@
 | **Dashboard** (`dashboard`) | 방문자 수 통계. 운영 랜딩은 Home 이다 |
 | **PSCBOX** (`draw-pscbox`) | 아직 손보는 중 |
 | **Crossbeam** (`quick-crossbeam`) | 판형교의 거더 사이 — 가로보·수직브레이싱·슬래브·방호벽. 폼과 그림(`quick_crossbeam_test.js`)은 있고, PLATE3D 로 모델을 보내는 것과 워크북 내보내기가 아직 없다 |
+| **TAPER** (변단면) | 메뉴가 아니라 **엔진 키워드**다. `plate_builder_test.js` 에만 있다 — 운영 엔진은 `TAPER` 행을 모른다. 이게 딸고 오는 것: 엔진 문법 · 부재표 두 줄(끝단면 줄) · 가이드 §6.6 · `tools/check_taper.js`. **운영으로 갈 때 넷이 같이 간다** |
 
 **MacroPLATE3D → Simple connector 는 2026-09-02 에 런칭했다.** 여기 있던
 줄이다. 옮길 때 메뉴만 옮기려다 안 되는 것을 알았다 — 운영에는 그 페이지의

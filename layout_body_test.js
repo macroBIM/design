@@ -638,7 +638,7 @@ function _createTemplates() {
       + '      <div class="hs-inrow" id="row_padeyeR"><label><span class="var">Rp</span><span class="desc">Padeye radius</span></label><span><input type="number" id="padeyeR" value="30" onchange="fdraw_liftinglug()"><span class="hs-unit">mm</span></span></div>'
       + '      <div class="hs-inrow" id="row_padeyeT"><label><span class="var">tp</span><span class="desc">Total thickness over side plates (lug + 2 pads)</span></label><span><input type="number" id="padeyeT" value="40" onchange="fdraw_liftinglug()"><span class="hs-unit">mm</span></span></div>'
       + '      <div class="hs-batch-lbl" style="margin-top:12px;display:flex;align-items:center;gap:8px"><input type="checkbox" id="eccOn" checked onchange="fdraw_liftinglug()" style="width:16px;height:16px;margin:0;accent-color:var(--dim)">Eccentricity</div>'
-      + '      <div class="hs-inrow" id="row_ecc"><label><span class="var">off</span><span class="desc">Hole/padeye eccentricity (off)</span></label><span><input type="number" id="ecc" value="0" onchange="fdraw_liftinglug()"><span class="hs-unit">mm</span></span></div>'
+      + '      <div class="hs-inrow" id="row_ecc"><label><span class="var">ecc</span><span class="desc">Hole/padeye eccentricity</span></label><span><input type="number" id="ecc" value="0" onchange="fdraw_liftinglug()"><span class="hs-unit">mm</span></span></div>'
       + '        </div>'
       + '        <div style="flex:1;min-width:0">'
       + '      <div class="hs-batch-lbl" style="margin-top:2px;display:flex;align-items:center;gap:8px"><input type="checkbox" id="bpOn" checked onchange="fdraw_liftinglug()" style="width:16px;height:16px;margin:0;accent-color:var(--dim)">Base plate</div>'

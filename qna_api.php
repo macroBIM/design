@@ -2,10 +2,17 @@
 session_start();
 header('Content-Type: application/json; charset=utf-8');
 
-$servername = "localhost";
-$username = "macrobim";
-$password = "yjp@072072";
-$dbname = "macrobim";
+// DB 접속정보는 서버에만 있는 설정에서 읽는다 — 공개 저장소에 비밀번호를 두지 않는다.
+// /config 는 웹루트(/www) 위에 있어 브라우저로 내려받을 수 없다 (/config/db_config.php,
+// store_*.php 와 같은 「배열을 return 하는 설정」 꼴 : host · user · pass · name).
+$cfgPath = dirname($_SERVER['DOCUMENT_ROOT']) . '/config/db_config.php';
+if (!is_file($cfgPath)) { $cfgPath = __DIR__ . '/../config/db_config.php'; }  // 배치가 다를 때의 대비
+if (!is_file($cfgPath)) { echo json_encode(['error' => 'DB config not found']); exit; }
+$db = require $cfgPath;
+$servername = $db['host'];
+$username   = $db['user'];
+$password   = $db['pass'];
+$dbname     = $db['name'];
 
 $conn = new mysqli($servername, $username, $password, $dbname);
 if ($conn->connect_error) {

@@ -2086,7 +2086,7 @@
       if (sl) sl.value = String(SEG_DEF);
       for (var i = 1; i <= 2; i++) {
         var nn = document.getElementById('op' + i + '_none');
-        if (nn) nn.checked = false;
+        if (nn) nn.checked = true;   // 통합 REBAR: 기본은 개구부 없음(일반) — open 행 있으면 Excel 이 켠다
         Object.keys(OPEN_DEF).forEach(function (k) {
           var el = document.getElementById('op' + i + '_' + (k === 'shape' ? 'shape' : k));
           if (el) el.value = String(OPEN_DEF[k]);
@@ -3278,7 +3278,7 @@
           return '<option value="' + o[0] + '"' + (o[0] === OPEN_DEF.shape ? ' selected' : '') + '>' + o[1] + '</option>';
         }).join('');
         return '<div class="op-cell" id="opCell' + i + '">' +
-          '<h4>' + title + '<label><input type="checkbox" id="op' + i + '_none" onchange="PXUNI.redraw()"> none</label></h4>' +
+          '<h4>' + title + '<label><input type="checkbox" id="op' + i + '_none" checked onchange="PXUNI.redraw()"> none</label></h4>' +
           '<div class="op-body"><div class="op-fields">' +
           '<div class="op-row"><span>Shape</span><select id="op' + i + '_shape" onchange="PXUNI.redraw()">' + opts + '</select></div>' +
           row(i, 'B', 'B', 'width', OPEN_DEF.B) +

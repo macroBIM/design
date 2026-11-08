@@ -1817,6 +1817,17 @@
             UI.sectionGroup.add(new Konva.Line({ points: flatOp, stroke: '#ffffff', strokeWidth: 2,
               closed: true, lineJoin: 'round', strokeScaleEnabled: false }));
           });
+          //  일반단면(개구부 없음) : 안쪽 셀은 진짜 빈 공간(중공)이므로 흰 윤곽을 그린다.
+          //  (격벽은 셀이 solid 라 안 그린다 — 위 분기와 같은 규칙.)
+          if (!(this._openings && this._openings.length)) {
+            ((_sp.cells) || []).forEach(function (cell) {
+              if (!cell || cell.length < 3) return;
+              var flatC = [];
+              cell.forEach(function (p) { flatC.push(p[0], p[1]); });
+              UI.sectionGroup.add(new Konva.Line({ points: flatC, stroke: '#ffffff', strokeWidth: 2,
+                closed: true, lineJoin: 'round', strokeScaleEnabled: false }));
+            });
+          }
           //  덕트는 콘크리트와 구별되게 다른 색으로 — 개구부와 헷갈리면 안 된다.
           //  원은 **원 그대로** 그린다. 24 각형은 벽(선분+법선)으로 판별하기 위한 것이지
           //  덕트가 각진 구멍이라는 뜻이 아니다 — 외곽선을 아크로 그리는 것과 같은 규칙이다.

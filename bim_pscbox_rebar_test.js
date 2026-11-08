@@ -1667,16 +1667,16 @@
           var a = (mxx - mnx) * (mxy - mny);
           if (a > outerArea) { outerArea = a; outerIdx = li; }
         });
-        /*  이 페이지는 격벽이다. 격벽에서는 **셀이 콘크리트로 차 있다** — 그러니
-            셀 내면은 인력 경계가 아니다. 벽으로 두면 철근이 있지도 않은 빈 공간의
-            면으로 끌려간다. 그래서 바깥 고리만 벽으로 만든다.
-            셀 윤곽은 3D 의 옅은 선(참고용)으로만 남기므로 좌표는 계속 모은다.
-            벽 번호(E1,E2…)는 바깥 고리가 먼저라 그대로다 — 기존 철근 행이 안 깨진다.
-            (개구부만 예외로 아래에서 따로 벽이 된다. 거기는 진짜 빈 공간이다.)   */
+        /*  통합 REBAR 분기 : 개구부가 있으면 **격벽** — 셀이 콘크리트로 차 있다(solid).
+            셀 내면은 인력 경계가 아니므로 바깥 고리만 벽으로 만든다. 개구부가 없으면
+            **일반단면** — 셀은 진짜 빈 공간(중공)이라 내부 벽(inner)을 만들어 그린다.
+            벽 번호(E1,E2…)는 바깥 고리가 먼저라 그대로다 — 기존 철근 행이 안 깨진다.   */
+        var cellsSolid = (this._openings && this._openings.length > 0);   // 개구부=격벽(solid) · 없음=일반(중공)
         loops.forEach(function (loop, li) {
           if (!loop.length) return;
+          var isCell = (li !== outerIdx);
           var pts = [{ x: loop[0].x1, y: loop[0].y1 }];
-          if (li !== outerIdx) {                       // 셀 — 좌표만 모으고 벽은 만들지 않는다
+          if (isCell && cellsSolid) {                  // 격벽: 셀 solid — 좌표만 모으고 벽은 안 만든다
             loop.forEach(function (seg) { pts.push({ x: seg.x2, y: seg.y2 }); });
             /*  길이 0 세그먼트가 만든 부스러기 고리(점 두 개짜리)가 캔틸레버 끝에
                 생긴다. 그대로 두면 3D 에 점이 찍히고, 「복부 사이」범위를 잴 때
@@ -1705,8 +1705,12 @@
             walls.push({ id: 'E' + eid, tag: tag, nx: nx, ny: ny, x1: seg.x1, y1: seg.y1, x2: seg.x2, y2: seg.y2, src: seg.src || null });
             pts.push({ x: seg.x2, y: seg.y2 });
           });
-          displayPaths.push(pts);
-          sectOuter = pts.map(function (p) { return [p.x, p.y]; });
+          if (isCell) {                                // 일반단면 셀 — 벽은 inner 로 만들고 3D 좌표도 모은다
+            sectCells.push(pts.map(function (p) { return [p.x, p.y]; }));
+          } else {
+            displayPaths.push(pts);
+            sectOuter = pts.map(function (p) { return [p.x, p.y]; });
+          }
         });
         this._sectPoly = { outer: sectOuter, cells: sectCells };
         // ── 격벽 개구부 : 콘크리트 면을 닫힌 고리로 잇는다 ─────────────────────

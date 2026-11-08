@@ -1,0 +1,4297 @@
+/*
+    bim_pscbox_test.js — PSCBOX (1/2-cell box girder) page for layout_body_test.js.  v2
+
+    Single entry: fdraw_rebar(mountId). Full parametric stack ported from the
+    Seoul PhD app, specialized to box12cell:
+      · Dimension card  — Section Type radio + live RWSVG guide + scrollable
+                          variable-mapping table (inputs hold numbers or
+                          plain arithmetic, e.g. 6800/2 — no named variables)
+      · REBAR card      — trebar/lrebar schema table + Excel loader
+      · Rebar Physics   — engine render (ui.js/physics.js) via the generic
+                          section adapter; bend-arc post-processing included.
+    Engine glue (_buildSectionFromBim/_applyGenericSection/_watchSettle/...)
+    is extracted verbatim from seoul_phd_app.js.
+
+    Dependencies (loaded on demand, in order): geomath, bim_dxf,
+    bim_draw_test_core, bim_box12cell, calc, exceljs(CDN), excel_reader,
+    equation, trebar, lrebar, physics, section, domain, ui.
+*/
+(function () {
+  "use strict";
+
+  // 좌/우 대칭 쌍 레이아웃 — mount() 표 생성과 엑셀 dim 로더가 공용으로 사용
+  var DIM_LAYOUT = [
+        { t: 'single', l: 'TH' },
+        { t: 'free',   l: 'SLL',     r: 'SLR' },
+        { t: 'single', l: 'SLB' },
+        { t: 'single', l: 'TTS' },
+        { t: 'single', l: 'TBS' },
+        { t: 'sym', l: 'WL',      r: 'WR' },
+        { t: 'sym', l: 'WTL',     r: 'WTR' },
+        { t: 'sym', l: 'WBL',     r: 'WBR' },
+        { t: 'sym', l: 'WCAL1',   r: 'WCAR1' },
+        { t: 'sym', l: 'WCAL2',   r: 'WCAR2' },
+        { t: 'sym', l: 'WTHUL1',  r: 'WTHUR1' },
+        { t: 'sym', l: 'WTHUL2',  r: 'WTHUR2' },
+        { t: 'sym', l: 'WBHUL1',  r: 'WBHUR1' },
+        { t: 'sym', l: 'WBHUL2',  r: 'WBHUR2' },
+        { t: 'sym', l: 'TCAL',    r: 'TCAR' },
+        { t: 'sym', l: 'TCAL1',   r: 'TCAR1' },
+        { t: 'sym', l: 'TCAL2',   r: 'TCAR2' },
+        { t: 'sym', l: 'TTHL1',   r: 'TTHR1' },
+        { t: 'sym', l: 'TTHL2',   r: 'TTHR2' },
+        { t: 'sym', l: 'TBHL1',   r: 'TBHR1' },
+        { t: 'sym', l: 'TBHL2',   r: 'TBHR2' },
+        { t: 'sym', l: 'TBEL',    r: 'TBER' },
+        { t: 'sym', l: 'TWEBL',   r: 'TWEBR' },
+        { t: 'sym', l: 'R_WTL',   r: 'R_WTR' },
+        { t: 'sym', l: 'R_WTIL',  r: 'R_WTIR' },
+        { t: 'sym', l: 'R_WBL',   r: 'R_WBR' },
+        { t: 'group', label: '2 Cell only' },
+        { t: 'sym', l: 'WTCHUL1', r: 'WTCHUR1' },
+        { t: 'sym', l: 'WTCHUL2', r: 'WTCHUR2' },
+        { t: 'sym', l: 'WBCHUL1', r: 'WBCHUR1' },
+        { t: 'sym', l: 'WBCHUL2', r: 'WBCHUR2' },
+        { t: 'sym', l: 'TTHCL1',  r: 'TTHCR1' },
+        { t: 'sym', l: 'TTHCL2',  r: 'TTHCR2' },
+        { t: 'sym', l: 'TBHCL1',  r: 'TBHCR1' },
+        { t: 'sym', l: 'TBHCL2',  r: 'TBHCR2' },
+        { t: 'single', l: 'TWEBC' }
+  ];
+
+  var PAGES = 'https://macrobim.github.io/macroBIM/';
+
+  // const/class 로 선언된 전역도 감지 (window 프로퍼티가 아니므로 bare typeof 필요)
+  function hasGlobal(name) { try { return (0, eval)('typeof ' + name) !== 'undefined'; } catch (e) { return false; } }
+
+  function ensureDeps(cb) {
+    var need = [];
+    if (!hasGlobal('geo_fillet')) need.push(PAGES + 'geomath.js');
+    if (!hasGlobal('dxf_generator')) need.push(PAGES + 'bim_dxf.js');
+    if (typeof window.RWSVG === 'undefined') need.push(PAGES + 'bim_draw_test_core.js');
+    if (!hasGlobal('geo_box12cell')) need.push(PAGES + 'bim_box12cell.js');
+    if (typeof window.Calc === 'undefined') need.push(PAGES + 'calc.js');
+    if (typeof window.ExcelJS === 'undefined') need.push('https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js');
+    if (typeof window.loadSheetData === 'undefined') need.push(PAGES + 'excel_reader.js');
+    if (!hasGlobal('EquationParser')) need.push(PAGES + 'equation.js');
+    if (!hasGlobal('DuctBlock')) need.push(PAGES + 'bim_duct.js');
+    if (!hasGlobal('TrebarFactory')) need.push(PAGES + 'trebar.js');
+    if (!hasGlobal('LRebarEngine')) need.push(PAGES + 'lrebar.js');
+    if (!hasGlobal('Physics')) need.push(PAGES + 'physics.js');
+    if (!hasGlobal('JField')) need.push(PAGES + 'jfield.js');     // 두 번째 엔진 (J 최소화)
+    if (!hasGlobal('JLong')) need.push(PAGES + 'jlong.js');       // 그 점(點) 판 — 종방향 철근
+    if (!hasGlobal('SectionBase')) need.push(PAGES + 'section.js');
+    if (!hasGlobal('Domain')) need.push(PAGES + 'domain.js');
+    if (!hasGlobal('UI')) need.push(PAGES + 'ui.js');
+    // 개발 중 엔진 파일이 캐시에 물려 옛 동작이 남는 것을 막는다 (레이아웃의 pscbox 로더와 동일 방식)
+    var bust = 'v=' + Date.now();
+    need = need.map(function (u) {
+      if (u.indexOf('cdnjs') >= 0 || u.indexOf('cdn.jsdelivr') >= 0) return u;   // 외부 CDN 은 그대로
+      return u + (u.indexOf('?') >= 0 ? '&' : '?') + bust;
+    });
+    (function next(i) {
+      if (i >= need.length) { cb(); return; }
+      var s = document.createElement('script');
+      s.src = need[i].indexOf(PAGES) === 0 ? need[i] + '?v=' + Date.now() : need[i];   // 리포 파일은 항상 최신 (CDN 은 그대로 캐시)
+      s.onload = function () { next(i + 1); };
+      s.onerror = function () { console.error('[pscbox] failed to load', need[i]); next(i + 1); };
+      document.head.appendChild(s);
+    })(0);
+  }
+
+  var BEND_RADIUS_BY_DIA = {   // KS 공칭직경(D) → 중심선 곡선반경(mm), EN 최소기준
+      10: 25, 13: 32.5, 16: 40, 19: 76, 22: 88, 25: 100, 29: 116, 32: 128, 35: 140, 38: 152, 41: 164, 51: 204
+    };
+    function bendRadiusForDia(dia) {
+      if (dia == null || !(dia > 0)) return 0;
+      if (BEND_RADIUS_BY_DIA[dia] != null) return BEND_RADIUS_BY_DIA[dia];
+      var inside = (dia <= 16) ? 2 * dia : 3.5 * dia;   // EN 맨드럴/2 = 내면반경
+      return inside + dia / 2;                            // 중심선 반경
+    }
+
+  var CSS =
+    '.px-root{--dim:#2563eb;--line:#cbd5e1;--hair:#e2e8f0;--ink:#182430;color:var(--ink);font-family:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;}' +
+    '.px-root .draw-card{background:#fff;border:1px solid var(--line);border-radius:10px;overflow:hidden;margin-bottom:16px;}' +
+    '.px-root .draw-card-header{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:11px 16px;border-bottom:1px solid var(--hair);background:#f1f5f9;flex-wrap:wrap;}' +
+    '.px-root .draw-card-title{font-size:15px;font-weight:600;color:#0f172a;display:flex;align-items:center;}' +
+    '.px-root .draw-card-title::before{content:"";display:inline-block;width:4px;height:15px;border-radius:2px;background:#2563eb;margin-right:9px;flex-shrink:0;}' +
+    '.px-root .draw-card-desc{display:block;font-size:12.5px;color:#94a3b8;font-weight:400;margin:2px 0 0 13px;}' +
+    '.px-root .draw-card-body{padding:12px 14px;}' +
+    '.px-root .phys-id{cursor:pointer;font-weight:700;color:#1d4ed8;text-decoration:underline dotted;text-underline-offset:2px;}' +
+    '.px-root .phys-id:hover{background:#eff6ff;color:#1e40af;}' +
+    '.px-root tr.phys-focus td{background:#fff1ee !important;}' +
+    '.px-root tr.phys-focus .phys-id{color:#c2410c;background:#ffe4dc;}' +
+    '.px-btn{font:inherit;font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#fff;background:var(--dim);border:1px solid var(--dim);border-radius:6px;padding:5px 12px;cursor:pointer;transition:background .12s,border-color .12s,box-shadow .12s,transform .06s;}' +
+    '.px-btn:hover{background:#1d4ed8;border-color:#1d4ed8;box-shadow:0 2px 8px rgba(37,99,235,.35);}' +
+    '.px-btn:active{transform:translateY(1px) scale(.97);box-shadow:none;}' +
+    '.px-root .form-input{font:inherit;font-size:12px;padding:3px 8px;border:1px solid var(--hair);border-radius:5px;color:var(--ink);}' +
+    '.px-radio{display:flex;gap:18px;align-items:center;margin:0 0 12px 2px;font-size:13px;color:#334155;}' +
+    '.px-radio label{display:flex;gap:6px;align-items:center;cursor:pointer;margin:0;}' +
+    '.px-split{display:flex;gap:16px;align-items:flex-start;}' +
+    '.px-guide{flex:1 1 0;min-width:0;}' +
+    '.px-guide svg{width:100%;height:auto;border:1px solid var(--hair);border-radius:6px;background:#fff;}' +
+    '.px-tblwrap{flex:1 1 0;min-width:0;overflow-y:auto;border:1px solid var(--hair);border-radius:8px;background:#fff;}' +
+    '.px-tbl{width:100%;border-collapse:collapse;font-size:12.5px;}' +
+    '.px-tbl th{position:sticky;top:0;background:#f1f5f9;color:#334155;text-align:left;padding:6px 10px;font-size:12px;z-index:1;border-bottom:1px solid var(--hair);}' +
+    '.px-tbl td{padding:3px 10px;border-bottom:1px solid #f1f5f9;}' +
+    '.px-tbl td.px-dim{font-weight:600;color:#334155;white-space:nowrap;}' +
+    '.px-tbl th.px-symh,.px-tbl td.px-symc{width:26px;text-align:center;padding-left:4px;padding-right:4px;}' +
+    '.px-tbl td.px-symc input[type=checkbox]{width:auto;cursor:pointer;}' +
+    '.px-tbl input:disabled{background:#f8fafc;color:#94a3b8;}' +
+    '.px-tbl tr.px-2cell-hdr td{background:#eef2ff;color:#4338ca;font-weight:700;font-size:11px;letter-spacing:.08em;text-transform:uppercase;text-align:center;padding:5px 10px;}' +
+    '.px-tbl small{color:#94a3b8;font-size:10px;font-weight:400;}' +
+    '.px-tbl input{width:100%;font-family:inherit;}' +
+    '@media(max-width:1000px){.px-split{flex-direction:column;}.px-tblwrap{max-height:320px;width:100%;height:auto !important;}}' +
+    '.var-tblwrap{height:224px;overflow-y:auto;border:1px solid #e2e8f0;border-radius:8px;background:#fff;}.var-tbl .var-c-name{width:12%;}.var-tbl .var-c-val{width:8%;white-space:nowrap;}.var-tbl th.var-c-del,.var-tbl td.var-c-del{width:30px;padding-left:2px;padding-right:6px;}.var-del{padding:2px 6px;cursor:pointer;border-radius:5px;transition:background .12s,color .12s,transform .06s;}.var-del:hover{background:#fee2e2;color:#dc2626;}.var-del:active{transform:scale(.92);}.var-name{font-weight:600;}.var-expr{font-family:inherit;}.var-val{font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}.var-val.ok{color:#059669;}.var-val.err{color:#dc2626;font-weight:500;}.rebar-table-wrap{overflow-x:auto;}.rebar-table{width:100%;border-collapse:collapse;font-size:12px;margin:2px 0;}.rebar-table th{background:#1e293b;color:#fff;font-weight:600;padding:6px 9px;text-align:left;white-space:nowrap;border:1px solid #334155;}.rebar-table th.rs-type{color:#FFC107;background:#0f172a;text-align:center;font-weight:700;}.rebar-table td{padding:5px 9px;border:1px solid #e2e8f0;color:#334155;white-space:nowrap;}.rebar-table td:first-child,.rebar-table th:first-child{text-align:center;}.rebar-table tbody tr:nth-child(even) td{background:#f8fafc;}.rebar-table tbody tr:hover td{background:#eff6ff;}.engine-btn{display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border:1px solid #2563eb;border-radius:6px;background:#2563eb;color:#fff;font-weight:700;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;font-family:inherit;cursor:pointer;transition:background .12s,border-color .12s,box-shadow .12s,transform .06s;}.engine-btn:hover{background:#1d4ed8;box-shadow:0 2px 8px rgba(37,99,235,.35);}.engine-btn:active{transform:translateY(1px) scale(.97);box-shadow:none;}.engine-ctrls{display:flex;align-items:center;gap:8px;}.var-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px 20px;}@media(max-width:1500px){.var-grid{grid-template-columns:repeat(3,1fr);}}@media(max-width:1100px){.var-grid{grid-template-columns:repeat(2,1fr);}}@media(max-width:680px){.var-grid{grid-template-columns:1fr;}}' +
+    '.engine-btn-lite{background:#fff;border-color:#cbd5e1;color:#334155;}.engine-btn-lite:hover{background:#f1f5f9;box-shadow:0 2px 6px rgba(15,23,42,.12);}.engine-btn-lite.active{background:#2563eb;border-color:#2563eb;color:#fff;}' +
+    '.phys-split{display:flex;align-items:flex-start;}' +
+    '.phys-tblwrap{flex:1 1 0;min-width:0;height:480px;overflow:auto;background:#fff;border-left:1px solid var(--hair);border-radius:0 0 10px 0;}' +
+    '.phys-tbl{font-size:11.5px;}.phys-tbl th,.phys-tbl td{white-space:nowrap;padding:4px 8px;}' +
+    '.px-tbl.var-tbl th{background:#1e293b;color:#fff;font-weight:600;text-align:center;border-bottom:1px solid #334155;border-right:1px solid #334155;}.px-tbl.var-tbl th:last-child{border-right:none;}' +
+    '.px-tbl.dim-tbl th{background:#1e293b;color:#fff;font-weight:600;text-align:center;border-bottom:1px solid #334155;border-right:1px solid #334155;}.px-tbl.dim-tbl th:last-child{border-right:none;}' +
+    '.px-cover{width:64px;text-align:right;}' +
+    '.px-menubar{display:flex;align-items:center;justify-content:flex-start;gap:8px;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:8px 12px;margin-bottom:14px;}' +
+    '.px-mb-label{font-size:12.5px;font-weight:600;color:#475569;white-space:nowrap;}' +
+    '.px-btn-lite{background:#fff;color:#334155;border-color:#cbd5e1;}.px-btn-lite:hover{background:#f1f5f9;border-color:#cbd5e1;box-shadow:0 2px 6px rgba(15,23,42,.12);}.px-btn-lite.active{background:#2563eb;border-color:#2563eb;color:#fff;}' +
+    '.px-logpanel{background:#0f172a;color:#e2e8f0;border-radius:10px;padding:12px 16px;margin-bottom:14px;font-size:12px;font-family:ui-monospace,Menlo,Consolas,monospace;line-height:1.7;}' +
+    '.px-logpanel .log-time{color:#94a3b8;margin-bottom:4px;}.px-logpanel .log-ok{color:#34d399;}.px-logpanel .log-err{color:#f87171;}' +
+    '.px-optrow{gap:16px;margin-left:0;}.px-opthalf{flex:1 1 0;min-width:0;display:flex;gap:14px;align-items:center;flex-wrap:wrap;}' +
+    '.px-tbl.phys-tbl th{background:#1e293b;color:#fff;font-weight:600;text-align:center;border-bottom:1px solid #334155;border-right:1px solid #334155;}.px-tbl.phys-tbl th:last-child{border-right:none;}' +
+    '.phys-tbl td.phys-moving{color:#d97706 !important;}' +
+    '.phys-tbl td{text-align:right;color:#334155;}.phys-tbl td:first-child{text-align:left;font-weight:700;color:#0f172a;}' +
+    '.phys-tbl td.phys-na{color:#cbd5e1;text-align:center;}' +
+    '.phys-rsp{padding:2px 8px;font-size:9.5px;}' +
+    '@media(max-width:1100px){.phys-split{flex-direction:column;}.phys-tblwrap{border-left:none;border-top:1px solid var(--hair);height:300px;border-radius:0 0 10px 10px;}}' +
+    '.shape-grid{display:flex;flex-wrap:wrap;gap:12px;padding:4px 0 14px;margin-bottom:12px;border-bottom:1px dashed var(--hair);}' +
+    '.shape-tile{border:1px solid var(--hair);border-radius:8px;background:#f8fafc;padding:8px 10px 6px;text-align:center;}' +
+    '.shape-tile svg{display:block;background:#fff;border:1px solid #eef2f7;border-radius:6px;}' +
+    '.shape-tile .shape-code{font-size:11px;font-weight:700;color:#334155;margin-top:5px;letter-spacing:.04em;}' +
+    '.px-toast{position:fixed;top:18px;left:50%;transform:translateX(-50%);z-index:9999;display:flex;align-items:center;gap:9px;padding:10px 18px;border-radius:8px;font-size:13px;font-weight:600;box-shadow:0 4px 14px rgba(0,0,0,.18);color:#fff;font-family:"Inter",system-ui,sans-serif;}' +
+    '.px-toast.loading{background:#2563eb;}.px-toast.ok{background:#059669;}.px-toast.err{background:#dc2626;}' +
+    '.px-toast .px-spin{width:14px;height:14px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:pxspin .8s linear infinite;flex-shrink:0;}' +
+    '@keyframes pxspin{to{transform:rotate(360deg)}}';
+
+  var PXUNI = {
+    _mountId: 'mount-draw-pscbox',
+    _excelData: null, _rebarData: null, _focusId: null,
+    _lines: [], _arcs: [], _circs: [], _ducts: [], _ductSpec: [], _sectOuter: [],
+    _uiInited: false, _settleTimer: null, _rebarSettled: false, _lastAp: null, _lastStuckMsg: null,
+    _showEngNormals: false, _showEngNodes: false, _engNormGroup: null, _engNodeGroup: null,
+    _loadLog: null,
+
+      _renderRebarTables: function () {
+        var body = document.getElementById('rebarBody');
+        if (!body) return;
+
+        /*  표제목 = trebar / lrebar / srebar 입력체계 + duct(매입물)
+            세 줄이 **같은 칸을 겹쳐 쓴다.** 그래서 같은 칸에 같은 뜻을 두려고
+            애쓴 자리가 있다 — `srebar` 는 꼴(`code`·`dia`)을 `trebar` 와, 열차
+            (`init`·`range`·`ctc`)를 `lrebar` 와 같은 칸에 둔다. `z` 는 셋 다 12 다.
+              칸        2       3      4      5       6     7     8
+              trebar   code    dia    init   set     segs  angs  nors
+              lrebar   dia     num    init   range   nors  ctc   ctcmax
+              srebar   code    dia    init   range   num   ctc   leg
+            `srebar` 에 **없는 것**이 문법의 절반이다 :
+              몸통 길이  장이 낸다 (도면의 X = 206~480 이 입력에서 사라진다)
+              nors      ㄷ 는 정의상 **마주보는 두 면**을 문다. 다리 방향은 `code`+`rot`
+              ctcmax·ctcmin  기준이 정하는 한계다 → 입력이 아니라 **결과 검사**
+              gap·path  ㄷ 자체가 짝이다 · 경로를 안 탄다                        */
+        var SCHEMA = [
+          ['trebar', 'id', 'code', 'dia', 'init (x, y, rot)', 'set', 'segs (len)', 'angs', 'nors', 'barStart', 'barEnd', 'radius', 'z'],
+          ['lrebar', 'id', 'dia', 'num', 'init (x, y, rot)', 'range (-, +)', 'nors', 'ctc', 'ctcmax', 'ctcmin', 'gap', 'path', 'z'],
+          ['srebar', 'id', 'code', 'dia', 'init (x, y, rot)', 'range (-, +)', 'num', 'ctc', 'leg', '', '', '', 'z'],
+          //  매입물 — 철근이 아니라 콘크리트에 뚫린 구멍이다. 문법은 bim_duct.js 에 있다.
+          //  ref : deck(상면에서 아래 · 기본) · soffit(밑면에서 위로) · abs(절대 y)
+          DuctBlock.SCHEMA_ROW
+        ];
+        var ncol = SCHEMA[0].length;
+
+        // 엑셀 데이터 행 추출: 첫 셀이 trebar/lrebar 인 행(= 데이터). #trebar/#lrebar(헤더)·빈 행 무시
+        var dataRows = this._excelData ? this._extractRebarDataRows(this._excelData) : [];
+
+        function esc(v) { return String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+
+        // 셀 안의 산술식을 계산해 표시 (예: a=6800/2 → a=3400). 평가 실패 토큰은 원문 유지.
+        function evalTok(t) {
+          t = String(t).trim(); if (t === '') return t;
+          if (!isNaN(Number(t))) return t;                       // 순수 숫자는 그대로
+          if (typeof Calc === 'undefined') return t;
+          var r = Calc.eval(t, {});
+          if (r.error == null && isFinite(r.value)) return String(Math.round(r.value * 1000) / 1000);
+          return t;                                              // 벽id(e5)·fit·ray 등 비수식은 원문
+        }
+        function evalCell(cell) {
+          var raw = String(cell == null ? '' : cell); if (raw.trim() === '') return { txt: raw, changed: false };
+          var out = raw.split(',').map(function (part) {
+            var m = part.split('=');
+            if (m.length === 2) return m[0].trim() + '=' + evalTok(m[1]);
+            return part.trim() === '' ? part : part.replace(part.trim(), evalTok(part.trim()));
+          }).join(', ');
+          return { txt: out, changed: out.replace(/\s/g, '') !== raw.replace(/\s/g, '') };
+        }
+
+        var h = '<div class="rebar-table-wrap"><table class="rebar-table"><thead>';
+        SCHEMA.forEach(function (row) {
+          h += '<tr class="rebar-schema-row">';
+          for (var i = 0; i < ncol; i++) h += '<th class="' + (i === 0 ? 'rs-type' : '') + '">' + esc(row[i]) + '</th>';
+          h += '</tr>';
+        });
+        h += '</thead><tbody>';
+        if (dataRows.length) {
+          dataRows.forEach(function (r) {
+            h += '<tr>';
+            for (var i = 0; i < ncol; i++) {
+              /*  평가에서 빼는 칸 —
+                    0 type · 1 id  는 이름이다.
+                    2 는 trebar 의 **형상 code** 다. `23a` 처럼 가지가 붙는데,
+                      수식으로 보면 23 − 1 = **22** 가 되어 버린다. 실제로 그렇게
+                      찍혔다 — 코드는 23a(옛 표기 23-1)로 잘 들어가 있는데 표만 22 로 보였다.
+                      code 는 식이 아니라 이름이므로 계산하지 않는다.                */
+              var t0 = String(r[0] == null ? '' : r[0]).trim().toLowerCase();
+              var isTre = (t0 === 'trebar' || t0 === 'srebar');   // 둘 다 칸 2 가 code 다
+              if (i < 2 || (i === 2 && isTre)) { h += '<td>' + esc(r[i]) + '</td>'; continue; }
+              var ec = evalCell(r[i]);
+              h += ec.changed
+                ? '<td title="' + esc(r[i]) + '">' + esc(ec.txt) + '</td>'      // 툴팁 = 원본 수식
+                : '<td>' + esc(r[i]) + '</td>';
+            }
+            h += '</tr>';
+          });
+        } else {
+          h += '<tr><td colspan="' + ncol + '" style="text-align:center;color:#94a3b8;padding:14px;">Load rebar data with [Load Excel].</td></tr>';
+        }
+        body.innerHTML = h + '</tbody></table></div>';
+      },
+
+      _sectionDiag: function (walls) {
+        var minx = 1e18, miny = 1e18, maxx = -1e18, maxy = -1e18;
+        walls.forEach(function (w) { minx = Math.min(minx, w.x1, w.x2); maxx = Math.max(maxx, w.x1, w.x2); miny = Math.min(miny, w.y1, w.y2); maxy = Math.max(maxy, w.y1, w.y2); });
+        return Math.hypot(maxx - minx, maxy - miny) || 1000;
+      },
+
+      _rowFirstToken: function (row) {
+        if (!Array.isArray(row)) return '';
+        for (var c = 0; c < row.length; c++) { var v = String(row[c] == null ? '' : row[c]).trim(); if (v !== '') return v; }
+        return '';
+      },
+
+      _rowIsEnd: function (row) { return this._rowFirstToken(row).toLowerCase() === 'end'; },
+
+      _rowIsComment: function (row) { var f = this._rowFirstToken(row); var ch = f.charAt(0); return ch === '#' || ch === '!'; },
+
+      _extractRebarDataRows: function (fullData) {
+        if (!Array.isArray(fullData)) return [];
+        var out = [];
+        for (var r = 0; r < fullData.length; r++) {
+          var row = fullData[r];
+          if (this._rowIsEnd(row)) break;          // end → 종료
+          if (this._rowIsComment(row)) continue;   // 주석 행 무시
+          var hc = -1;
+          for (var c = 0; c < (row ? row.length : 0); c++) {
+            var t = String(row[c] == null ? '' : row[c]).trim().toLowerCase();
+            if (t === 'trebar' || t === 'lrebar' || t === 'srebar') { hc = c; break; }
+          }
+          if (hc >= 0) out.push(row.slice(hc));    // [type, id, code, ...] (빈 행은 자연히 스킵)
+        }
+        return out;
+      },
+
+      _parseRebar: function (fullData) {
+        this._evalErrs = [];                    // 수식 평가 실패 수집 → 있으면 로딩 중단
+        var rows = this._extractRebarDataRows(fullData), out = [], self = this;
+        rows.forEach(function (row) {
+          var type = self._rbStr(row[0]).toLowerCase();
+          out.push(type === 'lrebar' ? self._parseLrebarRow(row)
+                 : type === 'srebar' ? self._parseSrebarRow(row)
+                 : self._parseTrebarRow(row));
+        });
+        // id 중복 검사 — 중복이면 철근 로딩 중단 (결과는 로딩 토스트가 표시. 빈 id 는 검사 제외)
+        var seen = {}, dups = [];
+        out.forEach(function (o) {
+          var k = String(o.id == null ? '' : o.id).trim().toLowerCase();
+          if (!k) return;
+          if (seen[k] && dups.indexOf(seen[k]) < 0) dups.push(seen[k]);
+          seen[k] = seen[k] || o.id;
+        });
+        this._dupIds = dups;
+        if (this._evalErrs.length) {
+          console.error('[REBAR] 철근 수식 오류 — 철근 로딩 중단: ' + this._evalErrs.join(' / '));
+          return [];
+        }
+        if (dups.length) {
+          console.error('[REBAR] 철근 id 중복: ' + dups.join(', ') + ' — 철근 로딩 중단');
+          return [];
+        }
+        return out;
+      },
+
+      _parseTrebarRow: function (row) {
+        var o = { type: 'trebar', id: this._rbStr(row[1]) };
+        this._rbCurId = o.id;
+        if (this._rbHas(row[2])) o.code = TrebarFactory.normCode(row[2]);   // '23a' → 23.1
+        if (this._rbHas(row[3])) o.dia = this._rbNum(row[3]);
+        var init = this._rbInit(row[4], ['x', 'y', 'rot']); if (init) o.init = init;
+        var segs = this._rbSegs(row[6], row[5]); if (segs) o.segs = segs;
+        var angs = this._rbAngs(row[7]); if (angs) o.angs = angs;
+        var nors = this._rbNors(row[8]); if (nors) o.nors = nors;
+        var be = {}, bs = this._rbEnd(row[9]), bee = this._rbEnd(row[10]);
+        if (bs) be.start = bs; if (bee) be.end = bee;
+        if (Object.keys(be).length) o.barEnds = be;
+        if (this._rbHas(row[11])) o.radius = this._rbNum(row[11]);   // 굴짐반경(선택) — 없으면 dia 기본값
+        o.z = this._rbHas(row[12]) ? Number(row[12]) : 0;       // z-order(층) — 미입력=0. 같은 z 끼리만 반발
+        return o;
+      },
+
+      _parseLrebarRow: function (row) {
+        var o = { type: 'lrebar', id: this._rbStr(row[1]), bar: {} };
+        this._rbCurId = o.id;
+        if (this._rbHas(row[2])) o.bar.dia = this._rbNum(row[2]);
+        if (this._rbHas(row[3])) o.bar.num = this._rbNum(row[3]);
+        /*  칸 차례 :  4 init(x,y,rot) · 5 range(−,+) · 6 nors · 7 ctc · 8 ctcmax ·
+            9 ctcmin · 11 path · 12 z.  배치 직선을 정하는 것(init·range·nors)을 붙여
+            앞에 두고, 간격 셋을 그다음에, **쓰는 일이 드문 path 는 맨 뒤**에 둔다.    */
+        if (this._rbHas(row[7])) o.bar.ctc = this._rbNum(row[7]);
+        if (this._rbHas(row[8])) o.bar.max = this._rbNum(row[8]);
+        if (this._rbHas(row[9])) o.bar.min = this._rbNum(row[9]);
+        /*  gap — 상·하 한 쌍으로 놓을 때 **둘 사이 간격**. 주면 한 줄이 철근 두 줄을
+            만든다(위쪽 nors, 아래쪽 −nors). 태어날 때 이만큼 벌려 놓고 각자 제 면으로
+            끌려가며, 다 풀고 나서 **간격이 이 값을 넘으면 그 짝은 버린다** — 그 자리엔
+            한쪽 면이 없다는 뜻이다(복부에서는 아래쪽 철근이 하부슬래브 하면까지
+            6.7 m 를 내려간다. 정상 구간은 최대 509 mm 다).                        */
+        if (this._rbHas(row[10])) o.bar.gap = this._rbNum(row[10]);
+        var init = this._rbInit(row[4], ['x', 'y', 'rot']); if (init) o.init = init;   // init 은 x,y,rot 만 (grav 분리)
+        var range = this._rbRange(row[5]); if (range) o.range = range;
+        // nors(row[6]) = 종방향 철근이 끌려갈 쪽(-1/+1). init 에 섞지 않고 별도 칸에서 읽어 엔진이 쓰는 init.grav 로 전달
+        if (this._rbHas(row[6])) { if (!o.init) o.init = {}; o.init.grav = Number(row[6]); }
+        var path = this._rbList(row[11]).map(function (s) { return s.toUpperCase(); });
+        if (path.length) o.path = path;
+        o.z = this._rbHas(row[12]) ? Number(row[12]) : 0;       // z-order(층) — 미입력=0
+        return o;
+      },
+
+      /*  ── `srebar` — 갈고리(ㄷ) 열차 한 줄 ───────────────────────────────
+          한 줄이 **철근 N 개**다. `trebar` 는 한 줄이 하나지만, 갈고리는 종방향과
+          같은 직선 위를 같은 간격으로 달리므로 `lrebar` 쪽 문법을 쓴다.
+          칸 : 2 code · 3 dia · 4 init(x,y,rot) · 5 range(−,+) · 6 num · 7 ctc ·
+               8 leg · 12 z.   (SCHEMA 주석에 왜 이 자리인지 적어 두었다.)        */
+      _parseSrebarRow: function (row) {
+        var o = { type: 'srebar', id: this._rbStr(row[1]) };
+        this._rbCurId = o.id;
+        if (this._rbHas(row[2])) o.code = TrebarFactory.normCode(row[2]);   // '23a' → 23.1
+        if (this._rbHas(row[3])) o.dia = this._rbNum(row[3]);
+        var init = this._rbInit(row[4], ['x', 'y', 'rot']); if (init) o.init = init;
+        var range = this._rbRange(row[5]); if (range) o.range = range;
+        if (this._rbHas(row[6])) o.num = this._rbNum(row[6]);
+        if (this._rbHas(row[7])) o.ctc = this._rbNum(row[7]);
+        /*  `leg` — 다리 길이. **정착길이**라 설계기준이 정하는 값이고, 그래서
+            장 밖이다. 같은 잣대를 끝까지 대면 `mat | fck | fy` 를 단면에 넣어
+            여기서 유도해야 한다 — 그건 시트에 아직 없으니 지금은 입력으로 둔다
+            (「아직 안 한 것」에 적어 두었다).                                   */
+        if (this._rbHas(row[8])) o.leg = this._rbNum(row[8]);
+        /*  `body` — **∩ 꼴**이다. 비우면 지금까지의 ㄷ (열차 ∥ 다리 · 몸통이
+            마주보는 두 면 사이), 적으면 **뒤집힌다** : 열차 ∥ 몸통 · **다리가**
+            마주보는 두 면 사이다. 도면 8-243 의 하부슬래브 T3 가 그 꼴이고,
+            값은 그 몸통 길이(387)다. 자세한 것은 `_expandSrebar` 주석에.      */
+        if (this._rbHas(row[9])) o.body = this._rbNum(row[9]);
+        /*  `end` — **다리가 벽체를 어느 쪽으로 찾나.** ∩ 에만 묻는다.
+            규칙은 하나이고, ∩ 가 어디 서느냐로 갈린다 :
+              normal   다리가 면을 **따라 눕는다** → 제 **법선**으로 벽체를 찾는다.
+                       면에 안기므로 두 다리가 각자 제 면을 따라 줄어들고, 그 다름이
+                       곧 「벽체 경사를 맞춘다」다.                    ← **복부**의 ∩
+              tangent  다리가 두께를 **가로지른다** → 법선은 옆을 보고 그 쪽엔 쓸 면이
+                       없다(재면 `rest` 가 빈다). **접선**(다리가 뻗는 쪽)으로 찾는다.
+                       끝은 앞에 있는 종방향에 기대고, 없으면 그 면의 피복선에서
+                       멈춘다.                                     ← **하부슬래브**의 ∩
+            「끝단의 어디를 정착시킬 것인가」가 이 한 칸이다 : 법선이면 다리의 **옆**
+            이, 접선이면 다리의 **끝**이 자리를 잡는다.
+            꼴과 **직교**하는 성질이라 코드를 안 쪼갠다 — 같은 ∩ 가 복부에도 하부에도
+            서고, 나중에 ㄷ 에도 같은 물음이 생긴다.                                */
+        if (this._rbHas(row[10])) {
+          var ev = this._rbStr(row[10]).toLowerCase();
+          o.end = (ev === 'normal' || ev === 'n') ? 'normal'
+                : (ev === 'tangent' || ev === 't') ? 'tangent' : ev;
+        }
+        o.z = this._rbHas(row[12]) ? Number(row[12]) : 0;
+        return o;
+      },
+
+      _rbStr: function (v) { return String(v == null ? '' : v).trim(); },
+
+      _rbHas: function (v) { return v != null && String(v).trim() !== ''; },
+
+      _rbNum: function (v) {
+        v = this._rbStr(v); if (v === '') return undefined;
+        var n = Number(v); if (!isNaN(n)) return n;
+        if (typeof Calc !== 'undefined') {                          // 산술식 (예: 6800/2) 평가. 숫자로 못 읽히면 오류
+          var r = Calc.eval(v, {});
+          if (r.error == null && isFinite(r.value)) return r.value;
+          var where = (this._rbCurId ? this._rbCurId + '의 ' : '') + '"' + v + '"';
+          if (this._evalErrs) this._evalErrs.push(where + ' (' + r.error + ')');
+          console.error('[REBAR] 수식 평가 실패:', where, '—', r.error);
+        }
+        return v;
+      },
+
+      _rbList: function (v) { return this._rbStr(v).split(',').map(function (s) { return s.trim(); }).filter(function (s) { return s !== ''; }); },
+
+      _rbKV: function (v) {
+        var o = {}, self = this;
+        this._rbStr(v).split(',').forEach(function (pair) {
+          var m = pair.split(/[:=]/);
+          if (m.length >= 2) { var k = self._rbStr(m[0]).toLowerCase(); if (k) o[k] = self._rbStr(m.slice(1).join('=')); }
+        });
+        return o;
+      },
+
+      _rbInit: function (cell, keys) {
+        var toks = this._rbList(cell); if (!toks.length) return null;
+        var o = {}, self = this;
+        keys.forEach(function (k, i) { if (self._rbHas(toks[i])) o[k] = self._rbNum(toks[i]); });
+        return Object.keys(o).length ? o : null;
+      },
+
+      _rbSegs: function (segsCell, setCell) {
+        var kv = this._rbKV(segsCell), segs = {}, self = this;
+        Object.keys(kv).forEach(function (k) { segs[k] = { len: self._rbNum(kv[k]) }; });
+        var setKV = this._rbKV(setCell);
+        Object.keys(setKV).forEach(function (k) { if (!segs[k]) segs[k] = {}; segs[k].set = self._rbStr(setKV[k]).toUpperCase(); });
+        return Object.keys(segs).length ? segs : null;
+      },
+
+      _rbAngs: function (cell) {
+        var kv = this._rbKV(cell), angs = {}, self = this;
+        Object.keys(kv).forEach(function (k) { angs['r' + k] = self._rbNum(kv[k]); });
+        return Object.keys(angs).length ? angs : null;
+      },
+
+      _rbNors: function (cell) {
+        var kv = this._rbKV(cell), nors = {}, self = this;
+        Object.keys(kv).forEach(function (k) { nors[k] = self._rbNum(kv[k]); });
+        return Object.keys(nors).length ? nors : null;
+      },
+
+      _rbRange: function (cell) {
+        var toks = this._rbList(cell); if (!toks.length) return null;
+        var o = {};
+        if (this._rbHas(toks[0])) o.min = this._rbNum(toks[0]);
+        if (this._rbHas(toks[1])) o.max = this._rbNum(toks[1]);
+        return Object.keys(o).length ? o : null;
+      },
+
+      _rbEnd: function (cell) {
+        var toks = this._rbList(cell); if (!toks.length) return null;
+        var mode = this._rbStr(toks[0]).toLowerCase(); if (!mode) return null;
+        var o = {}; o[mode] = toks.length > 1 ? (Number(toks[1]) || 0) : 0; return o;
+      },
+
+      _rebarHostHTML:
+        '<div class="draw-card" id="rebarRenderCard">' +
+          '<div class="draw-card-header">' +
+            '<div class="draw-card-title">Rebar Physics</div>' +
+            '<div class="engine-ctrls">' +
+              '<button type="button" class="engine-btn" onclick="PXUNI.rebarRespawn()"><i class="bi bi-arrow-counterclockwise"></i> Respawn</button>' +
+              '<button type="button" class="engine-btn" id="btnPause" onclick="PXUNI.rebarPause()"><i class="bi bi-pause-fill"></i> Pause</button>' +
+              '<button type="button" class="engine-btn" id="btnEngineSel" onclick="PXUNI.toggleEngine()"><i class="bi bi-cpu"></i> Solver: J-field</button>' +
+              '<button type="button" class="engine-btn" onclick="PXUNI.exportDXF()"><i class="bi bi-download"></i> Export DXF</button>' +
+              '<button type="button" class="engine-btn engine-btn-lite" id="btnToggleNormals" onclick="PXUNI.toggleNormals()"><i class="bi bi-arrows-angle-expand"></i> Toggle Normals</button>' +
+              '<button type="button" class="engine-btn engine-btn-lite" id="btnToggleSpawn" onclick="PXUNI.toggleSpawn()"><i class="bi bi-crosshair"></i> Toggle Spawn</button>' +
+              '<button type="button" class="engine-btn engine-btn-lite" id="btnToggleNodes" onclick="PXUNI.toggleNodes()"><i class="bi bi-123"></i> Toggle Nodes (#)</button>' +
+            '</div>' +
+            '<div class="draw-card-desc" id="stat-grid"></div>' +
+          '</div>' +
+          '<div class="draw-card-body" style="padding:0;">' +
+            '<div class="phys-split">' +
+              '<div id="renderContainer" style="flex:1 1 0;min-width:0;aspect-ratio:16/9;height:auto;background:#41699b;border-radius:0 0 0 10px;overflow:hidden;cursor:grab;"></div>' +
+              '<div class="phys-tblwrap">' +
+                '<table class="px-tbl phys-tbl"><thead><tr>' +
+                  '<th>ID</th><th>Code</th><th>Total</th><th>Dia</th>' +
+                  '<th>a</th><th>b</th><th>c</th><th>d</th><th>e</th><th>f</th><th>ra</th><th>rb</th><th>rc</th><th>rd</th><th>re</th>' +
+                  '<th></th>' +
+                '</tr></thead><tbody id="physTblBody"></tbody></table>' +
+              '</div>' +
+            '</div>' +
+          '</div>' +
+        '</div>',
+
+      _ensureRebarHost: function () {
+        var host = document.getElementById('renderContainer');
+        if (host) return host;
+        var mount = document.getElementById(PXUNI._mountId);
+        if (!mount) return null;
+        var parent = mount.querySelector('.px-root') || mount;   // 카드 스타일(.px-root .draw-card) 적용 위치
+        var wrap = document.createElement('div');
+        wrap.innerHTML = this._rebarHostHTML;
+        parent.appendChild(wrap.firstChild);
+        return document.getElementById('renderContainer');
+      },
+
+      _fitEngineStage: function () {
+        if (typeof UI === 'undefined' || !UI.stage || !UI.mainLayer) return;
+        var rc = document.getElementById('renderContainer');
+        if (!rc) return;
+        var w = rc.clientWidth || 800, h = rc.clientHeight || Math.round((rc.clientWidth || 800) * 9 / 16);
+        UI.stage.width(w); UI.stage.height(h);
+        var tw = document.querySelector('.phys-tblwrap');
+        if (tw) tw.style.height = h + 'px';                 // 우측 표 높이를 16:9 뷰와 동기화
+
+        var minx = 1e18, miny = 1e18, maxx = -1e18, maxy = -1e18;
+        var paths = (typeof Domain !== 'undefined' && Domain.currentSection && Domain.currentSection.displayPaths) || [];
+        paths.forEach(function (p) { p.forEach(function (pt) { minx = Math.min(minx, pt.x); maxx = Math.max(maxx, pt.x); miny = Math.min(miny, pt.y); maxy = Math.max(maxy, pt.y); }); });
+
+        UI.mainLayer.scale({ x: 1, y: -1 });          // Y 반전 (ui.js init 과 동일)
+        UI.stage.position({ x: 0, y: 0 });
+        if (minx > maxx) { UI.stage.scale({ x: 0.1, y: 0.1 }); UI.mainLayer.position({ x: w / 2, y: h / 2 }); }
+        else {
+          var bw = (maxx - minx) || 1, bh = (maxy - miny) || 1, cx = (minx + maxx) / 2, cy = (miny + maxy) / 2;
+          var s = Math.min(w / bw, h / bh) * 0.85;
+          UI.stage.scale({ x: s, y: s });
+          UI.mainLayer.position({ x: w / (2 * s) - cx, y: h / (2 * s) + cy });
+        }
+        if (typeof UI.drawGrid === 'function') UI.drawGrid();
+        UI.mainLayer.draw();
+      },
+
+      rebarRespawn: function () {
+        var b = document.getElementById('btnPause');
+        if (b) b.innerHTML = '<i class="bi bi-pause-fill"></i> Pause';
+        this._drawRebar();
+      },
+
+      rebarPause: function () {
+        if (typeof Domain !== 'undefined' && typeof Domain.togglePause === 'function') Domain.togglePause();
+      },
+
+      /*  ── 엔진 둘 ────────────────────────────────────────────────────────
+          'jfield'   jfield.js — 목적함수 J 를 최소화한다. 한 번에 푼다(애니메이션 없음).
+          'physics'  physics.js — 예전 것. 광선으로 벽을 고르고 용수철로 끌어다 붙인다.
+          기본값은 J 다. 예전 것은 비교용으로 남긴다 — 버튼으로 오간다.            */
+      _engine: 'jfield',
+
+      _syncEngineBtn: function () {
+        var b = document.getElementById('btnEngineSel');
+        if (!b) return;
+        b.innerHTML = '<i class="bi bi-cpu"></i> Solver: ' +
+          (this._engine === 'jfield' ? 'J-field' : 'Physics');
+      },
+
+      toggleEngine: function () {
+        this._engine = (this._engine === 'jfield') ? 'physics' : 'jfield';
+        this._syncEngineBtn();
+        this.rebarRespawn();
+      },
+
+      /*  ── J 들여다보기 ────────────────────────────────────────────────
+          표의 철근번호를 누르면 그 철근의 **J 가 어떻게 정해지고 어떻게 내려갔는지**
+          를 창으로 보여 준다. 논문 그림이 그대로 나오도록 만든 자리다.
+          푸는 것은 건드리지 않는다 — 그 철근만 다시 풀어(나머지는 놓인 그대로
+          척력으로만) 과정을 받아 적고, 화면의 형상은 그대로 둔다.               */
+      _jAnalyze: function (id) {
+        if (typeof JField === 'undefined' || typeof Domain === 'undefined') return null;
+        var sec = Domain.currentSection;
+        if (!sec || !sec.walls || !sec.walls.length) return null;
+        var rd = null;
+        (this._rebarData || []).forEach(function (d) { if (String(d.id) === String(id)) rd = d; });
+        if (!rd || String(rd.type || 'trebar').toLowerCase() !== 'trebar') return null;
+        var nb = null;
+        try { nb = Domain._createTrebarFromData(rd); } catch (e) { return null; }
+        if (!nb || !nb.segments || !nb.segments.length) return null;
+
+        /*  척력으로 넘길 철근은 **이 철근보다 먼저 놓인 것들만**이다.
+            「나머지 전부」를 넘기면 창에 뜨는 J 가 화면의 형상을 만든 J 와 **다른
+            문제**가 된다 — 뒤에 놓인 철근까지 밀고 있으니 최소점이 딴 데 생기고,
+            창의 숫자와 그림이 어긋난다(①-1 이 피복선에서 19 mm 밖인데 J 는 안쪽
+            10 mm 가 더 낮다고 나왔다). 엔진이 푼 순서를 그대로 되짚는다.        */
+        var placed = [], hit = false;
+        Domain.trebarList.forEach(function (t) {
+          if (String(t.id) === String(id)) { hit = true; return; }
+          if (hit) return;                       // 이 철근보다 뒤에 놓인 것은 안 본다
+          (t.segments || []).forEach(function (sg) {
+            placed.push({ p1: { x: sg.p1.x, y: sg.p1.y }, p2: { x: sg.p2.x, y: sg.p2.y }, dia: t.dia || 13 });
+          });
+        });
+
+        var dia = nb.dia || 13;
+        var bar = { id: String(nb.id), dia: dia, segs: nb.segments.map(function (sg) {
+          return { label: sg.label, p1: { x: sg.p1.x, y: sg.p1.y }, p2: { x: sg.p2.x, y: sg.p2.y },
+                   normal: { x: sg.normal.x, y: sg.normal.y } };
+        }) };
+
+        var r = null, trace = [];
+        JField.TRACE = [];
+        try { r = JField.form(bar, sec.walls, sec, this._ducts || [], placed); }
+        catch (e) { console.error('[REBAR] J 분석:', e); }
+        trace = JField.TRACE || []; JField.TRACE = null;
+        if (!r) return null;
+
+        var ducts = this._ducts || [];
+        //  태어난 자리 판정 — `bar` 는 방금 입력에서 다시 만든 것이라 **스폰 상태**다
+        var diag = this._seatDiag(bar, sec);
+        var out = { id: String(id), dia: dia, pts: r.pts, pass: r.pass, placed: placed, ducts: ducts, segs: [] };
+        r.segs.forEach(function (rs, i) {
+          var p = r.pts[i], q = r.pts[i + 1];
+          var th = Math.atan2(q.y - p.y, q.x - p.x);
+          var mid = { x: (p.x + q.x) / 2, y: (p.y + q.y) / 2 };
+          var seg = { label: rs.label, len: Math.hypot(q.x - p.x, q.y - p.y) || 1, dia: dia,
+                      n0: bar.segs[i].normal, p1: p, p2: q, mid: mid, c0: mid, th0: th };
+          var cons = JField.targets(seg, sec.walls, sec, dia);
+          var pose = { cx: mid.x, cy: mid.y, th: th };
+          var assign = cons.length ? JField.assignOf(pose, seg, cons) : null;
+          var ip = bar.segs[i];
+          out.segs.push({
+            label: rs.label, seg: seg, cons: cons, pose: pose, assign: assign,
+            init: { p1: ip.p1, p2: ip.p2, mid: { x: (ip.p1.x + ip.p2.x) / 2, y: (ip.p1.y + ip.p2.y) / 2 } },
+            parts: cons.length ? JField.energyParts(pose, seg, cons, ducts, placed, [], assign) : null,
+            contacts: rs.contacts || [], rest: rs.rest || [], len: rs.len, len0: rs.len0,
+            iter: rs.iter, stopped: rs.stopped || null, diag: diag[i] || null,
+            trace: trace.filter(function (t) { return t.seg === rs.label; })
+          });
+        });
+        return out;
+      },
+
+      //  ── J 창 ────────────────────────────────────────────────────────
+      _jSeg: 0,
+
+      openJ: function (id) {
+        this.focusRebar(id);                       // 형상도 같이 강조
+        this._jId = String(id); this._jSeg = 0;
+        this._jData = this._jAnalyze(id);
+        this._jRender();
+      },
+
+      closeJ: function () {
+        var m = document.getElementById('pxJModal');
+        if (m) m.style.display = 'none';
+      },
+
+      pickJSeg: function (i) { this._jSeg = Number(i) || 0; this._jRender(); },
+
+      _jHost: function () {
+        var m = document.getElementById('pxJModal');
+        if (m) return m;
+        m = document.createElement('div');
+        m.id = 'pxJModal';
+        m.style.cssText = 'position:fixed;inset:0;z-index:9999;display:none;' +
+          'background:rgba(15,23,42,.45);align-items:center;justify-content:center;padding:24px;';
+        m.addEventListener('click', function (e) { if (e.target === m) m.style.display = 'none'; });
+        var st = document.createElement('style');
+        st.textContent =
+          '#pxJModal .jbox{background:#fff;border-radius:12px;max-width:720px;width:100%;max-height:90vh;' +
+          'overflow:auto;box-shadow:0 20px 50px rgba(15,23,42,.35);}' +
+          '#pxJModal .jhd{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid #e2e8f0;' +
+          'position:sticky;top:0;background:#fff;border-radius:12px 12px 0 0;}' +
+          '#pxJModal .jttl{font-weight:800;font-size:15px;color:#0f172a;}' +
+          '#pxJModal .jtab{border:1px solid #cbd5e1;background:#f8fafc;border-radius:6px;padding:3px 10px;' +
+          'font-size:12px;font-weight:700;color:#475569;cursor:pointer;}' +
+          '#pxJModal .jtab.on{background:#1d4ed8;border-color:#1d4ed8;color:#fff;}' +
+          '#pxJModal .jx{margin-left:auto;border:0;background:#f1f5f9;border-radius:6px;padding:4px 10px;cursor:pointer;font-weight:700;color:#475569;}' +
+          '#pxJModal .jbody{padding:14px 16px 18px;}' +
+          '#pxJModal .jrow{display:flex;gap:14px;flex-wrap:wrap;}' +
+          '#pxJModal .jcap{font-size:11px;font-weight:700;color:#64748b;margin:0 0 4px;}' +
+          '#pxJModal .jsvg{border:1px solid #e2e8f0;border-radius:8px;background:#fff;display:block;}' +
+          '#pxJModal .jnote{font-size:12px;color:#b45309;padding:10px;background:#fffbeb;border-radius:8px;}' +
+          '#pxJModal table.jt{border-collapse:collapse;font-size:12px;margin-top:12px;width:100%;}' +
+          '#pxJModal table.jt th,#pxJModal table.jt td{border:1px solid #e2e8f0;padding:4px 8px;text-align:right;}' +
+          '#pxJModal table.jt th{background:#f8fafc;color:#475569;font-weight:700;}' +
+          '#pxJModal table.jt td:first-child,#pxJModal table.jt th:first-child{text-align:left;}' +
+          '#pxJModal .jsw{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:-1px;}';
+        m.appendChild(st);
+        var box = document.createElement('div');
+        box.className = 'jbox'; box.id = 'pxJBox';
+        m.appendChild(box);
+        document.body.appendChild(m);
+        return m;
+      },
+
+      _jRender: function () {
+        var m = this._jHost(); if (!m) return;
+        var box = document.getElementById('pxJBox'); if (!box) return;
+        var d = this._jData, self = this;
+        m.style.display = 'flex';
+        if (!d) {
+          box.innerHTML = '<div class="jhd"><span class="jttl">J</span>' +
+            '<button class="jx" onclick="PXUNI.closeJ()">닫기</button></div>' +
+            '<div class="jbody"><div class="jnote">이 철근의 J 를 볼 수 없습니다. ' +
+            'Solver 가 J-field 인지, trebar 행인지 확인하세요.</div></div>';
+          return;
+        }
+        var i = Math.max(0, Math.min(this._jSeg, d.segs.length - 1));
+        var sd = d.segs[i], hue = this._J_HUE;
+        var f2 = function (v) { return (v == null || !isFinite(v)) ? '—' : (Math.round(v * 100) / 100).toString(); };
+
+        var h = '<div class="jhd"><span class="jttl">' + this._esc(d.id) + ' · D' + d.dia + '</span>';
+        d.segs.forEach(function (sg, k) {
+          h += '<button class="jtab' + (k === i ? ' on' : '') + '" onclick="PXUNI.pickJSeg(' + k + ')">조각 ' + self._esc(sg.label) + '</button>';
+        });
+        h += '<button class="jx" onclick="PXUNI.closeJ()">닫기</button></div><div class="jbody">';
+
+        h += '<div class="jrow">' +
+          '<div><div class="jcap">① J 의 지형 — 바탕색 = 그 자리에서 가장 가까운 면, 진할수록 J 가 낮다</div>' +
+          this._jFieldSvg(sd, d.ducts, d.placed) + '</div>' +
+          '<div><div class="jcap">② 수렴 이력 — 세로는 log, 판이 바뀌는 자리는 세로 점선</div>' +
+          this._jTraceSvg(sd.trace) + '</div></div>';
+
+        /*  ── 태어난 자리 ────────────────────────────────────────────────────
+            **입력을 고치는 자리**다. 결과 J 는 「어디에 앉았나」를 말하지만, 왜 그
+            면을 골랐는지는 태어난 자리에서 무엇이 보였는지에 달려 있다. 버린 면까지
+            거리와 이유를 같이 적는다 — **가장 가까운 면이 후보에 못 들어왔으면**
+            그 조각은 입력이 모자란 것이다(⑧-1 의 400 mm 다리 : E18 72 mm 가 50 mm
+            차이로 빠지고 5,781 mm 위의 E1 이 쓰였다).                            */
+        var dg = sd.diag;
+        if (dg) {
+          h += '<div class="jcap">③ 태어난 자리 — 입력이 놓은 자리와, 그 자리에서 마주보던 면들</div>';
+          h += '<table class="jt"><thead><tr><th>태어난 자리</th><th>p1</th><th>p2</th>' +
+               '<th>길이</th><th>법선</th><th>가장 가까운 후보</th></tr></thead><tbody><tr>' +
+               '<td>조각 ' + this._esc(dg.label) + '</td>' +
+               '<td>' + Math.round(dg.p1.x) + ', ' + Math.round(dg.p1.y) + '</td>' +
+               '<td>' + Math.round(dg.p2.x) + ', ' + Math.round(dg.p2.y) + '</td>' +
+               '<td>' + Math.round(dg.len) + '</td>' +
+               '<td>' + f2(dg.n.x) + ', ' + f2(dg.n.y) + '</td>' +
+               '<td>' + (dg.reach == null ? '<span style="color:#b45309;">없음</span>' : Math.round(dg.reach) + ' mm') + '</td>' +
+               '</tr></tbody></table>';
+          if (dg.none) {
+            h += '<div class="jnote" style="color:#b45309;">이 조각의 법선 방향에 <b>마주보는 콘크리트 면이 없습니다.</b> ' +
+                 '법선(nors)이나 태어난 자리를 보세요 — 엔진은 자리를 지어내지 않고 태어난 자리에 그대로 둡니다.</div>';
+          } else if (dg.miss) {
+            h += '<div class="jnote" style="color:#b45309;"><b>가장 가까운 면이 후보에 못 들어왔습니다.</b> ' +
+                 this._esc(dg.miss.near.id) + ' 가 ' + Math.round(dg.miss.near.d) + ' mm 로 가장 가깝지만 ' +
+                 '조각의 축 범위에서 ' + Math.round(dg.miss.near.gap) + ' mm 벗어나 있어 빠졌고, ' +
+                 this._esc(dg.miss.seat.id) + ' (' + Math.round(dg.miss.seat.d) + ' mm) 가 쓰였습니다. ' +
+                 '엔진은 규칙대로 움직입니다 — <b>입력 길이(segs)나 태어난 자리를 고쳐야 하는 자리입니다.</b></div>';
+          }
+          h += '<table class="jt"><thead><tr><th>태어난 자리에서 마주보던 면</th><th>tag</th>' +
+               '<th>참거리 (mm)</th><th>조각이 면 위에</th><th>띠 모자람 (mm)</th><th>후보로 씀</th></tr></thead><tbody>';
+          if (!dg.seats.length) {
+            h += '<tr><td colspan="6" style="text-align:center;color:#b45309;">마주보는 면이 하나도 없습니다</td></tr>';
+          } else {
+            dg.seats.forEach(function (c) {
+              h += '<tr' + (c.used ? '' : ' style="opacity:.55;"') + '>' +
+                   '<td>' + self._esc(c.id) + '</td><td>' + self._esc(c.tag || '') + '</td>' +
+                   '<td>' + Math.round(c.d) + '</td><td>' + (c.band ? '●' : '') + '</td>' +
+                   '<td>' + (c.gap > 0 ? Math.round(c.gap) : '') + '</td>' +
+                   '<td>' + (c.used ? '●' : '<span style="color:#94a3b8;">버림</span>') + '</td></tr>';
+            });
+          }
+          h += '</tbody></table>';
+        }
+
+        //  후보 면 표 — 「고른 것」이 아니라 「결과로 읽은 것」
+        h += '<table class="jt"><thead><tr><th>후보 면</th><th>tag</th><th>요구 피복+D/2</th>' +
+             '<th>여유 g (mm)</th><th>접촉</th><th>승수 λ</th></tr></thead><tbody>';
+        if (!sd.cons.length) {
+          h += '<tr><td colspan="6" style="text-align:center;color:#b45309;">붙을 면 없음 — 이 조각은 안착하지 못했습니다</td></tr>';
+        } else {
+          var half = sd.seg.len / 2;
+          var dx = Math.cos(sd.pose.th) * half, dy = Math.sin(sd.pose.th) * half;
+          var ep = [{ x: sd.pose.cx - dx, y: sd.pose.cy - dy }, { x: sd.pose.cx + dx, y: sd.pose.cy + dy }];
+          sd.cons.forEach(function (c, k) {
+            var g = Math.min(JField.slack(ep[0].x, ep[0].y, c), JField.slack(ep[1].x, ep[1].y, c));
+            var ct = (sd.contacts || []).filter(function (x) { return x.id === c.w.id; })[0];
+            h += '<tr><td><span class="jsw" style="background:hsl(' + hue[k % hue.length] + ',62%,55%)"></span>' +
+                 self._esc(c.w.id) + '</td><td>' + self._esc(c.w.tag || '') + '</td><td>' + f2(c.need) + '</td>' +
+                 '<td>' + f2(g) + '</td><td>' + (ct ? '●' : '') + '</td><td>' + (ct ? f2(ct.lam) : '') + '</td></tr>';
+          });
+        }
+        h += '</tbody></table>';
+
+        //  항별 분해
+        var p = sd.parts;
+        h += '<table class="jt"><thead><tr><th>J 의 항</th><th>피복</th><th>덕트</th><th>기존 철근</th>' +
+             '<th>제자리 고정</th><th>합</th></tr></thead><tbody><tr><td>최종 자세에서</td>' +
+             '<td>' + f2(p && p.cover) + '</td><td>' + f2(p && p.duct) + '</td><td>' + f2(p && p.bar) + '</td>' +
+             '<td>' + f2(p && p.anchor) + '</td><td><b>' + f2(p && p.total) + '</b></td></tr></tbody></table>';
+
+        h += '<table class="jt"><thead><tr><th>조각 ' + this._esc(sd.label) + '</th><th>입력 길이</th><th>출력 길이</th>' +
+             '<th>안착 면</th><th>반복</th><th>판</th></tr></thead><tbody><tr><td>결과</td>' +
+             '<td>' + f2(sd.len0) + '</td><td>' + f2(sd.len) + '</td><td>' + this._esc((sd.rest[0] || '없음')) + '</td>' +
+             '<td>' + sd.iter + '</td><td>' + d.pass + '</td></tr></tbody></table>';
+
+        h += '</div>';
+        box.innerHTML = h;
+      },
+
+      //  후보 면마다 색 하나 — 지형 그림과 범례가 같은 색을 쓴다
+      _J_HUE: [210, 28, 140, 275, 45, 320, 170, 0],
+
+      /*  ① J 의 지형 — 자세를 (cx, cy) 격자로 훑어 J 를 뜬다.
+          바탕색 = **그 자리에서 어느 면이 가장 가까운가**(min 이 고른 면).
+          진하기 = J 의 크기(log). 그래서 「마주보는 벽이 여럿인데 왜 이것인가」가
+          규칙 설명 없이 그림으로 끝난다. init 에서 최종까지 화살표도 같이 그린다. */
+      _jFieldSvg: function (sd, ducts, placed) {
+        if (!sd.cons.length) return '<div class="jnote">붙을 면을 찾지 못해 지형을 그릴 수 없습니다.</div>';
+        var S = sd.seg, cons = sd.cons, pose = sd.pose, hue = this._J_HUE;
+        var i0 = sd.init.mid;
+        var travel = Math.hypot(pose.cx - i0.x, pose.cy - i0.y);
+        var half = Math.max(240, travel * 0.72 + 200);
+        var cx0 = (pose.cx + i0.x) / 2, cy0 = (pose.cy + i0.y) / 2;
+        var W = 300, H = 230, NX = 40, NY = 31;
+        var ratio = H / W, hy = half * ratio;
+        var sx = function (x) { return (x - (cx0 - half)) / (2 * half) * W; };
+        var sy = function (y) { return H - (y - (cy0 - hy)) / (2 * hy) * H; };   // 엔진 y-up → svg y-down
+
+        //  격자 훑기
+        var cell = [], lo = 1e18, hi = -1e18;
+        for (var iy = 0; iy < NY; iy++) {
+          for (var ix = 0; ix < NX; ix++) {
+            var gx = cx0 - half + (2 * half) * (ix + 0.5) / NX;
+            var gy = cy0 - hy + (2 * hy) * (iy + 0.5) / NY;
+            var pp = { cx: gx, cy: gy, th: pose.th };
+            var as = JField.assignOf(pp, S, cons);
+            var Jv = JField.energy(pp, S, cons, ducts, placed, [], as);
+            var lg = Math.log10(1 + Math.max(0, Jv));
+            if (lg < lo) lo = lg; if (lg > hi) hi = lg;
+            cell.push({ ix: ix, iy: iy, w: as[0], J: lg });
+          }
+        }
+        var span = (hi - lo) || 1;
+        var g = '';
+        var cw = W / NX + 0.6, ch = H / NY + 0.6;
+        cell.forEach(function (c) {
+          var t = (c.J - lo) / span;                       // 0 = 바닥, 1 = 멀다
+          var h = hue[c.w % hue.length];
+          var L = 42 + 50 * t, Sa = 62 - 34 * t;
+          g += '<rect x="' + (c.ix * W / NX).toFixed(1) + '" y="' + (H - (c.iy + 1) * H / NY).toFixed(1) +
+               '" width="' + cw.toFixed(1) + '" height="' + ch.toFixed(1) +
+               '" fill="hsl(' + h + ',' + Sa.toFixed(0) + '%,' + L.toFixed(0) + '%)"/>';
+        });
+
+        //  후보 면의 피복선 (점선)
+        cons.forEach(function (c, i) {
+          var w = c.w, n = c.need;
+          var x1 = w.x1 + w.nx * n, y1 = w.y1 + w.ny * n, x2 = w.x2 + w.nx * n, y2 = w.y2 + w.ny * n;
+          g += '<line x1="' + sx(x1).toFixed(1) + '" y1="' + sy(y1).toFixed(1) +
+               '" x2="' + sx(x2).toFixed(1) + '" y2="' + sy(y2).toFixed(1) +
+               '" stroke="hsl(' + hue[i % hue.length] + ',80%,25%)" stroke-width="1.6" stroke-dasharray="5 3"/>';
+        });
+
+        //  init 조각(회색) → 최종 조각(파랑)
+        function segLine(a, b, col, wd, op) {
+          return '<line x1="' + sx(a.x).toFixed(1) + '" y1="' + sy(a.y).toFixed(1) +
+                 '" x2="' + sx(b.x).toFixed(1) + '" y2="' + sy(b.y).toFixed(1) +
+                 '" stroke="' + col + '" stroke-width="' + wd + '" stroke-linecap="round" opacity="' + op + '"/>';
+        }
+        g += segLine(sd.init.p1, sd.init.p2, '#e2e8f0', 3, 0.95);
+        g += segLine(S.p1, S.p2, '#0f172a', 3.4, 1);
+        g += '<circle cx="' + sx(i0.x).toFixed(1) + '" cy="' + sy(i0.y).toFixed(1) + '" r="3.6" fill="#e2e8f0" stroke="#475569" stroke-width="1"/>';
+        g += '<circle cx="' + sx(pose.cx).toFixed(1) + '" cy="' + sy(pose.cy).toFixed(1) + '" r="4.2" fill="#f8fafc" stroke="#0f172a" stroke-width="2"/>';
+        if (travel > 30) {
+          g += '<line x1="' + sx(i0.x).toFixed(1) + '" y1="' + sy(i0.y).toFixed(1) +
+               '" x2="' + sx(pose.cx).toFixed(1) + '" y2="' + sy(pose.cy).toFixed(1) +
+               '" stroke="#0f172a" stroke-width="1.2" stroke-dasharray="3 3" opacity="0.8"/>';
+        }
+        return '<svg class="jsvg" width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + ' ' + H + '">' + g + '</svg>';
+      },
+
+      /*  ② 수렴 이력 — 반복마다의 J (세로는 log). 1단계(콘크리트만)와
+          2단계(덕트·철근까지)를 색으로 나눈다. 판이 바뀌는 자리는 세로선.      */
+      _jTraceSvg: function (tr) {
+        var pts = (tr || []).filter(function (r) { return r.ok; });
+        if (pts.length < 2) return '<div class="jnote">기록된 반복이 없습니다.</div>';
+        var W = 300, H = 230, PL = 34, PB = 20, PT = 10, PR = 8;
+        var lo = 1e18, hi = -1e18;
+        pts.forEach(function (r) { var v = Math.log10(1 + Math.max(0, r.J)); if (v < lo) lo = v; if (v > hi) hi = v; });
+        if (hi - lo < 1e-9) { hi = lo + 1; }
+        var n = pts.length;
+        var X = function (i) { return PL + (W - PL - PR) * (n < 2 ? 0 : i / (n - 1)); };
+        var Y = function (v) { return PT + (H - PT - PB) * (1 - (Math.log10(1 + Math.max(0, v)) - lo) / (hi - lo)); };
+        var g = '<rect x="0" y="0" width="' + W + '" height="' + H + '" fill="#fbfdff"/>';
+        //  가로 눈금 (10 의 거듭제곱)
+        for (var e = Math.ceil(lo); e <= Math.floor(hi); e++) {
+          var yy = PT + (H - PT - PB) * (1 - (e - lo) / (hi - lo));
+          g += '<line x1="' + PL + '" y1="' + yy.toFixed(1) + '" x2="' + (W - PR) + '" y2="' + yy.toFixed(1) + '" stroke="#e2e8f0" stroke-width="1"/>';
+          g += '<text x="' + (PL - 4) + '" y="' + (yy + 3).toFixed(1) + '" font-size="9" fill="#94a3b8" text-anchor="end">1e' + e + '</text>';
+        }
+        //  판이 바뀌는 자리
+        var prevPass = pts[0].pass;
+        pts.forEach(function (r, i) {
+          if (r.pass !== prevPass) {
+            g += '<line x1="' + X(i).toFixed(1) + '" y1="' + PT + '" x2="' + X(i).toFixed(1) + '" y2="' + (H - PB) + '" stroke="#cbd5e1" stroke-width="1" stroke-dasharray="2 3"/>';
+            prevPass = r.pass;
+          }
+        });
+        //  선 (단계별 색)
+        var seg1 = '', seg2 = '';
+        pts.forEach(function (r, i) {
+          var cmd = (i === 0 ? 'M' : 'L') + X(i).toFixed(1) + ' ' + Y(r.J).toFixed(1);
+          if (r.stage === 1) seg1 += cmd; else seg2 += cmd;
+        });
+        pts.forEach(function (r, i) {
+          if (i === 0) return;
+          var col = r.stage === 1 ? '#2563eb' : '#f59e0b';
+          g += '<line x1="' + X(i - 1).toFixed(1) + '" y1="' + Y(pts[i - 1].J).toFixed(1) +
+               '" x2="' + X(i).toFixed(1) + '" y2="' + Y(r.J).toFixed(1) +
+               '" stroke="' + col + '" stroke-width="1.8" stroke-linecap="round"/>';
+        });
+        g += '<text x="' + (W - PR) + '" y="' + (H - 6) + '" font-size="9" fill="#94a3b8" text-anchor="end">반복 ' + n + ' 회</text>';
+        g += '<text x="' + PL + '" y="' + (H - 6) + '" font-size="9" fill="#2563eb">■ 1단계(콘크리트)</text>';
+        g += '<text x="' + (PL + 96) + '" y="' + (H - 6) + '" font-size="9" fill="#d97706">■ 2단계(덕트·철근)</text>';
+        return '<svg class="jsvg" width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + ' ' + H + '">' + g + '</svg>';
+      },
+
+      /*  철근 하나만 다시 푼다 — 입력 행을 다시 읽어 그 자리에서 스폰하고,
+          나머지 철근은 **놓인 그대로** 척력으로 본다.
+          입력을 고친 뒤 그 철근만 확인할 때 쓴다.                                */
+      _resolveOneWithJField: function (id) {
+        if (typeof JField === 'undefined') return;
+        var sec = Domain.currentSection;
+        if (!sec || !sec.walls || !sec.walls.length) return;
+        /*  ── 갈고리 낱개(`T1#3`)는 «제 줄» 이 아니라 «태어난 꼴» 로 다시 푼다 ──
+            `_rebarData` 에는 `T1` 한 줄만 있고 낱개는 없다. 그래서 여기서 걸러서
+            `_birth`(펼칠 때 떠 둔 꼴)로 그 하나만 다시 푼다 — 자리가 종방향이라
+            `lpts` 를 같이 넘겨야 한다.                                           */
+        var hk = null;
+        (Domain.trebarList || []).forEach(function (t) {
+          if (t._srebar && String(t.id) === String(id)) hk = t;
+        });
+        if (hk) { this._resolveOneHook(hk, sec); return; }
+
+        var rd = null;
+        (this._rebarData || []).forEach(function (d) { if (String(d.id) === String(id)) rd = d; });
+        if (!rd) return;
+        /*  종방향 철근은 **무리**가 한 덩어리라 하나만 다시 풀 수 없다(간격이 이웃을
+            묶는다). 그래서 lrebar 를 누르면 종방향 전체를 다시 푼다 — 횡방향은 놓인
+            자리에 그대로 두고 그 장애물 위에서 다시 배치하는 것이라 뜻이 분명하다.  */
+        if (String(rd.type || 'trebar').toLowerCase() === 'lrebar') {
+          var lw = this._solveLrebarWithJ(sec);
+          this._spawnHold = false;
+          this._finalizeArcs();
+          this._toast(lw.length ? lw.join(' · ') : ('다시 배치했습니다: ' + id),
+                      lw.length ? 'err' : 'ok');
+          return;
+        }
+
+        var nb;
+        try { nb = Domain._createTrebarFromData(rd); }
+        catch (e) { console.error('[REBAR] respawn:', id, e); return; }
+        if (!nb) { this._toast('철근을 다시 만들지 못했습니다: ' + id, 'err'); return; }
+
+        var bar = { id: String(nb.id), dia: nb.dia || 13, z: nb.z || 0,
+          segs: (nb.segments || []).map(function (s) {
+            return { label: s.label, p1: { x: s.p1.x, y: s.p1.y }, p2: { x: s.p2.x, y: s.p2.y },
+                     normal: { x: s.normal.x, y: s.normal.y } };
+          }) };
+
+        //  태어난 자리 진단도 이 철근만 다시 잡는다 (표의 ⚠ 와 J 창이 읽는다)
+        this._diag = this._diag || {};
+        this._diag[String(bar.id)] = this._seatDiag(bar, sec);
+
+        /*  ── 태어난 자리를 **먼저 보여 준다** ───────────────────────────────
+            Respawn 을 누르는 이유가 대개 「init 을 어디에 놓았나」를 보려는 것이다.
+            그런데 J 는 한 번에 풀어 버려서, 곧장 답으로 건너뛰면 그 자리가 화면에
+            한 번도 안 나온다. 전체 풀이(_drawRebar)는 이미 SPAWN_HOLD 만큼 스폰
+            상태를 그려 두는데, **철근 하나만 다시 풀 때는 그 대기가 없었다.**
+            그래서 여기서도 같은 차례로 한다 :
+              ㉠ 스폰 상태의 철근을 목록에 꽂고 그대로 한 번 그린다 (직선 토막들)
+              ㉡ 태어난 자리 유령(점선)도 이 철근 것만 새로 잡는다
+              ㉢ SPAWN_HOLD 뒤에 풀어서 최종 형상으로 바꾼다                     */
+        for (var i = 0; i < Domain.trebarList.length; i++)
+          if (String(Domain.trebarList[i].id) === String(id)) { Domain.trebarList[i] = nb; break; }
+        if (i >= Domain.trebarList.length) Domain.trebarList.push(nb);
+
+        var spts = [];
+        (nb.segments || []).forEach(function (sg, k) {
+          if (k === 0) spts.push({ x: sg.p1.x, y: sg.p1.y });
+          spts.push({ x: sg.p2.x, y: sg.p2.y });
+        });
+        this._spawn = (this._spawn || []).filter(function (sp) { return String(sp.id) !== String(id); });
+        this._spawn.push({ id: String(nb.id), dia: nb.dia || 13, pts: spts });
+
+        //  어느 것을 다시 푸는지 눈에 띄게 — 유령도 진해진다.
+        //  focusRebar() 는 **토글**이라 안 쓴다 (이미 고른 것을 누르면 풀려 버린다).
+        this._focusId = String(id);
+        this._spawnHold = true;       // 기다리는 동안만 유령을 보여 준다
+        this._finalizeArcs();         // ㉠㉡ 스폰 상태로 한 번 그린다
+        this._toast('태어난 자리: ' + id, 'ok');
+
+        var self = this;
+        setTimeout(function () { self._formOneWithJField(id, nb, bar, sec); }, this.SPAWN_HOLD);
+      },
+
+      /*  갈고리 하나만 다시 푼다. 「다른 것은 놓인 자리에 두고 하나를 다시 최소화」 —
+          J 로는 뜻이 분명한 연산이다 (_resolveOneWithJField 주석과 같은 규칙).    */
+      _resolveOneHook: function (hk, sec) {
+        var id = String(hk.id);
+        var bar = { id: id, dia: hk.dia || 13, z: hk.z || 0, hook: true,
+                    segs: (hk._birth || []).map(function (s) {
+                      return { label: s.label, p1: { x: s.p1.x, y: s.p1.y },
+                               p2: { x: s.p2.x, y: s.p2.y },
+                               normal: { x: s.normal.x, y: s.normal.y } };
+                    }) };
+        if (!bar.segs.length) { this._toast('태어난 꼴이 없습니다: ' + id, 'err'); return; }
+        var placed = [];
+        (Domain.trebarList || []).forEach(function (t) {
+          if (String(t.id) === id) return;
+          (t.segments || []).forEach(function (s) {
+            placed.push({ p1: { x: s.p1.x, y: s.p1.y }, p2: { x: s.p2.x, y: s.p2.y },
+                          dia: t.dia || 13, z: t.z || 0 });
+          });
+        });
+        var r;
+        try { r = JField.form(bar, sec.walls, sec, this._ducts || [], placed, this._lrebarPoints()); }
+        catch (e) { console.error('[REBAR] 갈고리 다시 풀기:', id, e); this._toast('다시 풀지 못했습니다: ' + id, 'err'); return; }
+        this._writeBack(hk, r, sec);
+        this._smarks = this._srebarMarks();
+        this._spawnHold = false;
+        this._finalizeArcs();
+        this._renderPhysicsTable();
+        var bl = r.segs[1] ? Math.round(r.segs[1].len) : 0;
+        this._toast('다시 풀었습니다: ' + id + ' — 전장 ' + Math.round(r.len) +
+                    ' mm · 몸통 ' + bl + ' mm (출력)', 'ok');
+      },
+
+      /*  ㉢ 실제로 푸는 자리. _resolveOneWithJField 가 SPAWN_HOLD 뒤에 부른다.
+          `bar`(태어난 자리의 조각들)는 거기서 만든 것을 그대로 받는다 — 두 군데서
+          따로 만들면 언젠가 조용히 달라진다.                                    */
+      _formOneWithJField: function (id, nb, bar, sec) {
+        //  대기가 끝났다 — 유령을 거둔다. **푸는 데 실패해도** 거둔다(아래 return).
+        this._spawnHold = false;
+        //  나머지 철근을 척력으로 넘긴다 (이 철근은 뺀다)
+        var placed = [];
+        Domain.trebarList.forEach(function (t) {
+          if (String(t.id) === String(id)) return;
+          (t.segments || []).forEach(function (s) {
+            //  z 를 같이 넘긴다 — 교축방향으로 다른 자리에 선 것과는 안 부딪힌다
+            placed.push({ p1: { x: s.p1.x, y: s.p1.y }, p2: { x: s.p2.x, y: s.p2.y },
+                          dia: t.dia || 13, z: t.z || 0 });
+          });
+        });
+
+        var r;
+        try { r = JField.form(bar, sec.walls, sec, this._ducts || [], placed); }
+        catch (e) { console.error('[REBAR] J-field form:', e); return; }
+
+        this._writeBack(nb, r, sec);
+        this._finalizeArcs();
+        var wm = this._diagWarn(id);
+        this._toast('다시 풀었습니다: ' + id + ' — 길이 ' + Math.round(r.len) + ' mm' +
+                    (wm ? ' · ⚠ ' + wm.split('\n')[0] : ''), wm ? 'err' : 'ok');
+      },
+
+      //  J 결과를 trebar 객체에 써 넣는다 (표·DXF·굴짐 아크가 읽는 자리 그대로)
+      _writeBack: function (t, r, sec) {
+        var NP = (typeof CONFIG !== 'undefined' && CONFIG.PHYSICS && CONFIG.PHYSICS.NODE_POS) || [0.4, 0.6];
+        var wallById = {};
+        (sec.walls || []).forEach(function (w) { wallById[w.id] = w; });
+        //  ⑦ 축방향 — ㄷ 로 한 번 더 내린 결과 (JField.axialSlide). 벤치·진단이 읽는다
+        if (r.slide) t._slide = r.slide;
+        r.segs.forEach(function (rs, i) {
+          var seg = t.segments[i];
+          if (!seg) return;
+          var a = r.pts[i], b = r.pts[i + 1];
+          seg.p1 = { x: a.x, y: a.y };
+          seg.p2 = { x: b.x, y: b.y };
+          var dx = b.x - a.x, dy = b.y - a.y, L = Math.hypot(dx, dy) || 1;
+          seg.uDir = { x: dx / L, y: dy / L };
+          seg.nodes = NP.map(function (k) { return { x: a.x + dx * k, y: a.y + dy * k, vx: 0, vy: 0 }; });
+          /*  갈고리 다리는 `rest` 가 **평행해질 면**이다 (jfield parSetup 주석) —
+              자리는 종방향이 정하고 그 면은 자세만 정한다. 피복을 재는 면은 같다. */
+          seg.fitWall = wallById[(rs.rest && rs.rest[0]) || ''] || null;
+          seg.contactWall = seg.fitWall;
+          seg.stopped = rs.stopped || null;
+          /*  갈고리 다리의 결과 — **어느 종방향에 걸렸나**가 `rest` 의 자리다.
+              표·그림·집계가 읽는다 (벽에 앉은 조각의 `fitWall` 과 같은 급이다).  */
+          seg.hookQ = rs.hookQ || null;
+          seg.hookSide = rs.hookSide || 1;
+          //  ∩ 의 다리는 알을 둘 문다 (jfield hookRows 주석)
+          seg.hookQ2 = rs.hookQ2 || null;
+          seg.hookSide2 = rs.hookSide2 || 1;
+          //  띠 — **닫혔는지**를 ㉢ 이 읽는다 (`_tieDemand` 의 「띠가 닫혔다」 가지)
+          seg.band = rs.band || null;
+          seg.state = rs.stopped === 'no-target' ? 'FITTING' : 'SETTLED';
+        });
+        /*  **자리가 없는 조각은 실패가 아니다.**
+            ㄷ자 스터럽의 몸통처럼 두 면에 **수직**인 조각은 마주보는 벽이 원래 없다.
+            그런 조각의 자리는 코너가 정한다 — `form` 주석의 「가운데 조각은 입력이
+            필요 없다. 코너와 코너를 잇기만 하면 되니까 길이는 출력이다」가 그 말이다.
+            예전에는 `every` 였다. 그래서 조각 하나만 자리를 못 찾아도 철근 전체가
+            ASSEMBLING 이 되어 굴짐 아크가 안 그려지고, 다음 철근의 장애물에서 빠지고,
+            「붙을 면을 못 찾은 철근」으로 경고가 떴다.
+            **철근이 선 것은 한 조각이라도 제 면에 앉았을 때다** — 그러면 콘크리트에
+            매였고 나머지는 코너가 잇는다. 하나도 못 앉았으면 그건 떠 있는 것이다.
+            자리를 못 찾은 **조각**은 여전히 `FITTING` 으로 남아 표에 보인다.        */
+        t.state = r.segs.some(function (s) { return s.stopped !== 'no-target'; }) ? 'FORMED' : 'ASSEMBLING';
+        console.log('[JFIELD] ' + r.id + ' 길이 ' + Math.round(r.len) + '  세그[' +
+          r.segs.map(function (s) {
+            return s.label + '=' + ((s.rest && s.rest[0]) || '없음') + '(' + Math.round(s.len) + ')';
+          }).join(', ') + ']');
+      },
+
+      /*  ── 태어난 자리를 **읽을 수 있게** 만든다 ─────────────────────────────
+          J 는 한 번에 풀어 버린다. 그래서 화면에는 **결과만** 남고, 그 결과가
+          「입력이 이상해서 그렇게 된 것」인지 「엔진이 이상해서 그렇게 된 것」인지가
+          구별되지 않는다. 실제로 ⑧-1 의 다리가 캔틸레버 선단에 붙은 일이 있었는데,
+          원인은 **기본값 400 mm 다리가 복부 밑에서 끝나서 제 면(하부슬래브 상면) 위로
+          나오지 못한 것**이었다 — 띠가 50 mm 모자랐다. 그것을 보려면 태어난 자리에서
+          **무엇이 보였는지**를 봐야 한다. 그래서 여기서 그 판정을 그대로 꺼낸다.
+
+          `JField.seats()` 는 버린 면까지 다 돌려준다. 조각마다 :
+            seats  { id, tag, d(참거리), band(조각이 그 면 위에 있나), gap(띠가 모자란
+                     거리), used(후보로 살아남았나), need }
+            none   후보가 하나도 없다 — 이 조각은 안착하지 못한다
+            miss   **가장 가까운 면이 후보에 못 들어왔다.** { near, seat } 로 둘을 같이
+                   준다 — 그 면이 왜 빠졌는지는 `gap`(띠가 모자란 거리)이 말한다.
+                   이것이 ⑧-1 을 잡아내는 값이다 : 기본값 400 mm 다리에서
+                   E18 이 72 mm 로 가장 가까운데 띠가 50 mm 모자라 빠지고,
+                   5,781 mm 위의 E1 이 쓰였다.
+            reach  쓰인 후보까지의 참거리 (mm). **크다고 잘못된 것이 아니다** —
+                   ㄷ자 스터럽의 다리는 길이를 안 주면 3.2 m 를 가서 하면에 앉는다.
+                   그래서 거리로 경고하지 않는다. 경고는 `none` 과 `miss` 뿐이다.    */
+      _seatDiag: function (bar, sec) {
+        if (typeof JField === 'undefined' || !bar || !sec || !sec.walls) return [];
+        var dia = bar.dia || 13;
+        return (bar.segs || []).map(function (s, i, arr) {
+          var vx = s.p2.x - s.p1.x, vy = s.p2.y - s.p1.y;
+          var len = Math.hypot(vx, vy) || 1;
+          var mid = { x: (s.p1.x + s.p2.x) / 2, y: (s.p1.y + s.p2.y) / 2 };
+          //  `link` 를 같이 넘겨야 진단이 실제 풀이와 같은 판정을 본다 (CONF.RHO_LINK)
+          var seg = { label: s.label, len: len, dia: dia, n0: s.normal,
+                      link: i > 0 && i < arr.length - 1,
+                      p1: s.p1, p2: s.p2, mid: mid, c0: mid, th0: Math.atan2(vy, vx) };
+          var st = JField.seats(seg, sec.walls, sec, dia).map(function (c) {
+            return { id: c.w.id, tag: c.w.tag, d: c.d, band: c.band, gap: c.gap,
+                     far: c.far, used: c.used, need: c.need };
+          }).sort(function (a, b) { return a.d - b.d; });
+          var use = st.filter(function (c) { return c.used; });
+          //  st 는 참거리 오름차순이므로 st[0] 가 가장 가까운 면, use[0] 가 쓰인 면
+          var miss = (use.length && st.length && st[0].id !== use[0].id) ?
+                     { near: st[0], seat: use[0] } : null;
+          return { label: s.label, p1: s.p1, p2: s.p2, mid: mid, len: len, n: s.normal,
+                   seats: st, none: use.length === 0, miss: miss,
+                   reach: use.length ? use[0].d : null };
+        });
+      },
+
+      //  표에 띄울 한 줄 경고. 없으면 null — 있을 때만 ⚠ 를 붙인다.
+      _diagWarn: function (id) {
+        var ds = (this._diag || {})[String(id)];
+        if (!ds || !ds.length) return null;
+        var msg = [];
+        ds.forEach(function (d) {
+          if (d.none) msg.push('조각 ' + d.label + ' : 마주보는 면이 없다 — 법선 방향에 콘크리트 면이 없습니다');
+          else if (d.miss) msg.push('조각 ' + d.label + ' : 가장 가까운 ' + d.miss.near.id + ' (' +
+                                    Math.round(d.miss.near.d) + ' mm) 가 조각 밖이라 빠지고, ' +
+                                    d.miss.seat.id + ' (' + Math.round(d.miss.seat.d) + ' mm) 가 쓰였습니다 — ' +
+                                    '조각이 ' + Math.round(d.miss.near.gap) + ' mm 모자랍니다');
+        });
+        return msg.length ? msg.join('\n') : null;
+      },
+
+      /*  J 엔진으로 한 번에 푼다.
+          스폰된 철근(Domain.trebarList)의 조각을 그대로 넘기고, 돌아온 폴리라인을
+          같은 객체에 써 넣는다 — 표·DXF·굴짐 아크는 전부 그대로 쓴다.
+          trebar 는 큐에서 뺀다(이미 풀렸다). lrebar 는 아직 예전 엔진이 맡는다.    */
+      _solveWithJField: function () {
+        if (typeof JField === 'undefined' || typeof Domain === 'undefined') return false;
+        var sec = Domain.currentSection;
+        if (!sec || !sec.walls || !sec.walls.length) return false;
+
+        /*  갈고리(`srebar` 로 펼쳐진 것)는 **여기서 빼 둔다.** 자리가 종방향
+            철근이므로 종방향을 푼 **뒤에** 따로 풀어야 한다 (_solveSrebarWithJ). */
+        var bars = Domain.trebarList.filter(function (t) { return !t._srebar; }).map(function (t) {
+          return {
+            //  z = 교축방향 층. **횡방향끼리만** 같은 z 에서 부딪힌다 (JField.sameZ)
+            id: String(t.id), dia: t.dia || 13, z: t.z || 0,
+            segs: (t.segments || []).map(function (s) {
+              return { label: s.label,
+                       p1: { x: s.p1.x, y: s.p1.y }, p2: { x: s.p2.x, y: s.p2.y },
+                       normal: { x: s.normal.x, y: s.normal.y } };
+            })
+          };
+        });
+
+        /*  **태어난 자리를 먼저 진단해 둔다.** 푸는 것과 무관하다 — 결과가 왜
+            그렇게 나왔는지 표에서 바로 읽으려고 남긴다 (_seatDiag 참조).         */
+        var selfD = this; this._diag = {};
+        bars.forEach(function (b) { selfD._diag[String(b.id)] = selfD._seatDiag(b, sec); });
+
+        var out;
+        /*  마지막 인자가 **종방향 철근 점들**이다. 여기서는 비어 있다 — 횡방향을
+            먼저 다 풀고 그다음에 종방향을 풀기 때문에, 이 시점에 놓인 종방향이
+            하나도 없다 (`jfield.js` ④ · `bench/jlre.js`).
+            **갈고리는 그 반대다** — 종방향 뒤에 풀리므로 `_solveSrebarWithJ` 에서
+            `_lrebarPoints()` 가 들어간다. 시트의 **행 차례가 조립 차례**다.      */
+        try { out = JField.solve(bars, sec.walls, sec, this._ducts || [], []); }
+        catch (e) { console.error('[REBAR] J-field solve:', e); return false; }
+
+        /*  **스폰 형상을 먼저 잡아 둔다.** J 는 한 번에 풀어 버려서 애니메이션이
+            없다 — 그냥 두면 태어난 자리가 화면에 한 번도 안 나온다. init 을 고쳐
+            가며 맞추는 일이라 그 자리가 안 보이면 눈이 없는 것과 같다.
+            여기 담아 두고 _finalizeArcs 가 흐린 점선으로 같이 그린다.            */
+        this._spawn = Domain.trebarList.map(function (t) {
+          var pts = [];
+          (t.segments || []).forEach(function (sg, i) {
+            if (i === 0) pts.push({ x: sg.p1.x, y: sg.p1.y });
+            pts.push({ x: sg.p2.x, y: sg.p2.y });
+          });
+          return { id: String(t.id), dia: t.dia || 13, pts: pts };
+        });
+
+        var self = this, byId = {};
+        Domain.trebarList.forEach(function (t) { byId[String(t.id)] = t; });
+        out.forEach(function (r) {
+          var t = byId[String(r.id)];
+          if (t && t.segments) self._writeBack(t, r, sec);
+        });
+
+        //  ── 종방향 철근 (lrebar) 도 J 로 푼다 ────────────────────────────
+        this._tieHint = null;
+        this._srebarSolved = false;        //  첫 바퀴의 ∩ 은 아직 «태어난 자리»다
+        this._wrap = this._wrap || {};
+        var lwarn = this._solveLrebarWithJ(sec);
+
+        /*  ── 갈고리 (srebar) — **종방향 뒤에** 푼다 ──────────────────────────
+            자리가 종방향 철근이다 (`jfield.js` ⑤). 이미 놓인 횡방향을 `placed0`
+            으로 같이 넘긴다 — 안 넘기면 갈고리가 그 횡방향을 통과한다.          */
+        var swarn = [];
+        if (this._srebarRows().length) {
+          var placed0 = [];
+          out.forEach(function (r, bi) {
+            for (var i = 0; i + 1 < r.pts.length; i++)
+              placed0.push({ p1: r.pts[i], p2: r.pts[i + 1], dia: bars[bi].dia, z: bars[bi].z || 0 });
+          });
+          //  ∩ 의 다리 길이는 **풀린 종방향**을 봐야 정해진다 (`_capLegs` 주석)
+          swarn = this._capLegs(sec).concat(this._solveSrebarWithJ(sec, placed0));
+          //  이제부터 하부 ∩ 는 **놓인 것**이다 — 종방향이 볼 수 있다 (`_capRests`)
+          this._srebarSolved = true;
+          //  누가 누구를 감는지 — 다음 바퀴의 종방향 자리가 이것을 쓴다 (`_wrapOf`)
+          this._wrap = this._wrapOf();
+
+          /*  ── ㉢ **갈고리가 못 비키면, 매달린 종방향이 비켜 준다** ────────────
+              ㄷ 와 그 종방향은 **결속되어 한 몸**이다. 그런데 푸는 차례가 한쪽
+              방향이라(종방향 → 갈고리) 종방향은 ㄷ 의 사정을 영영 못 본다. 그래서
+              T1#8 은 TC1L 을 40 mm 파고든 채 섰고, 우리는 「그 알을 옮기세요」라고
+              **사람에게 미뤘다.** 그 알도 장이 놓는 것인데 미룰 일이 아니다.
+
+              고치는 법은 이 저장소가 이미 쓰는 것 — **교대최소화 한 바퀴**다 :
+                ㉠ 종방향을 푼다 → ㉡ 갈고리를 푼다 →
+                ㉢ **갈고리가 요구하는 자리로 종방향을 다시 푼다** → ㉡ 다시
+              요구는 **한 자리(t)의 이동**으로 말한다. `JLong.solve` 가 이미 받는
+              `tie`(자리 묶음)에 그 하나만 적어 보내면, 나머지는 `home`·`ctc` 항이
+              **줄 전체로 퍼뜨린다** — 한 알만 손으로 옮기면 이웃 간격이 안 맞는다
+              (`_slidePairs` 가 같은 이유로 다시 푼다).
+              **얼마나?** 묻지 않고 **잰다** : 그 짝을 δ 만큼 옮겨 놓고 ㄷ 를 다시
+              풀어 보며, 덕트 위반이 0 이 되는 **가장 작은 |δ|** 를 고른다. 최소
+              이동이다 — 교란을 장애물 근처에 가두는 `K_A` 의 뜻 그대로다.        */
+          /*  **한 바퀴로는 안 끝난다.** 요구는 「그 짝만 δ 옮기고 ㄷ 를 다시 푼
+              다」로 쟀는데, 실제 ㉢ 은 **줄 전체를 다시 푼다** — `home`·피복·이웃이
+              당겨서 알이 요구한 자리에 정확히 서지는 않는다 (97 을 달라 해서 받은
+              것이 93 쯤이라 −3.7 이 남았다). 그러니 **재고 다시 묻는다** : 남은
+              위반에서 다시 δ 를 재어 더한다. 교대최소화는 원래 그렇게 돈다.
+              되돌아오면(요구가 그대로면) 거기서 멈춘다.                          */
+          var seen = {};
+          this._tieLog = [];                           // 바퀴마다의 요구 — 합이 «민 양»이다
+          for (var tp = 0; tp < 4; tp++) {
+            var hint = this._tieDemand(sec);
+            if (!hint || !hint.length) break;
+            var key = hint.map(function (h) {
+              return h.id + ':' + Math.round(h.delta); }).join('|');
+            if (seen[key]) break;                       // 같은 요구가 다시 나왔다
+            seen[key] = 1;
+            this._tieHint = hint;
+            var lg = this._tieLog;
+            hint.forEach(function (h) {
+              var e = null;
+              lg.forEach(function (o) { if (o.id === h.id) e = o; });
+              if (!e) { e = { id: h.id, grp: h.grp, sum: 0, was: h.was, laps: 0 }; lg.push(e); }
+              e.sum += h.delta; e.laps++; e.t = h.t;
+            });
+            console.log('[SREBAR] ㉢ ' + (tp + 1) + '바퀴 — 갈고리가 못 비킨 자리 ' + hint.length +
+                        '곳 (' + hint.map(function (h) {
+                          return h.id + ' → ' + h.grp + ' 자리 ' + Math.round(h.t) +
+                                 ' 를 ' + Math.round(h.delta) + ' mm'; }).join(', ') + ')');
+            lwarn = this._solveLrebarWithJ(sec);
+            /*  ∩ 의 다리 길이도 **바퀴마다 다시 잰다.** 길이를 잰 뒤 ∩ 가 축방향으로
+                미끄러지면(띠) 끝이 그만큼 어긋나므로, 한 번 재고 마는 것은 모자란다 —
+                교대최소화가 종방향에 하는 일과 같다.                              */
+            swarn = this._capLegs(sec).concat(this._solveSrebarWithJ(sec, placed0));
+            this._wrap = this._wrapOf();
+          }
+        }
+
+        //  풀린 것은 큐에서 뺀다 — 예전 엔진이 다시 건드리지 않게
+        Domain.queue = Domain.queue.filter(function (q) {
+          return q.kind !== 'trebar' && q.kind !== 'lrebar';
+        });
+        Domain.activeQueueIndex = 0;
+
+        /*  경고는 **한 번에 한 줄**로 낸다 — 토스트가 하나라서 두 번 부르면 앞의 것이
+            지워진다. 가장 가까운 면이 후보에 못 들어온 조각을 같이 알린다 : 그것이
+            「입력을 고쳐야 하는 자리」다 (⑧-1 의 400 mm 다리가 그랬다).           */
+        var warn = [];
+        var miss = Domain.trebarList.filter(function (t) { return t.state !== 'FORMED'; });
+        if (miss.length) {
+          warn.push('붙을 면을 못 찾은 철근 ' + miss.map(function (t) { return t.id; }).join(', ') +
+                    ' (init 이 콘크리트 안, 붙을 면 쪽에 있는지 보세요)');
+        }
+        /*  자리가 없는 **조각**은 경고가 아니라 **알림**이다 — ㄷ 몸통처럼 그것이
+            정상인 조각이 있다. 다만 ⑧-1 의 400 mm 다리처럼 「입력이 모자라서」
+            자리를 못 찾은 것도 같은 꼴로 보이므로, 어느 조각인지는 알려 준다.     */
+        var free = [];
+        Domain.trebarList.forEach(function (t) {
+          if (t.state !== 'FORMED') return;
+          (t.segments || []).forEach(function (s, i) {
+            if (s.state === 'FITTING') free.push(t.id + '[' + 'abcdef'[i] + ']');
+          });
+        });
+        if (free.length) warn.push('자리 없이 코너가 정한 조각 ' + free.join(', ') +
+                                   ' (ㄷ 몸통이면 정상입니다)');
+        /*  갈고리 다리의 두 가지 — 둘 다 **입력을 보라는 신호**다 :
+              no-seat    걸 종방향이 없다. ㄷ 는 종방향에 걸려 서는 철근이다
+              par-cycle  평행해질 면이 두 개 사이에서 뒤집힌다 (헌치 모서리)       */
+        var hk = [];
+        Domain.trebarList.forEach(function (t) {
+          (t.segments || []).forEach(function (s, i) {
+            if (s.stopped === 'no-seat' || s.stopped === 'par-cycle')
+              hk.push(t.id + '[' + 'abcdef'[i] + '] ' +
+                      (s.stopped === 'no-seat' ? '걸 종방향이 없음' : '평행해질 면이 뒤집힘'));
+          });
+        });
+        if (hk.length) warn.push('갈고리 다리 ' + hk.join(', ') +
+                                 ' (종방향 줄과 ㄷ 의 자리를 보세요)');
+        var offs = [];
+        Object.keys(this._diag).forEach(function (k) {
+          selfD._diag[k].forEach(function (d) {
+            if (d.miss) offs.push(k + '[' + d.label + '] ' + d.miss.near.id + ' ' +
+                                  Math.round(d.miss.near.d) + ' mm 대신 ' + d.miss.seat.id + ' ' +
+                                  Math.round(d.miss.seat.d) + ' mm');
+          });
+        });
+        if (offs.length) warn.push('가장 가까운 면이 후보에 못 들어온 조각 ' + offs.join(', ') +
+                                   ' (입력 길이나 자리를 고치세요)');
+        lwarn.forEach(function (w) { warn.push(w); });
+        (this._swarnBuild || []).forEach(function (w) { warn.push(w); });
+        swarn.forEach(function (w) { warn.push(w); });
+        if (warn.length) this._toast(warn.join(' · '), 'err');
+        return true;
+      },
+
+      /*  ── 종방향 철근을 J 로 배치한다 (`jlong.js`) ───────────────────────
+          横방향이 먼저 풀려 있어야 한다 — 그 **굴짐 아크까지 포함한 조각들**이
+          종방향 철근을 밀어내는 장애물이기 때문이다(`_trebarPrimitives`).
+          결과는 `group.particles` 에 써 넣는다 — 그림·표는 그대로 그것을 읽는다.
+          돌려주는 것은 **경고 줄**이다 (간격·배치한계·붙을 면).                 */
+      /*  ── 이미 놓인 종방향 철근을 **횡방향의 장애물**로 꺼낸다 ──────────────
+          `_trebarPrimitives` 의 거울이다. 그쪽은 횡방향을 종방향에게 넘기고,
+          이쪽은 종방향을 횡방향에게 넘긴다. 종방향은 단면에서 **점**이라
+          선분·아크로 펼 것이 없고 중심좌표와 지름이면 된다.
+          `clr` 은 안 준다(0) — 갈고리는 종방향에 **맞닿아** 걸리는 철근이다.
+          아직 부르는 데가 없다. 갈고리(srebar)가 들어올 자리다.                */
+      _lrebarPoints: function () {
+        var out = [];
+        (Domain.lrebarList || []).forEach(function (g) {
+          (g.particles || []).forEach(function (p) {
+            if (!p || !isFinite(p.x) || !isFinite(p.y)) return;
+            /*  `g`·`t` 를 같이 낸다 — **짝을 알아볼 수 있어야 한다.**
+                `gap` 을 준 무리는 한 자리(t)에 상·하 두 알이 선다. ㄷ 는 그 «한 짝»을
+                무는 철근이고, `jlong` 의 `K_TIE` 가 둘을 같은 t 에 묶는 것이 바로
+                그것 때문이다. 이게 없으면 갈고리가 **다른 무리의 철근**을 물어
+                엉뚱한 꼴이 된다 (복부 위의 슬래브 ㄷ 가 D2 복부철근을 물었다).   */
+            out.push({ x: p.x, y: p.y, dia: p.dia || g.dia || 13,
+                       g: String(g.id), t: (p.t == null ? null : p.t), rest: p.rest || null });
+          });
+        });
+        return out;
+      },
+
+      /*  ── 이 갈고리는 종방향을 «받치는» 것인가 ─────────────────────────────
+          셋을 다 만족해야 한다 :
+            ㉠ ∩ 이고 (`cap`) **하부슬래브** 쪽이다 (`end` = `tangent`)
+               — 복부의 ∩ 과 ㄷ 는 감싸는 철근이라 인력이 살아 있다
+            ㉡ **이미 풀렸다** (`_srebarSolved`) — 첫 바퀴의 태어난 자리가 아니다
+            ㉢ 조각이 실제로 서 있다
+          `_solveLrebarWithJ` 의 `prims` 가 이것으로 갈린다.                   */
+      _capRests: function (t) {
+        return !!(this._srebarSolved && t && t.cap && t._cap &&
+                  t._cap.end === 'tangent' && t.segments && t.segments.length >= 3);
+      },
+
+      /*  ── ∩ 의 **다리 길이를 끝까지 출력으로** ─────────────────────────────
+          「복부에서는 양쪽 단부가 줄어들면서 최종으로는 복부 벽체 경사를 맞추면
+           되는데, 하부슬래브에 들어가는 철근은 마지막에 수직이거나 아래쪽 가장
+           가까운 점철근에 의지해야 해」 — 그 둘이 여기다.
+
+          지금까지 ∩ 는 **배치선 한 곳에서** 잰 「피복선에서 피복선」을 두 다리에
+          똑같이 주고 태어났다. 그래서 (ㄱ) 두 면이 안 나란한 자리에서 두 다리가
+          같은 길이일 까닭이 없는데 같았고, (ㄴ) 끝이 아무 데서나 멈춰 6~16 개가
+          떴다. 이제 **다리마다 제 자를 댄다** :
+            face  제 다리가 뻗는 쪽의 첫 면 — 그 **피복선**까지.
+                  두 면이 기울면 A 와 C 가 **달라진다.** 그 다름이 「경사를 맞춘다」다.
+            bar   그 자리에서 **가장 가까운 종방향**까지. face 로 잰 길이를 기준으로
+                  그 둘레에서 고른다 — 「가장 가까운」이 그 뜻이다.
+          **종방향을 푼 뒤에** 불러야 한다 (`_expandSrebar` 의 `_cap` 주석).      */
+      _capLegs: function (sec) {
+        var warn = [], self = this;
+        var caps = (Domain.trebarList || []).filter(function (t) { return t._cap; });
+        if (!caps.length) return warn;
+        var walls = (sec && sec.walls) || [];
+        var lpts = this._lrebarPoints();
+        var cv = (sec && sec.covers) || {};
+        var needOfW = function (w, dia) {
+          var tag = String((w && w.tag) || 'outer').toLowerCase();
+          return (cv[tag] != null ? cv[tag] : 50) + dia / 2;
+        };
+        //  한 점에서 d 방향으로 쏘아 **막아서는 첫 면의 피복선**까지 (mm)
+        var toFace = function (q, d, dia) {
+          var best = null;
+          walls.forEach(function (w) {
+            var t = JLong.rayHit(q, d, w);
+            if (t == null) return;
+            var v = t - needOfW(w, dia);
+            if (best == null || v < best) best = v;
+          });
+          return best;
+        };
+        /*  ── **자라다 처음 만나는 것에서 멈춘다** ─────────────────────────────
+            「∩ 의 몸통이 슬래브 **중앙에서 생성**되어 하부슬래브 상면까지 커지면서
+             J 값을 따지면 **맨 처음 만나는 게 종방향 철근**인데 그걸 **뚫고 올라갈
+             순 없잖아**. 횡방향이 될 수도 있고 종방향이 될 수도 있는데, **그 철근을
+             뚫고 갈 순 없다** 라고 정의하면 거기서 멈춰야지」
+
+            이 한 줄이 「앞뒤」 물음을 없앤다. 몸통이 **아래에서 위로** 자라면 먼저
+            만나는 것이 그 알이므로 몸통은 **알의 아래**에서 멈춘다 — 그것이 곧
+            「받친다」다. 도면을 볼 일이 아니라 **J 가 고르는 것**이었다.
+
+            그런데 여태 멈추는 자가 **콘크리트 면 하나**였다(`toFace`). 그래서 몸통이
+            알을 **뚫고** 상면 피복선 쪽으로 지나갔다 — 재면 몸통 −6202 · D3 위줄
+            −6219 로 **알보다 면 쪽**에 서 있었다. 순간격 항은 한쪽만 밀므로
+            (`hookRows` 의 「받친다」) 일단 넘어가 버리면 도로 끌어오는 힘이 없다.
+
+            그러니 멈추는 자를 **J 의 장애물 전부**로 바꾼다 :
+              s 만큼 올라간 몸통이 **무엇에도 안 닿는 가장 큰 s**
+              후보 — ㉠ 콘크리트 면의 피복선  ㉡ 종방향 알  ㉢ 이미 놓인 횡방향
+            자는 전부 **순간격**이고, 재는 것은 이 저장소가 이미 쓰는 거리 함수다
+            (`JField.segToPoint` · `segToSeg`) — 식을 베껴 쓰지 않는다.
+            첫 닿음은 1 mm 로 훑어 **처음 부호가 바뀌는 칸**을 잡고 이분법으로
+            0.01 mm 까지 좁힌다. 「처음」을 묻는 것이라 닫힌 식이 없다 — 대신
+            칸을 잡은 뒤는 이분법이 정확하다.                                       */
+        var firstTouch = function (t, p1, p2, a, dia, limit) {
+          var mine = {};
+          (t.segments || []).forEach(function (sg, i) { mine[i] = 1; });
+          //  닿을 수 있는 것만 — 몸통이 쓸고 갈 띠 둘레
+          var x0 = Math.min(p1.x, p2.x) - 200, x1 = Math.max(p1.x, p2.x) + 200;
+          var y0 = Math.min(p1.y, p2.y) - limit - 200, y1 = Math.max(p1.y, p2.y) + limit + 200;
+          var inBox = function (q) { return q.x > x0 && q.x < x1 && q.y > y0 && q.y < y1; };
+          var pts = lpts.filter(inBox);
+          var segsO = [];
+          (Domain.trebarList || []).forEach(function (o) {
+            if (o === t || (o.z || 0) !== (t.z || 0)) return;
+            (o.segments || []).forEach(function (g2) {
+              if (!inBox(g2.p1) && !inBox(g2.p2)) return;
+              segsO.push({ p1: g2.p1, p2: g2.p2, dia: o.dia || 13 });
+            });
+          });
+          //  s 올라간 몸통의 **최악 순간격**
+          var worst = function (sv) {
+            var q1 = { x: p1.x + a.x * sv, y: p1.y + a.y * sv };
+            var q2 = { x: p2.x + a.x * sv, y: p2.y + a.y * sv };
+            var w = Infinity;
+            pts.forEach(function (q) {
+              var g2 = JField.segToPoint([q1, q2], q) - (dia + (q.dia || 13)) / 2;
+              if (g2 < w) w = g2;
+            });
+            segsO.forEach(function (o) {
+              var g2 = JField.segToSeg([q1, q2], o.p1, o.p2) - (dia + o.dia) / 2;
+              if (g2 < w) w = g2;
+            });
+            return w;
+          };
+          if (!(limit > 0)) return 0;
+          if (worst(0) < 0) return 0;                 // 이미 닿아 있다
+          var lo = 0, hi = null;
+          for (var sv = 1; sv <= limit + 1e-9; sv += 1) {
+            if (worst(sv) < 0) { hi = sv; break; }
+            lo = sv;
+          }
+          if (hi == null) return limit;               // 면이 먼저다
+          for (var it = 0; it < 24 && hi - lo > 0.01; it++) {
+            var md = (lo + hi) / 2;
+            if (worst(md) < 0) hi = md; else lo = md;
+          }
+          return lo;
+        };
+
+        /*  **점**이 a 방향으로 가다 처음 닿는 거리 — 다리가 내려가는 자다.
+            몸통은 긴 조각이 띠를 쓸므로 조각으로 재고(`firstTouch`), 다리는 **끝이
+            앞장서므로** 끝점으로 잰다. 옆을 스치는 것은 이미 거기 있던 것이다.
+            「철근을 만나서 좌우로 이동하는 걸 추가하면 무한루프에 빠질 수도
+             있겠다」 — 그래서 비키지 않는다. **만나면 멈춘다**, 그뿐이다.      */
+        var firstTouchPt = function (t, from, a, dia, limit) {
+          if (!(limit > 0)) return 0;
+          var x0 = from.x - 200, x1 = from.x + 200;
+          var y0 = Math.min(from.y, from.y + a.y * limit) - 200;
+          var y1 = Math.max(from.y, from.y + a.y * limit) + 200;
+          var inBox = function (q) { return q.x > x0 && q.x < x1 && q.y > y0 && q.y < y1; };
+          var pts = lpts.filter(inBox), segsO = [];
+          (Domain.trebarList || []).forEach(function (o) {
+            if (o === t || (o.z || 0) !== (t.z || 0)) return;
+            (o.segments || []).forEach(function (g2) {
+              if (!inBox(g2.p1) && !inBox(g2.p2)) return;
+              segsO.push({ p1: g2.p1, p2: g2.p2, dia: o.dia || 13 });
+            });
+          });
+          var worst = function (sv) {
+            var q = { x: from.x + a.x * sv, y: from.y + a.y * sv }, w = Infinity;
+            pts.forEach(function (o) {
+              var g2 = Math.hypot(q.x - o.x, q.y - o.y) - (dia + (o.dia || 13)) / 2;
+              if (g2 < w) w = g2;
+            });
+            segsO.forEach(function (o) {
+              var g2 = JField.segToPoint([o.p1, o.p2], q) - (dia + o.dia) / 2;
+              if (g2 < w) w = g2;
+            });
+            return w;
+          };
+          var lo = 0, hi = null;
+          for (var sv = 1; sv <= limit + 1e-9; sv += 1) {
+            if (worst(sv) < 0) { hi = sv; break; }
+            lo = sv;
+          }
+          if (hi == null) return limit;                 // 피복선이 먼저다
+          for (var it = 0; it < 24 && hi - lo > 0.01; it++) {
+            var md = (lo + hi) / 2;
+            if (worst(md) < 0) hi = md; else lo = md;
+          }
+          return lo;
+        };
+
+        var moved = 0, byRule = { normal: 0, tangent: 0 };
+        caps.forEach(function (t) {
+          var c = t._cap, u = c.u, dia = t.dia || 13;
+          var segs = t.segments || [];
+          if (segs.length < 3) return;
+          /*  **방향은 꼴에서 꺼낸다 — 가정하지 않는다.** `_cap.nt` 는 probe 의
+              축이라 다리가 뻗는 쪽의 **반대**일 수 있다 (실제로 위를 보고 있었다).
+              코너 → 자유단이 다리가 뻗는 쪽이고, 그건 조각이 그대로 말해 준다.  */
+          var mid = segs[1], ends = [];
+          var corner = [0, 2].map(function (i, k) {
+            var s = segs[i];
+            var d1 = Math.hypot(s.p1.x - mid.p1.x, s.p1.y - mid.p1.y) +
+                     Math.hypot(s.p1.x - mid.p2.x, s.p1.y - mid.p2.y);
+            var d2 = Math.hypot(s.p2.x - mid.p1.x, s.p2.y - mid.p1.y) +
+                     Math.hypot(s.p2.x - mid.p2.x, s.p2.y - mid.p2.y);
+            ends[k] = (d1 < d2) ? s.p2 : s.p1;
+            return (d1 < d2) ? s.p1 : s.p2;
+          });
+          var dl = [0, 1].map(function (k) {
+            var vx = ends[k].x - corner[k].x, vy = ends[k].y - corner[k].y;
+            var m = Math.hypot(vx, vy) || 1;
+            return { x: vx / m, y: vy / m };
+          });
+          var L = [0, 1].map(function (k) {
+            var q = corner[k], nt = dl[k];
+            var face = toFace(q, nt, dia);
+            if (!(face > 0)) return null;
+            /*  `normal` — 다리가 제 면을 따라 **눕는다.** 길이를 여기서 정하지
+                않는다 : 면에 안기는 일은 `settle`(seats) 이 하고, 줄어드는 것도
+                그 면이 한다. 접선으로 재면 **엉뚱한 면**을 집는다.             */
+            if (c.end === 'normal') return null;
+            /*  `bar` — **가장 가까운 종방향**을 글자 그대로 고른다.
+                고르는 자는 «옆으로 얼마나 가까운가»(l) 다 — 다리는 이미 제 면에
+                수직으로 서 있으므로 x 는 몸통이 정했고, 남은 물음은 「그 x 에서
+                아래로 내려가면 어느 알 옆에 서나」뿐이다. 옆 거리에 문턱을 두면
+                (한때 54 mm 로 두었다) 알이 그 밖에 있는 다리는 조용히 면으로
+                되돌아가 **끝이 떴다** (12 개 · 최악 67 mm). 문턱을 없앤다.
+                끝이 **닿는** 것이 아니라 **기대는** 것이다 — 정하는 것은 그 알의
+                «깊이»(s) 이고, 옆 거리는 누구를 고르느냐에만 쓴다.
+                고르는 범위는 끝 둘레(s)다 — 위 철근줄(s ≈ need)은 여기 안 든다.  */
+            var best = null;
+            lpts.forEach(function (p) {
+              var s = (p.x - q.x) * nt.x + (p.y - q.y) * nt.y;        // 다리를 따라 (깊이)
+              var l = Math.abs((p.x - q.x) * u.x + (p.y - q.y) * u.y); // 옆으로
+              if (!(s > face * 0.4) || s > face * 1.8) return;         // 끝 둘레만
+              if (best == null || l < best.l - 1e-6 ||
+                  (Math.abs(l - best.l) <= 1e-6 && Math.abs(s - face) < Math.abs(best.s - face)))
+                best = { l: l, s: s };
+            });
+            /*  ③ 「다리 길이는 입력을 하지 않으면 **그냥 슬래브 내에 배치**하는
+                   것으로 해」 — 그래서 고른 알이 면보다 멀면 **면에서 멈춘다.**
+                알을 쫓다가 다리가 소피트 피복선을 넘으면 띠의 아래끝(`ℓ − tf`)이
+                커져 띠가 **닫힌다** (= 그 자리엔 넣을 수 없다). 넘지 않게 자르면
+                그 닫힘이 사라진다 — 길이는 어차피 **출력**이다.                 */
+            /*  ── 「**피복까지** 자란다」를 그대로 해 봤다 — 안 된다 ──────────
+                「안에서 철근이 커지다가 슬래브 피복까지 만날 때까지 커지다가
+                 안착되는 형태로 되어야 해」를 `return face` 로 넣어 재 봤다 :
+                  다리 끝은 과연 피복선에 앉았다 (0.0 · 0.1 · 0.3)
+                  그런데 **갈고리가 66 → 59** 로 7 개 떨어지고, 몸통이 종방향에서
+                  **150 ~ 183 mm** 떠서 받치는 것이 아무것도 없어졌다
+                  (몸통 피복 −9.9 · 닫힌 띠 5 · 두 ∩ 가 같은 x 로 겹쳤다)
+                까닭은 `_capLegs` 가 **배치점(`cc`)에서 상자(A·B·C)를 다시 세우기**
+                때문이다 — 다리를 늘리면 끝이 내려가는 대신 **몸통이 올라간다.**
+                곧 「피복까지 자란다」는 다리 길이 혼자로는 못 하는 말이고, 몸통의
+                안착과 **같이** 풀려야 한다 (STATUS 「아직 안 한 것」의 그 칸).
+                지금은 아래 `bar` 규칙을 그대로 둔다 — 끝이 31~71 mm 뜨지만
+                몸통은 받치고 있다. 재는 것 `scratchpad/tip.js`.              */
+            /*  ── **받치는 ∩ 은 «안에서 시작해 위로» 자란다** ───────────────
+                「종방향 철근을 **받쳐야** 하니까. **안에서 시작해서 하부슬래브
+                 상단으로 커져야** 해」
+                자라는 쪽은 **몸통**이다 — 아래(다리 끝)는 그대로 두고 몸통이
+                하부슬래브 **상단의 피복선**을 만날 때까지 올라간다. 그래야 그
+                위에 얹히는 종방향을 받친다.
+                  len  지금 다리 길이 (슬래브 안으로 잘라 둔다 — 입력이 길어도)
+                  back 코너에서 **반대쪽**(상단) 면의 피복선까지   ← 올라갈 거리
+                몸통을 back 만큼 올리고 다리를 그만큼 **늘리면 끝은 제자리**다.
+                (한때 아래쪽도 같이 못박아 「슬래브를 꽉 채우기」를 해 봤는데,
+                 그러면 몸통이 알에서 104~146 mm 떠서 받치는 것이 없어졌다.
+                 자라는 쪽은 **한쪽**이다.)                                   */
+            /*  ── 받치는 ∩ — **아래로도 첫 닿음까지 자란다** ────────────────
+                「양단 철근이 **아래로 늘어나서 제일 처음 만나는 데서 멈추는**
+                 것으로 하자」
+                아래의 `bar` 규칙(끝이 가장 가까운 알에 **기댄다**)은 감싸던 때의
+                것이다. 받치는 ∩ 의 다리는 기댈 알을 **고르지 않는다** — 그냥
+                내려가다 **처음 만나는 것**(알이든 횡방향이든 소피트 피복선이든)
+                에서 멈춘다. 고르는 일이 없으니 비킬 일도 없다.               */
+            if (self._capRests(t)) {
+              var cur = Math.hypot(ends[k].x - q.x, ends[k].y - q.y);
+              var lim = toFace(ends[k], nt, dia);
+              var dwn = firstTouchPt(t, ends[k], nt, dia, Math.max(0, lim || 0));
+              return { len: cur + dwn, back: toFace(q, { x: -nt.x, y: -nt.y }, dia) };
+            }
+            return Math.min(best ? best.s : face, face);
+          });
+          if (L[0] == null || L[1] == null) return;
+          //  받치는 ∩ — 몸통을 상단 피복선까지 올리고, 다리를 그만큼 늘린다
+          var back = 0;
+          if (L[0].len != null) {
+            //  ㉠ 콘크리트 면이 멈추는 자리
+            back = Math.min(L[0].back, L[1].back);
+            if (!(back > 0)) back = 0;
+            //  ㉡㉢ 그 전에 **철근**을 만나면 거기서 멈춘다 (firstTouch 주석)
+            var aUp = { x: -dl[0].x, y: -dl[0].y };
+            back = firstTouch(t, mid.p1, mid.p2, aUp, dia, back);
+            L = [L[0].len + back, L[1].len + back];
+          }
+          if (Math.abs(L[0] - c.box.A) < 0.5 && Math.abs(L[1] - c.box.C) < 0.5) return;
+          var box = { A: L[0], B: c.box.B, C: L[1] };
+          /*  ── 기준점 : **세로는 살리고 가로는 묶는다** ─────────────────────
+              `Shape21Cap` 의 앵커는 **몸통의 중점**이다 (`buildSequential` 의
+              `pts[1].x + B/2`). 받치는 ∩ 은 몸통을 `back` 만큼 **올려** 다시
+              세운다 — 다리가 그만큼 길어졌으므로 끝은 제자리다.
+              그런데 지금 몸통의 자리를 **통째로** 쓰면 안 된다. 옆으로 미끄러진
+              양(`lateralSlide`)까지 같이 실려 **바퀴마다 쌓이기** 때문이다.
+              실제로 그랬다 : T3#10 과 T3#11 의 간격이 450 이어야 하는데 **257** 이
+              되어 다리가 이웃의 몸통을 가로질렀다(겹침 −13.0). 전에는 매 바퀴
+              `c.cc` 로 되돌리는 것이 그 흐름을 지우고 있었다.
+              그러니 **다리 축 방향**(위아래)만 지금 자리에서 가져오고, **옆**은
+              태어난 자리를 쓴다. 미끄럼은 한 바퀴 안에서만 살고, 자라는 것은
+              바퀴를 넘어 쌓인다 — 쌓여야 하는 것만 쌓는다.                     */
+          var ax = -dl[0].x, ay = -dl[0].y;              // 다리의 반대 = 자라는 쪽
+          var lx = -ay, ly = ax;                         // 그에 수직 = 몸통 축 (옆)
+          var mx0 = (mid.p1.x + mid.p2.x) / 2, my0 = (mid.p1.y + mid.p2.y) / 2;
+          var sUp = (mx0 - c.cc.x) * ax + (my0 - c.cc.y) * ay;
+          var sSide = (mx0 - c.cc.x) * lx + (my0 - c.cc.y) * ly;
+          /*  옆으로는 **CTC 가 남겨 준 만큼**으로 묶는다 ((ctc − 폭)/2).
+              안 묶으면 한 바퀴의 미끄럼이 다음 바퀴의 출발점이 되어 **쌓인다** —
+              T3#10 ↔ T3#11 의 간격이 450 → 257 이 된 것이 그것이다.
+              위로 자라는 것은 쌓여야 하고, 옆으로 미는 것은 쌓이면 안 된다.    */
+          /*  받치는 ∩ 은 옆으로 비키지 않으므로(`lateralSlide`) 옆은 **태어난
+              자리**가 전부다. 조금이라도 물려받으면 바퀴마다 쌓여 이웃과
+              겹친다 — 재면 13.0 mm 였다 (T3#8↔#9 · T3#11↔#12).            */
+          var lim = self._capRests(t) ? 0
+                    : Math.max(0, (t.hookSpan || 0) - (c.box.B || 0) / 2);
+          if (sSide > lim) sSide = lim; else if (sSide < -lim) sSide = -lim;
+          var at = { x: c.cc.x + ax * (sUp + back) + lx * sSide,
+                     y: c.cc.y + ay * (sUp + back) + ly * sSide };
+          var rb = null;
+          try { rb = TrebarFactory.create(c.code, at, box, c.rot, c.angs || null, null, null); }
+          catch (e) { rb = null; }
+          if (!rb || !rb.segments || rb.segments.length < 3) return;
+          /*  **같은 철근이다** — 조각만 갈아 끼운다. id·지름·z·깃발은 그대로 둔다
+              (버리고 새로 만들면 `_srebar`·`hookSpan`·`cap` 까지 다시 달아야 한다). */
+          t.segments = rb.segments;
+          t._birth = rb.segments.map(function (s) {
+            return { label: s.label, p1: { x: s.p1.x, y: s.p1.y }, p2: { x: s.p2.x, y: s.p2.y },
+                     normal: { x: s.normal.x, y: s.normal.y } };
+          });
+          c.box = box;
+          moved++; byRule[c.end] = (byRule[c.end] || 0) + 1;
+        });
+        if (moved) {
+          var lens = [];
+          caps.forEach(function (t) { if (t._cap) { lens.push(t._cap.box.A); lens.push(t._cap.box.C); } });
+          console.log('[SREBAR] ∩ 다리 길이(출력) ' + Math.round(Math.min.apply(null, lens)) +
+                      ' ~ ' + Math.round(Math.max.apply(null, lens)) + ' mm · ' + moved + '개를 다시 쟀다' +
+                      ' (법선 ' + (byRule.normal || 0) + ' · 접선 ' + (byRule.tangent || 0) + ')');
+        }
+        return warn;
+      },
+
+      /*  ── **누가 누구를 감는가** — 재서 안다 ───────────────────────────────
+          종방향의 자리는 「면에서 피복 + dᵖ/2」가 아니라, 스터럽이 그 바깥을 감으면
+          「피복 + dˢ + dᵖ/2」다 (`JLong.seatsAt` 의 `wrap` 주석). 문제는 **누가
+          감느냐**인데, 그건 입력에 안 적혀 있고 추측할 일도 아니다 — 갈고리가
+          **실제로 문** 무리가 곧 감기는 무리다. 그래서 갈고리를 푼 뒤에 세어 둔다.
+          한 무리를 여러 굵기가 감으면 **가장 굵은 것**이 자리를 정한다.        */
+      _wrapOf: function () {
+        var w = {}, byT = {}, self = this;
+        (Domain.trebarList || []).forEach(function (t) {
+          if (!t._srebar) return;
+          /*  ── **받치는 ∩ 은 `wrap` 이 0 이다** ──────────────────────────────
+              `wrap` 은 「알과 콘크리트 면 **사이에** 스터럽이 끼어 있다」는 값이다.
+              자라는 모형에서는 거짓이다 : 몸통이 두께 가운데에서 **위로 자라다
+              그 알 아래에서 멈추므로**, 알과 면 사이에는 아무것도 없다.
+              그대로 두면 되먹임이 돈다 — 몸통이 오르면 h 가 커지고, `wrap` 이
+              커져 알이 더 깊이 내려가고, h 가 또 커진다. 재면 그랬다 :
+              D3 위줄이 −6176 까지 내려가 몸통과 **103 ~ 132 mm** 벌어졌다.
+              알의 자리는 **제 피복**이 정하고, 몸통은 그 아래에서 멈춘다.    */
+          if (self._capRests(t)) return;
+          /*  ── **`wrap` 은 받칠 때도 재서 쓴다** ────────────────────────────
+              이제 종방향이 ∩ 을 `prims` 로 직접 본다(`_capRests`). 그래서 `wrap`
+              이 이중 계산인가 물었고, **아니다** — 재 봤다 :
+                0 으로 두면        알이 제 피복까지 내려와 ∩ 의 몸통이 피복 밖으로
+                                  **−33.1 mm** 밀려 나고(척력 K_BAR 1000 이 피복
+                                  K_COV 20 을 이긴다) 띠가 12 개 닫혔다
+                `dˢ` 한 켜로 두면 −21.7 · 닫힌 띠 5 · 겹침 −13.0
+                **재서 쓰면**      몸통 피복 0.0 · 닫힌 띠 0 · 겹침 0.0 · 파고듦 0
+              까닭은 `wrap` 이 **힘의 대용품이 아니라 그 힘이 앉힌 자리를 읽은
+              값**이기 때문이다 (`h` 는 푼 결과에서 잰다). 척력이 ∩ 을 어디에
+              앉히든 그 자리를 알의 피복 기준으로 되먹임하는 것이고, 그래서
+              교대최소화의 **고정점**이다 — 두 번 세는 것이 아니다.
+              「한 켜」가 더 간단해 보이지만 그건 **내가 고른 수**다. 안 고른다.  */
+          (t.segments || []).forEach(function (s) {
+            [s.hookQ, s.hookQ2].forEach(function (q) {
+              if (!q || q.g == null) return;
+              /*  ── **무는 꼴이 자리를 가른다** ────────────────────────────────
+                  ∩  코너가 알을 **품는다** → 알은 절곡 아크 안이다
+                        면에서 알까지 = 피복 + dˢ/2 + h_품김
+                        `seatsAt` 이 `피복 + wrap + dᵖ/2` 로 받으므로
+                        wrap = dˢ/2 + h_품김 − dᵖ/2    (S14 : **18.27**)
+                  ㄷ  다리가 알을 **지나** `leg` 만큼 더 뻗는다 → 알은 **직선 구간**에
+                        있지 절곡부에 품기지 않는다 (그것이 `LEG_MIN` 이야기다).
+                        스터럽이 한 켜 바깥일 뿐이다 :  wrap = dˢ   (S14 : **13**)
+                  가르지 않고 둘 다 품김으로 주었더니 D1 이 5.3 mm 더 깊이 들어가
+                  **T1 의 ㄷ 25 개 중 10 개가 걸 자리를 잃었다.** 꼴이 다르면 자리도
+                  다르다 — `hookBandOf` 가 ㄷ 와 ∩ 의 띠를 가르는 것과 같은 가름이다. */
+              /*  ── 감기는 줄의 자리는 **재서 안다** ──────────────────────────
+                  ㄷ   다리가 알을 **지나** 더 뻗으므로 알이 직선 구간에 있다
+                       (그것이 `LEG_MIN` 이야기다) → 스터럽이 한 켜 바깥일 뿐이다.
+                         wrap = dˢ
+                  ∩   알이 어디 앉는지는 이제 **장이 정한다** (`arcTerm` — 절곡
+                       아크가 J 안에 들어왔다). 그러니 식으로 적지 않고 **잰다** :
+                         h = 몸통 선에서 그 알까지의 수직거리   ← 푼 결과
+                         면에서 알까지 = 피복 + dˢ/2 + h
+                         ⇒ wrap = dˢ/2 + h − dᵖ/2
+                       한때 이 자리에 `need`(13) · 「품김」(18.27) · `R`(31) 을 차례로
+                       **적어 넣었다.** 셋 다 내가 고른 수였다. 이제 안 고른다.    */
+              var k = String(q.g), ds = t.dia || 13, dp = q.dia || 13;
+              var d = ds;
+              if (t.cap && t.segments && t.segments[1]) {
+                var m = t.segments[1];
+                var L = Math.hypot(m.p2.x - m.p1.x, m.p2.y - m.p1.y) || 1;
+                var ux = (m.p2.x - m.p1.x) / L, uy = (m.p2.y - m.p1.y) / L;
+                var mx = (m.p1.x + m.p2.x) / 2, my = (m.p1.y + m.p2.y) / 2;
+                var hm = Math.abs((q.x - mx) * (-uy) + (q.y - my) * ux);
+                if (hm > 0 && hm < 200) d = ds / 2 + hm - dp / 2;
+              }
+              if (!(w[k] > d)) w[k] = d;
+              /*  ── **자리마다도 적어 둔다** ─────────────────────────────────
+                  무리에 하나(최댓값)만 주면 ∩ 이 낮은 자리의 알이 몸통에서 뜬다 —
+                  한 무리라도 자리마다 슬래브 두께가 달라 ∩ 의 높이가 다르기
+                  때문이다. 그 자리의 ∩ 에서 잰 값을 그 자리에 준다
+                  (`JLong.wrapAt`). 안 감기는 자리는 무리 값으로 떨어진다.      */
+              if (q.t != null) {
+                var kt = String(q.t);
+                if (!byT[k]) byT[k] = {};
+                if (!(byT[k][kt] > d)) byT[k][kt] = d;
+              }
+            });
+          });
+        });
+        w._byT = byT;
+        return w;
+      },
+
+      _srebarRows: function () {
+        return (this._rebarData || []).filter(function (r) {
+          return String(r.type || '').toLowerCase() === 'srebar';
+        });
+      },
+
+      /*  ── `srebar` 한 줄 → 갈고리 N 개 ─────────────────────────────────────
+          **엔진은 새 타입을 안 배운다.** 한 줄을 `trebar` N 개로 펼쳐 놓으면
+          표·그림·DXF·굴짐아크가 전부 그대로 쓰인다 — 갈고리는 「한 줄에 여러
+          개」라는 입력 쪽 사정일 뿐, 풀리는 것은 보통 횡방향 철근과 같다.
+          (다른 점 하나는 `hook` 깃발이다 : 자유단이 벽이 아니라 종방향에 앉는다.)
+
+          ── 태어나는 꼴도 입력이 아니다 ────────────────────────────────────
+            열차 방향 u   꼴의 **첫 조각**(다리)이 가리키는 쪽. ㄷ 는 다리가 부재를
+                          따라 눕고 몸통이 두께를 가로지르므로, 열차는 다리 방향으로
+                          행진한다. `code`+`rot` 에서 나오니 새 칸이 없다
+            몸통 방향 n   꼴의 **둘째 조각**(몸통) 방향 = u ⊥
+            몸통 길이 B   그 자리에서 **마주보는 두 콘크리트 면 사이**다. 곧 다리가
+                          «면 위»에서 태어난다 — 걸 종방향(피복 안쪽)보다 **바깥**이다.
+                          갈고리는 바깥에서 출발해 **줄어들며** 종방향을 품어야 한다
+                          (안에서 출발하면 등성이를 못 넘어 반대쪽에 선다 —
+                           `bench/jhookseat.js` 주석). 그래서 이것은 넉넉한 출발점이고,
+                          **답은 장이 낸다** (도면의 X = 206~480 이 결과로 나온다)
+            마주보는 면이 한쪽이라도 없으면 **그 자리엔 갈고리가 없다** — `lrebar` 의
+            `gap` 탈락과 같은 규칙이다. 몇 개를 왜 버렸는지는 경고로 낸다.
+
+          ── ∩ 꼴 : `body` 를 적으면 **역할이 뒤집힌다** ─────────────────────────
+            도면 8-243 의 하부슬래브 T3 가 ㄷ 가 아니라 **∩** 다 : 몸통이 상면을
+            따라 387 mm 가고, **다리 둘이 두께를 가로질러** 내려가 아래 종방향을 문다.
+            위의 규칙(열차 ∥ 다리 · 몸통 = 면에서 면)으로는 못 적는다.
+
+            바뀌는 것은 **두 방향의 역할뿐**이다 — 새 꼴도 새 코드도 아니다 :
+                       ㄷ (지금까지)              ∩ (`body` 를 적으면)
+              열차 u   꼴의 첫 조각(다리)         꼴의 **둘째 조각(몸통)**
+              부재 n   꼴의 둘째 조각(몸통)       꼴의 **첫 조각(다리)**
+              면에서 면  몸통 B = dp + dm          **다리 A = C = dp + dm**
+              입력      다리 leg                  **몸통 body** (+ leg 은 안 쓴다)
+            그래서 코드는 `{A, B, C}` 중 **어느 칸에 dp+dm 을 넣느냐** 하나만 갈린다.
+
+            ∩ 라고 갈고리 규칙이 달라지지 않는다. 다리가 **가까운 쪽** 종방향을
+            절곡 접선점에서 물고(⑤), 그 다리가 두께를 가로질러 **먼 쪽** 종방향까지
+            내려간다 — ㄷ 가 「다리가 철근을 지나 leg 만큼 더 뻗는다」 하던 그 말이
+            여기서는 「leg 이 두께다」가 될 뿐이다.                                */
+      _expandSrebar: function (sec) {
+        var warn = [], rows = this._srebarRows();
+        this._sdiag = {};
+        if (!rows.length) return warn;
+        if (typeof JLong === 'undefined' || typeof TrebarFactory === 'undefined') {
+          warn.push('srebar : JLong·TrebarFactory 가 없어 배치하지 못했습니다');
+          return warn;
+        }
+        var walls = (sec && sec.walls) || [];
+        var D2R = Math.PI / 180, self = this;
+
+        rows.forEach(function (rd) {
+          var dia = rd.dia || 13, leg = rd.leg, init = rd.init || {};
+          if (!rd.num || !rd.ctc) { warn.push(rd.id + ' : num 과 ctc 가 있어야 배치합니다'); return; }
+          if (rd.code == null) { warn.push(rd.id + ' : code(꼴)가 있어야 배치합니다'); return; }
+          /*  ── **모르는 코드는 «모른다»고, 맨 먼저 말한다** ──────────────────────
+              `TrebarFactory.create` 는 모르는 코드에 `null` 을 돌려주고 그 줄이
+              통째로 빠진다. 실제로 그랬다 : 시트를 `21a` 로 바꿔 보낸 뒤 옛 판
+              프로그램에서 열었더니 **하부슬래브가 통째로 사라졌다.** 그때 나오던
+              말은 「조각이 셋이 아니다」·「body 를 비워야 한다」라 **입력을 탓하는
+              틀린 말**이었다 — 틀린 것은 입력이 아니라 **판이 어긋난 것**이다.
+              그래서 칸을 보기 **전에** 코드부터 본다. 코드가 새로 생기면 시트와
+              프로그램이 같이 움직여야 한다 (`trebar.js` `normCode` 주석의 `23-1`). */
+          var known = null;
+          try { known = TrebarFactory.create(rd.code, { x: 0, y: 0 }, {}, 0, null, null, null); }
+          catch (e) { known = null; }
+          if (!known) {
+            warn.push(rd.id + ' : 이 프로그램 판은 **code ' + rd.code + ' 를 모릅니다** — ' +
+                      '시트가 프로그램보다 새것입니다 (아는 코드 : 1 · 11 · 11a · 14 · 15 · ' +
+                      '21 · 21a · 23 · 23a · 41). `trebar.js` 를 같이 받으세요');
+            return;
+          }
+          /*  ── **어느 개념인지는 `code` 가 말한다** ────────────────────────────
+              복부의 ㄷ 와 하부슬래브의 ∩ 는 **굽는 모양이 같은 철근**이다 — 재 보면
+              같은 공장에서 같은 `rot` 으로 조각 방향까지 같게 나오고 **치수 비율만**
+              다르다 (trebar.js `Shape21Cap` 주석). 그래서 가공표에는 둘 다 21 로
+              나간다. 그런데 **엔진에서는 한 가지를 뜻하지 않는다** :
+                21   몸통 B 가 면에서 면 → 늘어나는 것이 **몸통**, 적는 것은 `leg`
+                21a  다리 A·C 가 면에서 면 → 늘어나는 것이 **다리**, 적는 것은 `body`
+              여기서 열차 방향·짝 규칙·띠·안착하는 끝이 전부 갈린다. 그 갈림을 한때
+              「어느 칸이 채워졌나」로 눈치채게 두었는데, 시트를 읽어서는 알 수가
+              없었다. **코드가 말한다.** 칸은 그 코드를 **맞검사**하는 자리로 남는다
+              — 빈 쪽이 「콘크리트가 정하는 쪽」이라는 뜻은 그대로다.              */
+          var capRole = (TrebarFactory.normCode(rd.code) === 21.1);
+          var cap = capRole ? (rd.body > 0 ? rd.body : 0) : 0;
+          if (capRole && !(cap > 0)) {
+            warn.push(rd.id + ' : code ' + rd.code + '(∩) 는 **body** 를 적어야 합니다' +
+                      ' (∩ 는 다리가 늘어나므로 몸통이 입력입니다. 다리는 비웁니다)');
+            return;
+          }
+          if (capRole && leg > 0) {
+            warn.push(rd.id + ' : code ' + rd.code + '(∩) 에 **leg** 를 적었습니다 — 비워야 합니다' +
+                      ' (빈칸이 «콘크리트가 정하는 쪽»입니다. ∩ 는 다리가 그 쪽입니다)');
+            return;
+          }
+          if (!capRole && rd.body > 0) {
+            warn.push(rd.id + ' : code ' + rd.code + '(ㄷ) 에 **body** 를 적었습니다 — 비워야 합니다' +
+                      ' (∩ 로 넣으려면 code 를 21a 로 바꾸세요)');
+            return;
+          }
+          if (!capRole && !(leg > 0)) {
+            warn.push(rd.id + ' : code ' + rd.code + '(ㄷ) 는 **leg** 를 적어야 합니다' +
+                      ' (ㄷ 는 몸통이 늘어나므로 다리가 입력입니다)');
+            return;
+          }
+          /*  ∩ 는 **끝이 어디서 멈추는지**를 적어야 한다 (`end`). 기본값을 두지
+              않는 까닭은 복부의 ∩ 와 하부슬래브의 ∩ 가 **그 하나로** 갈리기
+              때문이다 — 눈치채게 두면 또 「어느 칸이 채워졌나」로 돌아간다.     */
+          if (capRole && rd.end !== 'tangent' && rd.end !== 'normal') {
+            warn.push(rd.id + ' : code 21a(∩) 는 **end** 를 적어야 합니다 — ' +
+                      '`normal`(다리가 면을 따라 누워 **법선**으로 벽체를 찾는다 · 복부) 또는 ' +
+                      '`tangent`(다리가 두께를 가로질러 **접선**으로 찾는다 · 하부슬래브)' +
+                      (rd.end ? ' [적힌 것 : ' + rd.end + ']' : ''));
+            return;
+          }
+          if (!capRole && rd.end) {
+            warn.push(rd.id + ' : code ' + rd.code + '(ㄷ) 에는 **end** 가 없습니다 — ' +
+                      'ㄷ 의 다리는 철근을 지나 뻗는 정착이라 끝막음이 아니라 `leg` 가 정합니다');
+            return;
+          }
+          if (cap) leg = 400;                          // probe 용 — 실제 다리는 면이 정한다
+
+          //  ① 꼴을 한 번 만들어 열차 방향 u 와 몸통 방향 n 을 읽는다
+          var probe;
+          try { probe = TrebarFactory.create(rd.code, { x: 0, y: 0 },
+                        { A: leg, B: 400, C: leg }, init.rot || 0, null, null, null); }
+          catch (e) { probe = null; }
+          if (!probe || !probe.segments || probe.segments.length < 3) {
+            warn.push(rd.id + ' : code ' + rd.code + ' 는 조각이 셋인 꼴이 아닙니다 (ㄷ=21 · ∩=21a)');
+            return;
+          }
+          var sa = probe.segments[0], sb = probe.segments[1];
+          var un = function (p, q) {
+            var dx = q.x - p.x, dy = q.y - p.y, L = Math.hypot(dx, dy) || 1;
+            return { x: dx / L, y: dy / L };
+          };
+          var u = un(sa.p1, sa.p2), n = un(sb.p1, sb.p2);
+          //  ∩ 는 **두 방향의 역할이 바뀐다** (위 주석의 표). 그것뿐이다
+          if (cap) { var sw = u; u = n; n = sw; }
+
+          //  ② 열차 자리 — `lrebar` 와 **같은 식**을 쓴다 (JLong.layout)
+          var g = { init: { x: init.x || 0, y: init.y || 0,
+                            rot: Math.atan2(u.y, u.x) / D2R },
+                    num: rd.num, ctc: rd.ctc, dia: dia, nors: 1,
+                    range: (rd.range && isFinite(rd.range.min) && isFinite(rd.range.max)
+                            && rd.range.max > rd.range.min) ? rd.range : null,
+                    align: rd.align || null };
+          /*  `range` 는 **한계**다 — `lrebar` 와 같은 뜻. `JLong.layout` 은 align 이
+              'init' 이면 range 를 안 보므로(열차는 init 한가운데), 여기서 **잘라 준다.**
+              안 자르면 칸이 적혀 있는데 아무 일도 안 하는 꼴이 된다.             */
+          var pos = JLong.layout(g).filter(function (q) {
+            return !g.range || (q.t >= g.range.min - 1e-6 && q.t <= g.range.max + 1e-6);
+          });
+          var clipped = rd.num - pos.length;
+
+          //  ③ 자리마다 마주보는 두 면을 찾아 그 사이에 ㄷ 를 세운다
+          var made = 0, pulled = 0, outside = 0, oneSide = 0, tooFar = 0, lens = [];
+          var nm = { x: -n.x, y: -n.y };
+          var hitW = function (q, d) {
+            var best = null;
+            walls.forEach(function (w) {
+              var t = JLong.rayHit(q, d, w);
+              if (t != null && (best == null || t < best.t)) best = { t: t, w: w };
+            });
+            return best;
+          };
+          var hit = function (q, d) { var o = hitW(q, d); return o ? o.t : null; };
+          /*  그 면이 요구하는 «철근 중심선까지» — 피복 + 지름/2 (JField.coverOf 와 같다). */
+          var needOf = function (o) {
+            if (!o || !o.w) return 0;
+            var cv = (sec && sec.covers) || {};
+            var tag = String(o.w.tag || 'outer').toLowerCase();
+            return (cv[tag] != null ? cv[tag] : 50) + dia / 2;
+          };
+          pos.forEach(function (p, k) {
+            /*  **배치 직선이 밖이어도 끌려 들어오면 될 일이다.** 데크가 −3% 로
+                기울어 있으니 수평인 직선은 끝에서 슬래브를 벗어난다 — `lrebar` 에서
+                이미 같은 결론을 냈다 (`JLong.seatsAt` 의 「점이 콘크리트 밖이면
+                −n̂ 으로 **들어오는** 첫 경계」). 가까운 쪽 면을 넘어 한 걸음
+                들여놓는다. 양쪽 다 못 들어가면 그 자리엔 부재가 없다.           */
+            if (!JLong.inside(p, walls)) {
+              var best = null;
+              [n, nm].forEach(function (d) {
+                var t = hit(p, d);
+                if (t == null) return;
+                var q = { x: p.x + d.x * (t + 1), y: p.y + d.y * (t + 1) };
+                if (!JLong.inside(q, walls)) return;
+                if (best == null || t < best.t) best = { t: t, q: q };
+              });
+              if (!best) { outside++; return; }
+              p = best.q; pulled++;
+            }
+            var hp = hitW(p, n), hm = hitW(p, nm);
+            var dp = hp ? hp.t : null, dm = hm ? hm.t : null;
+            if (dp == null || dm == null || dp + dm < 1) { oneSide++; return; }
+            /*  **영향 반경** — `JLong.CONF.RHO0`. 새 규칙이 아니다, 이미 재서 정해 둔
+                그 값이다(「장은 무한히 멀리까지 당기지 않는다」). 복부가 슬래브로
+                열리는 꼭대기·바닥에서는 마주보는 첫 면이 **건너편 복부**가 되어
+                몸통이 6,892 mm 로 나온다 — 그 자리엔 ㄷ 가 설 부재가 없다는 뜻이다.
+                재는 것은 **몸통 전체**(dp + dm)다 : ㄷ 는 두 면을 «같이» 봐야 하는
+                철근이라, 몸통이 ρ₀ 를 넘으면 한 다리가 반대쪽 면을 못 본다.
+                부재 두께(복부 500 · 슬래브 280~600)와 셀 너비(6,900)가 1,500 을
+                사이에 두고 깨끗이 갈린다.                                        */
+            var rho = (JLong.CONF && JLong.CONF.RHO0) || 1500;
+            if (dp + dm > rho) { tooFar++; return; }
+            var c = { x: p.x + n.x * (dp - dm) / 2, y: p.y + n.y * (dp - dm) / 2 };
+            var rb;
+            /*  **면에서 면을 어느 칸에 넣느냐** — 그 하나가 ㄷ 와 ∩ 를 가른다.
+                ㄷ : 몸통 B 가 면에서 면 · 다리는 입력
+                ∩ : **다리 A·C 가** 면에서 면 · 몸통은 입력                     */
+            /*  ── ∩ 의 다리 길이는 «면에서 면» 이 아니라 «철근줄에서 철근줄» 이다 ──
+                ㄷ 의 몸통은 면에서 면으로 **넉넉하게** 태어나고 장이 줄여 준다 —
+                가운데 조각의 길이는 코너가 정하기 때문이다(`joinCorners`).
+                ∩ 의 다리는 **끝 조각**이라 `len0` 이 그대로 쓰인다 — 줄여 줄 사람이
+                없다. 면에서 면으로 주면 몸통이 상면 **밖으로 41 mm** 솟는다
+                (재서 확인했다). 그래서 ∩ 는 처음부터 제 길이로 태어난다 :
+                    ℓ = (dp + dm) − need(가까운 면) − need(먼 면)
+                곧 **위 철근줄에서 아래 철근줄까지**다. 도면의 ∩ 가 그 꼴이다.    */
+            var box = cap ? { A: dp + dm - needOf(hp) - needOf(hm), B: cap,
+                              C: dp + dm - needOf(hp) - needOf(hm) }
+                          : { A: leg, B: dp + dm, C: leg };
+            /*  **꼴의 기준점은 코너다** (trebar 주석). ㄷ 는 면에서 면인 것이
+                «몸통» 이라 코너에 세우면 그대로 두 면 사이에 걸치는데, ∩ 는 면에서
+                면인 것이 «다리» 라 코너에 세우면 몸통이 가운데 오고 다리가 **한쪽으로
+                만 늘어진다** (재면 소피트 아래 490 mm 까지 내려갔다).
+                그래서 ∩ 는 한 번 떠 보고 **부재 방향의 아래끝을 먼 면에 맞춰** 옮긴다.
+                옮기는 양은 기하가 준다 — 추측이 아니다.                          */
+            /*  ── ∩ 는 **몸통만 면을 따르고, 다리는 연직으로 내려간다** ───────
+                「하부슬래브 철근은 위에서 아래로 내려오면서 자리를 잡아야 하고,
+                 양쪽 다리가 **수직**으로 내려와서 하부슬래브 하단에 닿아야지.
+                 **몸통과 양쪽 다리는 90도로 만날 필요 없어.**」
+
+                꼴 전체를 기울이면 안 된다 — 그러면 다리도 같이 기운다. 어제 그렇게
+                해서 다리가 **면에 수직**으로 섰는데, 면이 기울어 있으니 다리가
+                연직이 아니었다 (그림에서 다리가 비스듬한 것이 그것이다).
+                바른 꼴은 **꺾임각이 90°가 아닌** ∩ 다 :
+                    몸통 B  그 자리 **상면의 기울기**를 그대로
+                    다리 A·C  **연직** (중력 방향)
+                    따라서 두 코너의 각이 90° ∓ 기울기로 **서로 다르다**
+                `buildSequential` 이 `angs` 로 꺾임각을 받으므로 새 꼴이 필요 없다.
+                회전 R 일 때 세 조각의 세계각은
+                    A = −90 + R · B = −90 + RA + R · C = −90 + RA + RB + R
+                이고, 두 다리가 연직이려면 RA + RB = 180 이면 된다 (A 와 C 가 서로
+                반대 방향). 그러니 B 를 면과 나란하게 두는 RA 하나만 풀면 된다.
+                면이 수평이면 RA = RB = 90 — **예전 직각 ∩ 로 그대로 돌아간다.**  */
+            var tilt = 0, angs = null;
+            if (cap && rd.end === 'tangent' && hp && hp.w) {
+              var R0 = init.rot || 0;
+              var wa = Math.atan2(hp.w.y2 - hp.w.y1, hp.w.x2 - hp.w.x1) / D2R;  // 면의 방향
+              var base = R0;                       // RA = 90 일 때의 B 세계각 (−90+90+R)
+              var bw = wa;                         // 면과 나란한 가지 중 기본에 가까운 것
+              while (bw - base > 90) bw -= 180;
+              while (base - bw > 90) bw += 180;
+              var ra = bw + 90 - R0;
+              while (ra > 180) ra -= 360;
+              while (ra <= -180) ra += 360;
+              //  THMAX 와 같은 뜻의 울타리 — 면을 잘못 집었으면 직각 ∩ 로 둔다
+              if (Math.abs(ra - 90) < 30) angs = { RA: ra, RB: 180 - ra };
+            }
+            var rot0 = (init.rot || 0) + tilt;   // tilt 는 `normal` 쪽에 남겨 둔다
+            /*  돌렸으면 **재는 축도 같이 돈다.** 다리가 뻗는 쪽 `nt` 는 돌린 뒤의
+                방향이고, 몸통이 누울 면까지의 거리도 `n` 을 따라가 아니라 그 면의
+                **수직거리**로 재야 한다 (기울면 둘이 다르다). tilt 0 이면 예전과
+                같은 수다.                                                        */
+            var nt = n, dmP = dm;
+            if (cap && tilt) {
+              var th = Math.atan2(n.y, n.x) + tilt * D2R;
+              nt = { x: Math.cos(th), y: Math.sin(th) };
+              dmP = (p.x - hm.w.x1) * hm.w.nx + (p.y - hm.w.y1) * hm.w.ny;   // 면에서 안쪽으로
+            }
+            var cc = c;
+            if (cap) {
+              var t0 = null;
+              try { t0 = TrebarFactory.create(rd.code, c, box, rot0, angs, null, null); }
+              catch (e) { t0 = null; }
+              /*  ── **받치는 ∩ 은 «가운데에서 작게» 태어난다** ───────────────────
+                  「∩ 의 몸통이 슬래브 **중앙에서 생성**되어 하부슬래브 상면까지
+                   커지면서 J 값을 따지면 맨 처음 만나는 게 종방향 철근인데 그걸
+                   뚫고 올라갈 순 없잖아 … 거기서 멈춰야지」
+                  아래 규칙(가장 바깥 점을 제 면의 피복선에 붙인다)은 **감싸는** ∩ 의
+                  것이다. 받치는 ∩ 에 그대로 쓰면 **상면에 붙어서** 태어난다 — 재면
+                  열세 개 전부 상면에서 3 ~ 36 mm 아래, 두께 가운데보다 **340 ~ 472 mm
+                  위**였다. 그러면 자랄 것이 없고, D3 위줄은 이미 그 아래라 「처음
+                  만나는 데서 멈춘다」가 **돌 수가 없다**.
+                  그래서 받치는 ∩ 은 **두께의 가운데**에 **다리를 6dᵇ 로 짧게** 낳는다.
+                  거기서부터 `_capLegs` 가 위로(몸통) · 아래로(다리) 첫 닿음까지
+                  키운다. 길이는 출력이고, **크는 일은 장이 멈춘다.**            */
+              var restCap = (String(rd.end || '').toLowerCase() === 'tangent');
+              if (t0 && t0.segments && restCap) {
+                var mm0 = t0.segments[1], aa0 = t0.segments[0];
+                var e1 = Math.hypot(aa0.p1.x - mm0.p1.x, aa0.p1.y - mm0.p1.y) +
+                         Math.hypot(aa0.p1.x - mm0.p2.x, aa0.p1.y - mm0.p2.y);
+                var e2 = Math.hypot(aa0.p2.x - mm0.p1.x, aa0.p2.y - mm0.p1.y) +
+                         Math.hypot(aa0.p2.x - mm0.p2.x, aa0.p2.y - mm0.p2.y);
+                var cor0 = (e1 < e2) ? aa0.p1 : aa0.p2, tip0 = (e1 < e2) ? aa0.p2 : aa0.p1;
+                var ll0 = Math.hypot(tip0.x - cor0.x, tip0.y - cor0.y) || 1;
+                var dnv = { x: (tip0.x - cor0.x) / ll0, y: (tip0.y - cor0.y) / ll0 };
+                var upv = { x: -dnv.x, y: -dnv.y };
+                var hU = null, hD = null;
+                (sec.walls || []).forEach(function (w) {
+                  var tU = JLong.rayHit(p, upv, w);
+                  if (tU != null && tU > 1 && (hU == null || tU < hU)) hU = tU;
+                  var tD = JLong.rayHit(p, dnv, w);
+                  if (tD != null && tD > 1 && (hD == null || tD < hD)) hD = tD;
+                });
+                if (hU != null && hD != null) {
+                  box.A = box.C = Math.max(6 * dia, 2 * JField.bendRadius(dia));
+                  var t1 = null;
+                  try { t1 = TrebarFactory.create(rd.code, c, box, rot0, angs, null, null); }
+                  catch (e) { t1 = null; }
+                  if (t1 && t1.segments && t1.segments[1]) {
+                    var m1 = t1.segments[1];
+                    var bm = { x: (m1.p1.x + m1.p2.x) / 2, y: (m1.p1.y + m1.p2.y) / 2 };
+                    var mid0 = (hD - hU) / 2;             // p 에서 아래로 이만큼이 가운데
+                    cc = { x: c.x + (p.x + dnv.x * mid0 - bm.x),
+                           y: c.y + (p.y + dnv.y * mid0 - bm.y) };
+                  }
+                } else { restCap = false; }
+              } else { restCap = false; }
+              if (t0 && t0.segments && !restCap) {
+                var lo = Infinity;
+                t0.segments.forEach(function (s) {
+                  [s.p1, s.p2].forEach(function (q) {
+                    var v = (q.x - p.x) * nt.x + (q.y - p.y) * nt.y;
+                    if (v < lo) lo = v;
+                  });
+                });
+                cc = { x: c.x + nt.x * (-(dmP - needOf(hm)) - lo),
+                       y: c.y + nt.y * (-(dmP - needOf(hm)) - lo) };
+              }
+            }
+            try { rb = TrebarFactory.create(rd.code, cc, box, rot0, angs, null, null); }
+            catch (e) { rb = null; }
+            if (!rb) { oneSide++; return; }
+            /*  이름 : 알맹이는 `T1#3` (낱개), **마크는 길이로 묶어 따로 낸다**
+                (`_srebarMarks`). 도면의 T1-1 · T1-2 · T1-3 이 그 마크다 — 셋인
+                이유가 길이가 셋이었기 때문이니, 이름을 미리 셋으로 못박지 않는다. */
+            rb.id = rd.id + '#' + (k + 1);
+            rb.dia = dia;
+            rb.z = rd.z || 0;
+            rb.hook = true;              //  자유단이 **종방향**에 앉는다 (JField hookGeom)
+            /*  **제 칸** — 걸 철근을 고를 때 돌아다닐 수 있는 반경 (JField.hookPick).
+                덕트를 피해 옆 철근으로 옮겨 갈 수 있어야 하는데, 옆 ㄷ 의 자리까지
+                가면 둘이 같은 철근을 문다. 그 경계가 **간격의 절반**이다.        */
+            rb.hookSpan = rd.ctc / 2;
+            if (cap) {
+              rb.cap = true;             //  ∩ — 두 다리가 «같은 줄의 다른 두 자리» 를 문다
+              /*  ── 다시 지을 수 있게 **낳은 값**을 챙겨 둔다 ────────────────────
+                  `end = bar` 는 **풀린 종방향**이 있어야 잴 수 있는데, 이 자리에서
+                  보이는 종방향은 아직 `init` 에 모여 있다 (재면 전부 0,−6480 이다).
+                  그래서 길이는 여기서 못 정하고, 종방향을 푼 **뒤에** `_capLegs`
+                  가 다시 짓는다. 그때 필요한 것이 이것뿐이다.                   */
+              rb._cap = { code: rd.code, cc: { x: cc.x, y: cc.y }, box: { A: box.A, B: box.B, C: box.C },
+                          rot: rot0, angs: angs, end: rd.end,
+                          nt: { x: nt.x, y: nt.y }, u: { x: u.x, y: u.y } };
+            }
+            rb._srebar = String(rd.id);  //  종방향 뒤에 따로 푼다는 표시
+            //  태어난 꼴 — ↻(Respawn) 이 이것으로 그 하나만 다시 푼다
+            rb._birth = rb.segments.map(function (s) {
+              return { label: s.label, p1: { x: s.p1.x, y: s.p1.y }, p2: { x: s.p2.x, y: s.p2.y },
+                       normal: { x: s.normal.x, y: s.normal.y } };
+            });
+            Domain.trebarList.push(rb);
+            lens.push(cap ? (dp + dm - needOf(hp) - needOf(hm)) : (dp + dm));
+            made++;
+          });
+
+          self._sdiag[String(rd.id)] = { kind: cap ? 'cap' : 'hoop',
+                                         num: rd.num, made: made, pulled: pulled,
+                                         outside: outside, oneSide: oneSide, tooFar: tooFar,
+                                         clipped: clipped, u: u, n: n, lens: lens };
+          if (clipped) warn.push(rd.id + ' : ' + clipped + '개가 range 밖입니다' +
+                                 ' (num × ctc 가 range 보다 넓습니다)');
+          if (outside) warn.push(rd.id + ' : ' + outside + '개를 버렸습니다 ' +
+                                 '(배치 직선이 **콘크리트 밖**이고 끌어들일 면도 없습니다 — ' +
+                                 'init 과 range 를 보세요)');
+          if (oneSide) warn.push(rd.id + ' : ' + oneSide + '개를 버렸습니다' +
+                                 ' (그 자리엔 마주보는 면이 한쪽뿐입니다)');
+          if (tooFar) warn.push(rd.id + ' : ' + tooFar + '개를 버렸습니다 (마주보는 면이 ' +
+                                ((JLong.CONF && JLong.CONF.RHO0) || 1500) +
+                                ' mm 보다 멉니다 — 그 자리엔 ㄷ 가 설 부재가 없습니다)');
+          console.log('[SREBAR] ' + rd.id + ' ' + made + '/' + rd.num + '개' +
+                      (pulled ? ' (' + pulled + '개는 부재 안으로 끌어들였다)' : '') +
+                      (tooFar ? ' (' + tooFar + '개는 부재가 없어 버렸다)' : '') +
+                      (cap ? '  ∩ (다리가 늘어난다 · 몸통 ' + cap + ')'
+                           : '  ㄷ (몸통이 늘어난다 · 다리 ' + leg + ')') +
+                      ' · ' + (cap ? '다리' : '몸통') + ' 출발길이 ' +
+                      (lens.length ? Math.round(Math.min.apply(null, lens)) + '~' +
+                                     Math.round(Math.max.apply(null, lens)) : '-') + ' mm');
+        });
+        return warn;
+      },
+
+      /*  ── 마크 — **길이로 묶는다** ───────────────────────────────────────────
+          도면(8-243)에 마크가 T1-1 · T1-2 · T1-3 셋이다. 셋인 이유는 철근이 셋이라
+          서가 아니라 **몸통 길이가 자리마다 달라서**다 (슬래브 600 → 280).
+          제도에서는 그걸 손으로 끊어 적을 수밖에 없었다. 우리는 길이를 장이 내므로,
+          **같은 길이끼리 묶으면 마크가 저절로 나온다** — 도면의 마크 셋이 입력에서
+          사라지고 결과로 돌아오는 자리가 여기다.
+          묶는 눈금은 **가공 단위**다 (10 mm). 치수를 10 mm 로 끊어 적는 제도 관행
+          그대로이고, 이 값은 결과를 가르지 않는다(5 로 해도 10 으로 해도 묶음 수만
+          변하고 길이는 그대로다) — 숨은 문턱이 아니라 적는 단위다.               */
+      MARK_STEP: 10,
+      _srebarMarks: function () {
+        var step = this.MARK_STEP, self = this, by = {};
+        (Domain.trebarList || []).forEach(function (t) {
+          if (!t._srebar) return;
+          var total = 0;
+          (self._trebarPrimitives(t) || []).forEach(function (pr) {
+            if (pr.t === 'line') total += Math.hypot(pr.p[2] - pr.p[0], pr.p[3] - pr.p[1]);
+            else total += pr.p[2] * (((pr.p[4] - pr.p[3]) % 360 + 360) % 360) * Math.PI / 180;
+          });
+          var body = t.segments[1]
+                   ? Math.hypot(t.segments[1].p2.x - t.segments[1].p1.x,
+                                t.segments[1].p2.y - t.segments[1].p1.y) : 0;
+          var k = t._srebar + '|' + Math.round(total / step);
+          if (!by[k]) by[k] = { row: t._srebar, len: 0, body: [], ids: [] };
+          by[k].len = Math.round(total / step) * step;
+          by[k].body.push(body);
+          by[k].ids.push(String(t.id));
+        });
+        return Object.keys(by).map(function (k) { return by[k]; })
+          .sort(function (a, b) { return (a.row === b.row) ? a.len - b.len : (a.row < b.row ? -1 : 1); })
+          .map(function (m, i, arr) {
+            var n = 0;
+            for (var j = 0; j < i; j++) if (arr[j].row === m.row) n++;
+            m.mark = m.row + '-' + (n + 1);
+            m.num = m.ids.length;
+            m.bodyMin = Math.min.apply(null, m.body);
+            m.bodyMax = Math.max.apply(null, m.body);
+            return m;
+          });
+      },
+
+      /*  갈고리는 **종방향 뒤에** 푼다 — 자리가 종방향 철근이기 때문이다.
+          그래서 `lpts` 에 종방향 점이 들어가고, `placed0` 로 **이미 놓인 횡방향**을
+          같이 넘긴다 (빈 배열로 시작하면 갈고리가 그 횡방향을 통과한다).         */
+      _solveSrebarWithJ: function (sec, placed0) {
+        var warn = [], self = this;
+        var hooks = Domain.trebarList.filter(function (t) { return t._srebar; });
+        if (!hooks.length) return warn;
+        var bars = hooks.map(function (t) {
+          return { id: String(t.id), dia: t.dia || 13, z: t.z || 0, hook: true,
+                   hookSpan: t.hookSpan || 0, cap: !!t.cap,
+                   //  다리가 벽체를 **어느 쪽으로** 찾나 (`_parseSrebarRow` 의 `end`)
+                   endMode: (t._cap && t._cap.end) || 'tangent',
+                   segs: (t.segments || []).map(function (s) {
+                     return { label: s.label,
+                              p1: { x: s.p1.x, y: s.p1.y }, p2: { x: s.p2.x, y: s.p2.y },
+                              normal: { x: s.normal.x, y: s.normal.y } };
+                   }) };
+        });
+        var lpts = this._lrebarPoints();
+        if (!lpts.length) {
+          warn.push('갈고리를 걸 **종방향 철근이 없습니다** (lrebar 줄을 넣으세요)');
+          return warn;
+        }
+        var out;
+        try { out = JField.solve(bars, sec.walls, sec, this._ducts || [], lpts, placed0 || []); }
+        catch (e) { console.error('[REBAR] srebar solve:', e); warn.push('갈고리 배치 실패'); return warn; }
+
+        var byId = {};
+        hooks.forEach(function (t) { byId[String(t.id)] = t; });
+        /*  **걸 종방향이 없는 ㄷ 는 버린다.** `lrebar` 가 「그 자리엔 한쪽 면이
+            없다 → 철근도 없다」로 짝을 버리는 것과 같은 규칙이다. 갈고리는 종방향에
+            걸려 서는 철근이라, 다리가 닿는 데 철근이 없으면 그 자리엔 ㄷ 가 없다.
+            (복부 바닥이 그렇다 — 바깥줄 종방향이 거기서 끝난다.)                 */
+        var drop = {};
+        out.forEach(function (r) {
+          var t = byId[String(r.id)];
+          if (!t || !t.segments) return;
+          if (r.segs.some(function (s) { return s.stopped === 'no-seat'; })) {
+            drop[String(r.id)] = 1; return;
+          }
+          self._writeBack(t, r, sec);
+        });
+        var ndrop = Object.keys(drop).length;
+        if (ndrop) {
+          Domain.trebarList = Domain.trebarList.filter(function (t) { return !drop[String(t.id)]; });
+          warn.push('갈고리 ' + ndrop + '개를 버렸습니다 (' +
+                    Object.keys(drop).slice(0, 6).join(', ') + (ndrop > 6 ? ' …' : '') +
+                    ' — 그 자리엔 걸 종방향이 없습니다)');
+        }
+        /*  ── 다리가 **종방향에 닿았나** ───────────────────────────────────────
+            갈고리의 자리는 종방향이다. 못 닿은 다리는 그 자리에 **틈이 없다**는
+            뜻이고, 고칠 수 있는 것은 입력(ㄷ 의 구간·간격)뿐이니 숫자를 그대로 낸다.
+            덕트에 밀린 것과 가려 주지 않는다 — 가르는 일은 `bench/jsre.js` 가 한다
+            (덕트를 빼고 한 번 더 풀어 봐야 갈라지는데, 화면에서 두 번 풀 수는 없다). */
+        /*  ── **자가 둘이다** — 결속점 «뒤» 에 무엇이 있어야 하는가가 다르다 ────
+            둘 다 **몸통과 만나는 끝**(절곡부)이 먼저 앉는다 — 거기가 안착의 기준이다.
+            갈리는 것은 그 뒤다 :
+            ㄷ : 다리가 철근을 **지나** `leg` 만큼 더 뻗는다. 뒤에 남은 곧은 길이가
+                 정착이라 잴 것은 「뒤로 얼마 남았나」(≥ 6·dᵇ)다. 띠는 [R, ℓ−6dᵇ].
+            ∩ : 코너가 철근을 **품는다** — `need` 만큼 떨어진 자리가 가장 가까이
+                 품은 것이고, `need`~R 은 **아크 안**이다 (스터럽 코너에선 정상).
+                 뒤에 남는 것이 없는 것이 꼴이고 정착은 반대쪽 절곡(몸통)이 맡는다.
+                 띠는 [need, ℓ]. 잴 것은 「**다리 끝**이 먼 줄에 닿았나」다.
+            한 자로 둘을 재면 ∩ 쪽에 **틀린 말**이 나온다 : 정착이 0 이라 흉보고,
+            아크 안에 품은 것을 「상·하 종방향의 짝이 어긋났다」고 진단한다. 둘 다
+            거짓이다. 개념이 다르면 자도 달라야 한다.                              */
+        var off = [], slip = [], anc = [], reach = [];
+        /*  ── ∩ 의 끝을 재는 자는 **깊이**다 ─────────────────────────────────
+            한때 끝에서 가장 가까운 종방향까지의 **순거리**로 쟀다. 그건 틀린 자다 :
+            다리의 x 는 몸통이 정하므로 끝이 알과 알 **사이**에 설 수 있는데
+            (D3 가 125 간격이니 옆으로 최대 62.5), 깊이가 정확히 맞아도 순거리가
+            48 로 나와 「떴다」고 읽혔다. `end = bar` 가 정하는 것은 **그 알의 깊이**
+            이지 옆 거리가 아니다 (`_capLegs` 주석 — 닿는 게 아니라 기댄다).
+            그래서 **다리를 따라** 잰다 : 고르는 것은 옆으로 가장 가까운 알이고,
+            내는 수는 그 알의 깊이와 끝의 깊이 차다. 0 이면 제자리다.            */
+        var tipGap = function (corner, tip, dia) {
+          var vx = tip.x - corner.x, vy = tip.y - corner.y;
+          var ell = Math.hypot(vx, vy) || 1;
+          var dx = vx / ell, dy = vy / ell;
+          var best = null;
+          lpts.forEach(function (q) {
+            var s = (q.x - corner.x) * dx + (q.y - corner.y) * dy;        // 깊이
+            var l = Math.abs((q.x - corner.x) * (-dy) + (q.y - corner.y) * dx);
+            if (!(s > ell * 0.4) || s > ell * 1.8) return;                // 끝 둘레만
+            if (best == null || l < best.l) best = { l: l, s: s };
+          });
+          return best ? Math.abs(best.s - ell) : 0;
+        };
+        out.forEach(function (r) {
+          if (drop[String(r.id)]) return;
+          var isCap = !!(byId[String(r.id)] || {}).cap;
+          [0, 2].forEach(function (i) {
+            var sg = r.segs[i];
+            if (!sg || !sg.hookQ) return;
+            var a = r.pts[i], b = r.pts[i + 1];
+            var L = Math.hypot(b.x - a.x, b.y - a.y) || 1;
+            var pose = { cx: (a.x + b.x) / 2, cy: (a.y + b.y) / 2,
+                         th: Math.atan2(b.y - a.y, b.x - a.x) };
+            var g = JField.hookGeom(pose, { len: L, dia: r.dia, p1: a, p2: b, hook: true,
+                                            hookQ: sg.hookQ, hookEnd: (i === 0) ? 1 : -1,
+                                            hookSide: sg.hookSide, bendR: 0, link: false });
+            if (Math.abs(g.h - g.target) > 0.5)
+              off.push(r.id + '[' + sg.label + '] ' + g.h.toFixed(0) + '/' + g.target.toFixed(0));
+            /*  축방향 — 종방향은 다리의 **곧은 구간 안**에 있어야 한다. 점이 아니라
+                띠다 : s = 0 (절곡 접선점)에서 s = ℓ−R (자유단)까지. s = 0 은 정착이
+                가장 길어 **선호**이고, 덕트에 걸린 ㄷ 는 띠 안에서 비켜난다
+                (`jfield.js` hookRows 위 주석 · `bench/jband.js`).
+                띠를 **벗어난** 것만 말한다 — ㄷ 에서는 대개 상·하 종방향의 짝이
+                그 자리에서 어긋난 것이다. 여유 2 mm 는 폴리라인 코너와 푼 자세의 차다. */
+            var R = JField.bendRadius(r.dia), half = L / 2;
+            var sOff = ((i === 0) ? (half - g.a) : (g.a + half)) - R;
+            var top = (sg.len0 != null ? sg.len0 : L) - R;
+            if (isCap) {
+              /*  ∩ — 띠의 아래끝이 R 이 아니라 `need` 다 (코너가 철근을 품는다).
+                  그래서 `sOff` 가 `need − R` 만큼 **음수인 것이 제 자리**다.
+                  그 자리는 아크 «안» 이고, 스터럽 코너에선 그것이 정상이다.     */
+              var nd = JField.lreNeed(sg.hookQ, r.dia) - R;
+              if (sOff < nd - 2 || sOff > top + 2)
+                slip.push(r.id + '[' + sg.label + '] ' + sOff.toFixed(0));
+              /*  ∩ 가 내는 수는 **다리 끝**이다 — 몸통 쪽은 결속으로 잡혔으니
+                  남은 물음은 「반대쪽 끝이 먼 줄에 닿았나」 하나다. 어느 알인지
+                  미리 못박지 않고 **가장 가까운 종방향까지의 순거리**로 잰다
+                  (0 이면 닿았다 · 양수면 그만큼 떴다).                          */
+              var tip = (i === 0) ? a : b, cnr = (i === 0) ? b : a;
+              reach.push({ v: tipGap(cnr, tip, r.dia), id: r.id + '[' + sg.label + ']' });
+            } else {
+              if (sOff < -2 || sOff > top + 2)
+                slip.push(r.id + '[' + sg.label + '] ' + sOff.toFixed(0));
+              //  결속점 뒤로 남은 곧은 길이 = 정착. **띠가 열린 대가**가 이 수다
+              anc.push({ v: top - sOff, id: r.id + '[' + sg.label + ']' });
+            }
+          });
+        });
+        if (slip.length)
+          warn.push('갈고리 다리 ' + slip.length + '개가 **다리의 곧은 구간을 벗어났습니다** (' +
+                    slip.slice(0, 6).join(', ') + (slip.length > 6 ? ' …' : '') +
+                    ' mm — 그 자리에서 상·하 종방향의 짝이 어긋나 있습니다)');
+        /*  ∩ 의 자로 잰 **다리 끝**. ㄷ 의 「곧은 구간을 벗어났다」와 다른 말이다 —
+            어긋난 것이 아니라 **다리가 짧거나 길은** 것이다. ∩ 의 다리는 배치선에서
+            잰 「피복선에서 피복선」으로 태어나는데, 두께가 변하는 자리(헌치)에서는
+            그 길이로 반대쪽 줄에 닿지 못한다. 다리 길이도 출력이어야 한다는 뜻이다
+            (STATUS 「아직 안 한 것」).                                           */
+        var shortLeg = reach.filter(function (o) { return o.v > 10; });
+        if (shortLeg.length) {
+          shortLeg.sort(function (a, b) { return b.v - a.v; });
+          warn.push('∩ 다리 ' + shortLeg.length + '개가 **끝이 종방향에서 떴습니다** (' +
+                    shortLeg.slice(0, 6).map(function (o) {
+                      return o.id + ' ' + Math.round(o.v); }).join(', ') +
+                    (shortLeg.length > 6 ? ' …' : '') +
+                    ' mm — 몸통 쪽은 결속으로 잡혔고 **반대쪽 끝**이 뜬 것입니다. ' +
+                    '두께가 변하는 자리에서 「피복선에서 피복선」으로 태어난 다리가 ' +
+                    '반대쪽 줄에 못 미칩니다 — 다리 길이도 출력이어야 합니다)');
+        }
+        if (off.length)
+          warn.push('갈고리 다리 ' + off.length + '개가 종방향에 **못 닿았습니다** (' +
+                    off.slice(0, 6).join(', ') + (off.length > 6 ? ' …' : '') +
+                    ' — 덕트나 이웃 철근에 막힌 자리입니다. ㄷ 의 구간을 보세요)');
+
+        //  몸통 길이는 **출력**이다 — 도면의 X 가 여기서 나온다
+        var body = out.filter(function (r) { return !drop[String(r.id)]; })
+                      .map(function (r) { return r.segs[1] ? r.segs[1].len : 0; })
+                      .filter(function (v) { return v > 0; });
+        if (body.length)
+          console.log('[SREBAR] 몸통 길이(출력) ' + Math.round(Math.min.apply(null, body)) +
+                      ' ~ ' + Math.round(Math.max.apply(null, body)) + ' mm · ' + body.length + '개');
+        this._sbody = body;
+        /*  ── 덕트를 비키지 못한 ㄷ — **왜 못 비켰는지까지 말한다** ─────────────
+            축방향은 띠로 열려 있고(`JField.hookBandOf`), ㄷ 전체로 한 번 더 내리고
+            (`JField.axialSlide`), 지킬 수 있으면 지킨다(여과). 그래도 남는 것이
+            있는데, 「피할 데가 없습니다」라고만 하면 **틀린 말이 된다.**
+            T1#8 이 그랬다 : 옆으로 100 mm 만 가면 덕트가 **깨끗이 비는데**,
+            거기서는 다리가 종방향에 못 닿는다 (D1 줄이 250 ctc 인데 다리에서 걸 수
+            있는 구간은 ℓ−R−6dᵇ = 39.5 mm 뿐이다 — 자리의 16 % 에만 알이 온다).
+            다리를 늘리면 될 것 같지만 **안 된다** : 늘린 만큼 자유단이 덕트 쪽으로
+            되돌아간다 (재 봤다 — 150→280 은 −40.1 을 −6.8 로 줄이는 대신 다리 4 개가
+            제 종방향을 놓치고, 400 은 −176 으로 더 나빠진다).
+            그러니 **둘을 갈라서 말한다** — 고칠 자리가 다르기 때문이다 :
+              비킬 자리가 아예 없다     → ㄷ 의 자리나 덕트를 본다
+              비킬 자리는 있는데 알이 없다 → **종방향 줄 간격**이나 덕트를 본다      */
+        var dcl = [], dus = this._ducts || [];
+        var worstOf = function (r, s, dir) {
+          var mx = -dir.x * s, my = -dir.y * s, w = 0, at = '';
+          for (var i = 0; i + 1 < r.pts.length; i++) {
+            var a = { x: r.pts[i].x + mx, y: r.pts[i].y + my };
+            var b = { x: r.pts[i + 1].x + mx, y: r.pts[i + 1].y + my };
+            for (var j = 0; j < dus.length; j++) {
+              var d = dus[j];
+              var need = (d.D / 2) + (d.clr != null ? d.clr : 30) + r.dia / 2;
+              var g = JField.segToPoint([a, b], d) - need;
+              if (g < w) { w = g; at = (d.id || ''); }
+            }
+          }
+          return { g: w, d: at };
+        };
+        dus.length && out.forEach(function (r) {
+          if (drop[String(r.id)]) return;
+          var now = worstOf(r, 0, { x: 1, y: 0 });
+          if (now.g >= -0.5) return;
+          //  다리가 뻗는 쪽 (코너 → 자유단). 「오른쪽」은 그 반대다
+          var c = r.pts[1], f = r.pts[0];
+          var dx = f.x - c.x, dy = f.y - c.y, L = Math.hypot(dx, dy) || 1;
+          var dir = { x: dx / L, y: dy / L };
+          var t = byId[String(r.id)] || {};
+          var span = t.hookSpan || 250;
+          var R = JField.bendRadius(r.dia), ell = r.segs[0].len0 || L;
+          var hi = ell - (JField.CONF.LEG_MIN || 0) * r.dia;
+          var free = null, freeBar = false;
+          for (var s = -span; s <= span; s += 5) {
+            if (worstOf(r, s, dir).g < -0.5) continue;
+            if (free !== null && Math.abs(s) >= Math.abs(free)) continue;
+            //  그 자리에서 다리의 **걸 수 있는 구간**에 종방향이 오는가
+            var c2 = { x: c.x - dir.x * s, y: c.y - dir.y * s }, has = false;
+            lpts.forEach(function (p) {
+              var ax = (p.x - c2.x) * dir.x + (p.y - c2.y) * dir.y;
+              var lat = Math.abs((p.x - c2.x) * (-dir.y) + (p.y - c2.y) * dir.x);
+              if (ax >= R - 2 && ax <= hi + 2 && lat < 60) has = true;
+            });
+            free = s; freeBar = has;
+          }
+          /*  **얼마가 모자란가**를 한 수로 낸다 — 이게 고칠 사람이 쓸 수 있는 값이다.
+              「덕트가 비기 시작하는 거리」에서 「알이 다리 **끝**에라도 걸리는 거리」를
+              뺀 것. 이 차는 **다리 길이와 무관하다** : 다리를 늘리면 걸림 한계도
+              자유단도 같이 가서 상쇄된다 (ℓ = 150·200·250·300 에서 전부 17.7 이었다).
+              그러니 고칠 곳은 ㄷ 가 아니라 **종방향 줄이나 덕트**다.               */
+          var sClear = null;
+          for (var s2 = 0; s2 <= span * 2; s2 += 1) {
+            if (worstOf(r, s2, dir).g >= 0) { sClear = s2; break; }
+            if (worstOf(r, -s2, dir).g >= 0) { sClear = -s2; break; }
+          }
+          var aBar = null, sTip = null;
+          if (r.segs[0].hookQ) {
+            var Q = r.segs[0].hookQ;
+            aBar = (Q.x - c.x) * dir.x + (Q.y - c.y) * dir.y;
+            sTip = ell - aBar;
+          }
+          //  **화면 기준**으로 말해 준다 — 옮기는 벡터는 −dir·s 다
+          var fx = (free === null) ? 0 : -dir.x * free, fy = (free === null) ? 0 : -dir.y * free;
+          dcl.push({ id: r.id, g: now.g, d: now.d, free: free, bar: freeBar,
+                     dist: Math.round(Math.hypot(fx, fy)),
+                     short: (sClear === null || sTip === null) ? null
+                            : Math.round(Math.abs(sClear) - sTip),
+                     way: (Math.abs(fx) >= Math.abs(fy))
+                          ? (fx > 0 ? '오른쪽' : '왼쪽') : (fy > 0 ? '위' : '아래') });
+        });
+        if (dcl.length) {
+          dcl.sort(function (a, b) { return a.g - b.g; });
+          var noRoom = dcl.filter(function (o) { return o.free === null; });
+          var noBar = dcl.filter(function (o) { return o.free !== null && !o.bar; });
+          var lst = function (arr) {
+            return arr.slice(0, 4).map(function (o) {
+              return o.id + ' ↔ ' + o.d + ' ' + Math.round(o.g); }).join(', ') +
+              (arr.length > 4 ? ' …' : '');
+          };
+          if (noRoom.length)
+            warn.push('갈고리 ' + noRoom.length + '개가 **덕트를 비키지 못했습니다** (' +
+                      lst(noRoom) + ' mm — 그 자리엔 비킬 데가 아예 없습니다. ㄷ 의 자리나 덕트를 보세요)');
+          if (noBar.length)
+            warn.push('갈고리 ' + noBar.length + '개는 **비킬 자리는 있는데 거기엔 걸 종방향이 없습니다** (' +
+                      lst(noBar) + ' mm · ' +
+                      noBar.slice(0, 4).map(function (o) {
+                        return o.id + ' 는 ' + o.way + ' ' + o.dist + ' mm 면 덕트가 비는데' +
+                               (o.short == null ? '' : ' 다리가 **' + o.short + ' mm** 모자랍니다'); }).join(', ') +
+                      ' — **그 종방향 알을 그만큼 옮기거나** 덕트 자리를 보세요. ' +
+                      '다리를 늘려도 그 모자람은 안 줄어듭니다: 늘린 만큼 자유단이 덕트로 되돌아갑니다)');
+          var rest = dcl.filter(function (o) { return o.free !== null && o.bar; });
+          if (rest.length)
+            warn.push('갈고리 ' + rest.length + '개가 **덕트를 비키지 못했습니다** (' + lst(rest) +
+                      ' mm — 비킬 자리에 걸 종방향도 있습니다. 배정을 보세요)');
+        }
+        /*  **정착은 띠의 대가다.** 결속점을 접선점에 못박으면 ℓ−R 로 한 수인데,
+            띠를 열면 덕트를 비킨 만큼 짧아진다. 숨길 수가 없는 수이므로 찍는다
+            (`mat|fck|fy` 가 들어오면 여기서 코드 값과 견줄 수 있다 — STATUS 참조). */
+        if (anc.length) {
+          anc.sort(function (a, b) { return a.v - b.v; });
+          console.log('[SREBAR] ㄷ 결속점 뒤 곧은 길이(정착) ' + Math.round(anc[0].v) + ' ~ ' +
+                      Math.round(anc[anc.length - 1].v) + ' mm · 최소 ' + anc[0].id +
+                      ' (한계 ' + JField.CONF.LEG_MIN + '·dᵇ)');
+        }
+        /*  ── **띠가 닫혔다 = 「그 자리엔 넣을 수 없다」** ───────────────────────
+            `hookBandOf` 는 띠의 위·아래끝을 재면서 `hi < lo` 면 `shut` 을 세운다.
+            그 말의 뜻은 **입력이 불가능하다**는 것이다 — 지켜야 하는 두 가지가
+            서로를 배제한다. 그런데 그 깃발을 **아무도 읽지 않고** 있었다. 대신
+            코드는 `hi = lo` 로 못박고 조용히 넘어갔고, 우리는 결과만 보고
+            「피복이 깨졌다」고 자를 탓했다.
+            S14 의 ∩ 는 **13 개가 전부 닫혀 있다** :
+                tc = 1.5 mm   (무는 알 뒤로 남은 피복)
+                need = 14.5   (스터럽이 그 알을 품는 데 필요한 거리)
+            13 mm 가 모자라고, 그 13 은 **스터럽 지름**이다. 까닭은 하나다 —
+            `lrebar` 가 종방향을 **콘크리트 면**에서 피복만큼 띄워 앉히는데,
+            스터럽은 종방향 **바깥**을 감는 철근이라 실제 자리가
+            `피복 + dˢ + dᵖ/2` 여야 한다. 그 한 켜가 없다.
+            **장은 이미 이것을 국소화하고 수치화해 두었다.** 우리가 할 일은 그
+            수를 내보내는 것이고, 푸는 것은 ㉢(`_tieDemand`)이 덕트에 하는 것과
+            같은 일이다 — 종방향이 비켜 준다 (STATUS 「아직 안 한 것」).        */
+        var shut = [];
+        out.forEach(function (r) {
+          if (drop[String(r.id)]) return;
+          if (!(byId[String(r.id)] || {}).cap) return;
+          var b = r.segs[1] && r.segs[1].band;
+          if (!b || !b.shut) return;
+          var sg0 = r.segs[0];
+          var nd = (sg0 && sg0.hookQ) ? JField.lreNeed(sg0.hookQ, r.dia) : null;
+          shut.push({ id: r.id, tc: b.tc, need: nd });
+        });
+        if (shut.length) {
+          var tcs = shut.filter(function (o) { return o.tc != null; }).map(function (o) { return o.tc; });
+          var nds = shut.filter(function (o) { return o.need != null; }).map(function (o) { return o.need; });
+          warn.push('∩ ' + shut.length + '개의 **띠가 닫혔습니다 — 그 자리엔 넣을 수 없습니다** (' +
+                    shut.slice(0, 6).map(function (o) { return o.id; }).join(', ') +
+                    (shut.length > 6 ? ' …' : '') +
+                    '). 무는 알 뒤로 남은 피복이 ' +
+                    (tcs.length ? Math.min.apply(null, tcs).toFixed(1) + '~' +
+                                  Math.max.apply(null, tcs).toFixed(1) : '?') +
+                    ' mm 인데 스터럽이 그 알을 품으려면 ' +
+                    (nds.length ? Math.max.apply(null, nds).toFixed(1) : '?') + ' mm 가 필요합니다 — ' +
+                    '**종방향이 한 켜(스터럽 지름)만큼 안으로 들어와야** 합니다. ' +
+                    '`lrebar` 가 종방향을 «면»에서 피복만큼 띄우는데, 스터럽은 그 바깥을 ' +
+                    '감는 철근이라 실제 자리는 «피복 + 스터럽지름 + 종방향지름/2» 입니다');
+        }
+        /*  ── **같은 알을 둘이 감쌀 수 있는 입력인가** ─────────────────────────
+            엔진은 「먼저 문 쪽이 가진다」로 **나눠 무는 일은 막는다**(`JField.solve`).
+            그런데 그건 뒤에 오는 ∩ 를 옆 알로 밀어내는 것이라, 입력이 애초에
+            빠듯하면 다리 끝이 뜬다. 막을 수 있는 자리는 **입력**이다.
+            ∩ 둘이 나란히 서면 사이에 「안쪽 다리」 둘이 생기고, 그 틈이
+                ctc − body
+            다. 그 틈에 종방향이 **적어도 한 알**은 들어와야 둘이 다른 알을 문다 :
+                ctc − body ≥ L   (L = 그 종방향 줄의 간격)
+            S14 에서 재면 450 − 387 = **63 < 125** 이라 못 지킨다. 실제로 26 개 다리
+            중 6 개가 옆 ∩ 와 알을 나눠 물고 있었다. 500 − 375 = 125 로 바꿔 재 보면
+            **겹침이 −13.0 → 0.0** 이 된다. 그래서 고칠 곳을 숫자로 말해 준다.     */
+        var lctc = {};
+        (this._rebarData || []).forEach(function (r) {
+          if (String(r.type || '').toLowerCase() === 'lrebar' && r.bar && r.bar.ctc > 0)
+            lctc[String(r.id)] = r.bar.ctc;
+        });
+        this._srebarRows().forEach(function (rd) {
+          if (!(rd.body > 0) || !(rd.ctc > 0)) return;
+          //  이 ∩ 가 실제로 문 줄 — 가장 많이 문 무리를 쓴다 (추측이 아니다)
+          var tally = {};
+          out.forEach(function (r) {
+            if (drop[String(r.id)] || String(r.id).split('#')[0] !== String(rd.id)) return;
+            [0, 2].forEach(function (i) {
+              var sg = r.segs[i];
+              if (sg && sg.hookQ && sg.hookQ.g != null)
+                tally[sg.hookQ.g] = (tally[sg.hookQ.g] || 0) + 1;
+            });
+          });
+          var gid = null;
+          Object.keys(tally).forEach(function (k) { if (!gid || tally[k] > tally[gid]) gid = k; });
+          var L = gid && lctc[gid];
+          if (!(L > 0)) return;
+          var slot = rd.ctc - rd.body;              //  이웃한 ∩ 의 «안쪽 다리» 사이 틈
+          if (slot >= L - 1e-6) return;
+          /*  몸통을 **줄의 눈금에 맞춘 뒤** 거기에 한 칸을 더한 것이 맞는 ctc 다
+              (몸통 자체도 배수가 아니면 두 다리가 알 위에 안 선다).            */
+          var bodyFit = Math.max(L, Math.round(rd.body / L) * L);
+          var fit = bodyFit + L;
+          warn.push(rd.id + ' : ∩ 의 ctc ' + rd.ctc + ' 와 몸통 ' + rd.body +
+                    ' 가 **종방향 ' + gid + ' 의 간격 ' + L + ' 을 못 담습니다** — ' +
+                    '이웃한 ∩ 의 안쪽 다리 사이가 ' + Math.round(slot) + ' mm 라 ' +
+                    '그 틈에 알이 하나도 안 들어옵니다 (ctc − body ≥ ' + L + ' 이어야 합니다). ' +
+                    '지금은 **먼저 문 쪽이 가지고** 뒤에 오는 ∩ 가 옆 알로 밀려나며 ' +
+                    '다리 끝이 뜹니다. ctc ' + fit + ' · 몸통 ' + bodyFit + ' 이면 딱 맞습니다)');
+        });
+        /*  ∩ 는 **정착을 다리에 안 맡긴다** — 그래서 같은 줄을 찍으면 늘 0 이고,
+            그 0 은 흉이 아니라 꼴이다. ∩ 가 내는 수는 「반대쪽 끝이 닿았나」다.   */
+        if (reach.length) {
+          reach.sort(function (a, b) { return a.v - b.v; });
+          console.log('[SREBAR] ∩ 다리 끝 ↔ 가장 가까운 종방향 ' + Math.round(reach[0].v) +
+                      ' ~ ' + Math.round(reach[reach.length - 1].v) + ' mm · 최악 ' +
+                      reach[reach.length - 1].id + ' (0 이 닿은 것)');
+        }
+        //  마크 — 길이로 묶으면 도면의 T1-1/T1-2/T1-3 이 돌아온다 (_srebarMarks 주석)
+        this._smarks = this._srebarMarks();
+        this._smarks.forEach(function (m) {
+          console.log('[SREBAR] 마크 ' + m.mark + ' : ' + m.num + '개 · 전장 ' + m.len +
+                      ' mm · 몸통 ' + Math.round(m.bodyMin) + '~' + Math.round(m.bodyMax) + ' mm');
+        });
+        return warn;
+      },
+
+      _solveLrebarWithJ: function (sec) {
+        var warn = [];
+        if (typeof JLong === 'undefined' || !Domain.lrebarList || !Domain.lrebarList.length) return warn;
+
+        /*  절곡철근 — 선분과 굴짐 아크를 화면이 그리는 그대로 꺼낸다.
+            **갈고리는 뺀다.** `_expandSrebar` 가 `Domain.trebarList` 에 미리 펼쳐
+            넣지만 그것은 아직 «태어난 자리»일 뿐이고, 갈고리는 종방향 **뒤에**
+            풀린다. 넣으면 아직 놓이지도 않은 것이 종방향을 밀어낸다 — 실제로
+            D2 의 최소간격이 100 → 90 으로 깨졌다.
+
+            ── 딱 하나는 **넣는다** : 하부슬래브의 ∩ ──────────────────────────
+            「하부 ∩ 철근은 종방향 철근을 감싸는 게 아니고 **받치는** 거야」
+            받치려면 종방향이 ∩ 을 **볼 수 있어야 한다.** 안 보이면 받칠 수가
+            없고, 그래서 그 자리를 `wrap` 으로 **적어 넣고** 있었다 (전부 이
+            한 줄의 대용품이었다).
+            위의 「아직 놓이지도 않은 것」이라는 까닭은 **첫 바퀴**에만 참이다.
+            ㉢ 은 교대최소화라 두 바퀴째의 ∩ 는 이미 풀려 있다 — 그때부터 넣는다.
+            넣는 것은 `tangent` ∩ 뿐이다 : 복부의 ∩ 과 ㄷ 는 여전히 **감싸는**
+            철근이라 인력이 살아 있고, 둘을 같이 넣으면 인력과 척력을 이중으로
+            센다 (재 보니 안착이 132 → 119 로 떨어졌다).                       */
+        var prims = [], self = this;
+        Domain.trebarList.forEach(function (t) {
+          if (t._srebar && !self._capRests(t)) return;
+          /*  `rest` — 받치는 ∩ 은 종방향 **안쪽**에서 받친다. 2단계 출발점을 찾는
+              `JLong.firstClear` 가 그것을 «넘어갈 바깥 켜»로 보면 알이 ∩ 몸통을
+              뚫고 밑으로 간다 (S14 에서 ∩ 다리 끝이 1 → 12 개 떴다).            */
+          var rest = !!(t._srebar && self._capRests(t));
+          (self._trebarPrimitives(t) || []).forEach(function (pr) {
+            prims.push({ t: pr.t, p: pr.p, dia: t.dia || 13, rest: rest });
+          });
+        });
+
+        var rdById = {};
+        (this._rebarData || []).forEach(function (d) {
+          if (String(d.type || '').toLowerCase() === 'lrebar') rdById[String(d.id)] = d;
+        });
+
+        this._ldiag = {};
+        Domain.lrebarList.forEach(function (grp) {
+          var rd = rdById[String(grp.id)];
+          if (!rd) return;
+          /*  init·range·dia·num 은 **그룹**에서 읽는다 — 거기 값은 수식이 이미
+              계산된 것이다(`Domain._createLrebarFromData` 가 EquationParser 를 태운다).
+              ctc·ctcmax 는 그룹이 안 들고 있으므로(옛 엔진이 ctc 를 range/num 으로
+              계산해 버리고 ctcmax 는 아예 안 쓴다) 입력 행에서 그대로 읽는다.      */
+          var bar = rd.bar || {}, init = grp.initData || {};
+          var g = {
+            /*  `wrap` — **그 줄을 감는 스터럽의 지름** (`JLong.seatsAt` 주석).
+                추측하지 않는다 : 지난 바퀴에 갈고리가 **실제로 문** 무리에만 붙는다
+                (`_wrapOf`). 첫 바퀴에는 갈고리가 아직 안 풀렸으니 0 이고, ㉢ 이
+                한 바퀴 돌면 그때부터 제 값이 든다 — 교대최소화가 덕트에 하는 것과
+                같은 차례다.                                                     */
+            wrap: { def: (self._wrap && self._wrap[String(grp.id)]) || 0,
+                    byT: (self._wrap && self._wrap._byT &&
+                          self._wrap._byT[String(grp.id)]) || null },
+            id: String(grp.id), dia: grp.dia || 13, num: grp.num || 0,
+            init: { x: init.x || 0, y: init.y || 0, rot: init.rot || 0 },
+            nors: (init.grav === -1) ? -1 : 1,
+            /*  **비우면 콘크리트가 준다** (JLong.spanOf). 0 으로 채워 넣던 것을
+                그만둔다 — 0..0 은 「폭 0 짜리 한계」라 뜻이 없다.                */
+            /*  **폭이 0 이면 «안 적은 것»이다.** 빈 칸을 0..0 으로 채워 넣던 탓에
+                「폭 0 짜리 한계」가 만들어져 철근이 한 점에 몰렸다. 비면 콘크리트가
+                준다 (JLong.spanOf).                                            */
+            range: (grp.rangeData && isFinite(grp.rangeData.min) && isFinite(grp.rangeData.max)
+                    && grp.rangeData.max > grp.rangeData.min)
+                   ? { min: grp.rangeData.min, max: grp.rangeData.max } : null,
+            align: bar.align || null,
+            ctc: bar.ctc, ctcmin: bar.min, ctcmax: bar.max, gap: bar.gap, path: rd.path || []
+          };
+          if (!g.num || !g.ctc) {
+            warn.push(g.id + ' : num 과 ctc 가 있어야 배치합니다');
+            return;
+          }
+          /*  ── gap 을 주면 **한 줄이 상·하 두 줄**이 된다 ──────────────────
+              위쪽(nors)과 아래쪽(−nors)을 gap 만큼 벌려 놓고 각자 제 면으로 보낸다.
+              위쪽을 먼저 풀고 그 결과를 **점 장애물**로 넘겨 아래쪽이 피하게 한다
+              (같은 무리 안이 아니면 서로를 못 보므로).
+              그리고 **아래쪽을 위쪽이 앉은 자리(t)에 묶는다** — 나중에 ㄷ자 갈고리
+              하나가 두 다리를 같이 붙잡으므로 같은 자리에 서야 한다 (JLong.K_TIE).
+              다 풀고 나서 **짝의 간격이 gap 을 넘으면 그 짝을 버린다** — 그 자리엔
+              한쪽 면이 없다는 뜻이다. 버릴 쪽은 **init 에서 더 멀리 간 쪽**이다.
+              gap 이 없으면 예전대로 한 줄이다.                                  */
+          var res, pairRes = null, dropped = 0, noSeat = 0;
+          /*  ── 갈고리가 요구한 자리 (`_tieDemand`) 를 `tie` 로 실어 보낸다 ──────
+              **한 자리만 적는다.** 나머지는 `null` — 그래야 `home`·`ctc` 항이
+              이동을 줄 전체로 퍼뜨린다 (한 알만 못박으면 이웃 간격이 깨진다).
+              δ 는 갈고리의 다리 축으로 쟀으므로 무리의 축(û)으로 돌려 준다.      */
+          var tieHint = null;
+          (self._tieHint || []).forEach(function (hn) {
+            if (hn.grp !== g.id) return;
+            var axg = JLong.axes(g), was = (self._lties || {})[g.id];
+            if (!was || !was.length) return;
+            var bi = -1, bd = Infinity;
+            was.forEach(function (tv, i) {
+              var dd = Math.abs(tv - hn.t); if (dd < bd) { bd = dd; bi = i; }
+            });
+            if (bi < 0 || bd > g.ctc) return;
+            //  옮기는 벡터는 −dir·δ. 그것을 û 에 사영한다
+            var dt = -(hn.dir.x * axg.u.x + hn.dir.y * axg.u.y) * hn.delta;
+            if (!tieHint) tieHint = was.map(function () { return null; });
+            tieHint[bi] = was[bi] + dt;
+          });
+          try {
+            if (g.gap > 0) {
+              var ax = JLong.axes(g), h = g.gap / 2;
+              var gT = Object.assign({}, g, { init: { x: g.init.x + ax.n.x * h,
+                                                      y: g.init.y + ax.n.y * h, rot: g.init.rot } });
+              var gB = Object.assign({}, g, { nors: -g.nors,
+                                              init: { x: g.init.x - ax.n.x * h,
+                                                      y: g.init.y - ax.n.y * h, rot: g.init.rot } });
+              res = JLong.solve(gT, sec.walls, sec, self._ducts || [], prims, tieHint);
+              var prims2 = prims.concat(res.bars.map(function (b) {
+                return { t: 'line', p: [b.x, b.y, b.x, b.y], dia: g.dia };   // 점 장애물
+              }));
+              var tie = res.bars.map(function (b) { return b.t; });
+              pairRes = JLong.solve(gB, sec.walls, sec, self._ducts || [], prims2, tie);
+              /*  아랫줄이 **한 켜보다 깊이** 들어간 짝은 한 번 더 묻는다 :
+                  두 켜가 나란하지 않으면 두 척력의 합력이 **옆**을 가리킨다.
+                  아랫줄 혼자서는 묶음 항에 막히므로 **짝을 같이** 옮겨 본다.
+                  고르는 것은 J 다 (JLong.slidePairs 주석).                     */
+              var sl = self._slidePairs(g, gT, gB, sec, res, pairRes, prims, tie);
+              if (sl) { res = sl.res; pairRes = sl.pair; }
+            } else {
+              res = JLong.solve(g, sec.walls, sec, self._ducts || [], prims, tieHint);
+            }
+          }
+          catch (e) { console.error('[REBAR] JLong:', g.id, e); warn.push(g.id + ' : 배치 실패'); return; }
+
+          var pts = res.bars.map(function (b) { return { x: b.x, y: b.y, t: b.t, rest: b.rest }; });
+          if (pairRes) {
+            pairRes.bars.forEach(function (b, i) {
+              var a = res.bars[i];
+              if (!a) return;
+              var sep = Math.hypot(b.x - a.x, b.y - a.y);
+              /*  버리는 까닭이 둘이다 — **둘 다 「그 자리엔 면이 없다」는 말**이다.
+                  ㉠ 앉을 면을 못 찾았다 : 복부 한가운데가 그렇다. 밑에 마주보는 면이
+                     없으니(헌치는 복부 옆에서 끊기고 하부슬래브 하면은 수선의 발이
+                     복부 밖으로 나간다) 자리가 없다 → 철근도 없다.
+                  ㉡ 짝과의 간격이 gap 을 넘었다 : 한쪽이 훨씬 멀리 갔다는 뜻이다.   */
+              if (!b.rest || sep > g.gap) {
+                dropped++;
+                if (!b.rest) noSeat++;
+                return;                                //  아래쪽을 버린다 (더 멀리 간 쪽)
+              }
+              pts.push({ x: b.x, y: b.y, t: b.t, rest: b.rest });
+            });
+            if (dropped) warn.push(g.id + ' : 짝 ' + dropped + '개를 버렸습니다 (' +
+                                   (noSeat ? '앉을 면이 없는 자리 ' + noSeat + '개' +
+                                             (dropped > noSeat ? ' · ' : '') : '') +
+                                   (dropped > noSeat ? '간격이 gap ' + g.gap + ' mm 를 넘는 자리 ' +
+                                                       (dropped - noSeat) + '개' : '') +
+                                   ' — 그 자리엔 한쪽 면이 없습니다)');
+          }
+          self._ldiag[g.id] = { g: g, res: res, pair: pairRes, dropped: dropped };
+          //  푼 자리(t) 를 적어 둔다 — ㉢ 이 「어느 알이냐」를 이것으로 찾는다
+          self._lties = self._lties || {};
+          self._lties[g.id] = res.bars.map(function (b) { return b.t; });
+
+          //  particles 에 써 넣는다 (그림이 읽는 자리)
+          grp.particles = pts.map(function (b) {
+            //  `rest` — 그 철근이 기댄 피복면. ㄷ 의 다리가 이 면을 따라 눕는다 (JField.parSetup)
+            return { x: b.x, y: b.y, vx: 0, vy: 0, t: b.t, rest: b.rest || null, target: null, state: 'SETTLED' };
+          });
+          grp.num = res.bars.length;
+          grp.state = 'SETTLED';
+
+          //  보고 — 고칠 수 있는 것은 입력뿐이니 숫자를 그대로 낸다
+          /*  **줄마다 따로 센다.** 짝이면 두 줄이 기대는 면의 길이가 다르다 —
+              복부가 그렇다(바깥 E10+E11 6,253 · 안 E17 5,260). 한 무리에 한 번만
+              세면 짧은 쪽이 몇 개 모자란지가 안 보인다.                        */
+          if (res && res.range) g = Object.assign({}, g, { range: res.range });
+          var span = (g.num - 1) * g.ctc;
+          [[res, '윗줄'], [pairRes, '아래줄']].forEach(function (pr) {
+            var r = pr[0], nm = pr[1];
+            if (!r || !r.range || !isFinite(r.range.min)) return;
+            var len = r.range.max - r.range.min, cap = Math.floor(len / g.ctc) + 1;
+            if (g.num > cap)
+              warn.push(g.id + (pairRes ? ' ' + nm : '') + ' : 기댈 면이 ' + Math.round(len) +
+                        ' mm 라 ctc ' + g.ctc + ' 로는 **' + cap + '개**가 한계인데 ' +
+                        g.num + '개를 넣었습니다 (' + (g.num - cap) + '개가 못 앉습니다)');
+          });
+          var noSeat = res.bars.filter(function (b) { return !b.rest; });
+          if (noSeat.length)
+            warn.push(g.id + ' : ' + noSeat.length + '개가 붙을 면을 못 찾았습니다 ' +
+                      '(법선 방향에 마주보는 면이 있는지, init 이 콘크리트 안인지 보세요)');
+          /*  ── **피복을 깬 알을 말한다** ─────────────────────────────────────
+              지금까지 종방향은 간격·붙을 면만 보고 **피복은 아무도 안 봤다.**
+              그래서 복부 위에서 D1 한 알이 피복선 **밖으로 12.6 mm** 나가 있는데도
+              화면이 아무 말을 안 했다 (재 보면 ①-1 과 13.0 — 딱 붙었고, ⑥-3 H22 와
+              18.0/17.5 — 둘 사이에 끼여 위로 빠져나간 것이다).
+              까닭은 무게에 있다 : 겹침은 `K_BAR` 1000, 피복 위반은 `K_COV` 20 이라
+              **겹침을 피하려고 피복을 산다.** 그 둘의 값은 따로 재서 정해야 하는데,
+              그 전에 적어도 **보이게는** 해 둔다 — 조용히 틀리는 것만은 막는다.    */
+          var cov = [];
+          [[res, ''], [pairRes, ' 아래줄']].forEach(function (pr) {
+            var r = pr[0]; if (!r || !r.bars) return;
+            r.bars.forEach(function (b) {
+              if (!b.rest) return;
+              var st = JLong.seatsAt({ x: b.x, y: b.y }, r.axes.n, sec.walls, sec, g.dia, g.wrap)
+                             .filter(function (c) { return c.used; });
+              if (!st.length) return;
+              /*  **양쪽을 다 본다.** 밖으로 나간 것(음수)만 보면 반쪽이다 —
+                  같은 알이 무게를 바꾸면 «가라앉기도» 한다(깊이 160). 둘 다
+                  「제 면에 안 앉았다」는 같은 말이다. 한 겹(철근 지름)보다 깊이
+                  들어간 것도 적는다. 자는 **겹 수**다 — 한 겹은 정상이고(철근 뒤에
+                  앉는다) 두 겹도 있을 수 있다. **세 겹이면 자리를 잃은 것**이다.   */
+              var slack = st[0].d - st[0].need;
+              if (slack < -0.5) cov.push(Math.round(b.x) + ':' + slack.toFixed(0));
+              else if (slack > 3 * g.dia) cov.push(Math.round(b.x) + ':+' + slack.toFixed(0));
+            });
+          });
+          if (cov.length)
+            warn.push(g.id + ' : ' + cov.length + '개가 **제 면에 안 앉았습니다** (x:어긋남 ' +
+                      cov.slice(0, 6).join(', ') + (cov.length > 6 ? ' …' : '') +
+                      ' mm · 음수는 피복선 밖, 양수는 너무 깊음 — 이웃 철근 사이에 끼인 자리입니다)');
+          if (res.gaps.length) {
+            var lo = Math.min.apply(null, res.gaps), hi = Math.max.apply(null, res.gaps);
+            if (g.ctcmin != null && lo < g.ctcmin - 0.5)
+              warn.push(g.id + ' : 최소간격 ' + Math.round(lo) + ' mm (한계 ' + g.ctcmin + ')');
+            if (g.ctcmax != null && hi > g.ctcmax + 0.5)
+              warn.push(g.id + ' : 최대간격 ' + Math.round(hi) + ' mm (한계 ' + g.ctcmax + ')');
+          }
+          console.log('[JLONG] ' + g.id + ' ' + res.bars.length + '개 · J ' +
+                      (res.J == null ? '-' : Math.round(res.J)) + ' · 반복 ' + res.iter +
+                      ' · 간격 ' + res.gaps.map(function (x) { return Math.round(x); }).join(','));
+        });
+        return warn;
+      },
+
+      /*  ── 갈고리가 종방향에게 «얼마나 비켜 달라» 하는가 ─────────────────────
+          덕트를 못 비킨 ㄷ 마다, **매달린 짝을 δ 만큼 옮겨 놓고 그 ㄷ 를 다시
+          풀어 본다.** 위반이 0 이 되는 **가장 작은 |δ|** 가 답이다 — 묻지 않고
+          재는 것이고, 「최소 이동」이 그 말 그대로 나온다.
+          짝(상·하 두 알)은 같이 간다 — `gap` 무리는 한 자리(t)에 두 알이 서고
+          ㄷ 가 그 «한 짝»을 문다 (`JLong.K_TIE`).
+          δ 의 범위는 **이웃 ㄷ 의 칸**(hookSpan = ctc/2)으로 묶는다. 그보다 가면
+          이웃 ㄷ 가 물 알을 빼앗는다.                                          */
+      _tieDemand: function (sec) {
+        var ducts = this._ducts || [];
+        if (typeof JField === 'undefined') return [];
+        var hooks = (Domain.trebarList || []).filter(function (t) { return t._srebar; });
+        if (!hooks.length) return [];
+        var lpts0 = this._lrebarPoints(), out = [], self = this;
+        var placed = [];
+        (Domain.trebarList || []).forEach(function (o) {
+          if (o._srebar) return;
+          (o.segments || []).forEach(function (g) {
+            placed.push({ p1: g.p1, p2: g.p2, dia: o.dia || 13, z: o.z || 0 });
+          });
+        });
+        var worstOf = function (r, dia) {
+          var w = 0;
+          for (var i = 0; i + 1 < r.pts.length; i++)
+            for (var j = 0; j < ducts.length; j++) {
+              var d = ducts[j];
+              var need = (d.D / 2) + (d.clr != null ? d.clr : 30) + dia / 2;
+              var g = JField.segToPoint([r.pts[i], r.pts[i + 1]], d) - need;
+              if (g < w) w = g;
+            }
+          return w;
+        };
+        hooks.forEach(function (t) {
+          if (!t._birth || !t.segments || !t.segments[0] || !t.segments[0].hookQ) return;
+          var w0 = 0;
+          (t.segments || []).forEach(function (s) {
+            ducts.forEach(function (d) {
+              var need = (d.D / 2) + (d.clr != null ? d.clr : 30) + (t.dia || 13) / 2;
+              var g = JField.segToPoint([s.p1, s.p2], d) - need;
+              if (g < w0) w0 = g;
+            });
+          });
+          if (w0 >= -0.5) return;                       // 멀쩡하면 아무것도 요구 안 한다
+          var q = t.segments[0].hookQ;
+          if (q.g == null || q.t == null) return;       // 짝을 알아볼 수 없으면 못 옮긴다
+          //  다리가 뻗는 쪽 — δ 는 그 축을 따른다
+          var a = t.segments[0], c = a.p2, f = a.p1;
+          var dl = Math.hypot(f.x - c.x, f.y - c.y) || 1;
+          var dir = { x: (f.x - c.x) / dl, y: (f.y - c.y) / dl };
+          var span = t.hookSpan || 250;
+          var bar = { id: String(t.id), dia: t.dia || 13, z: t.z || 0, hook: true,
+                      hookSpan: t.hookSpan || 0,
+                      segs: t._birth.map(function (s) {
+                        return { label: s.label, p1: { x: s.p1.x, y: s.p1.y },
+                                 p2: { x: s.p2.x, y: s.p2.y },
+                                 normal: { x: s.normal.x, y: s.normal.y } }; }) };
+          var ok = function (mm) {
+            var lp = lpts0.map(function (p) {
+              if (!(p.g === q.g && p.t != null && Math.abs(p.t - q.t) < 1)) return p;
+              return { x: p.x - dir.x * mm, y: p.y - dir.y * mm, dia: p.dia, g: p.g, t: p.t };
+            });
+            var r;
+            try { r = JField.form(bar, sec.walls, sec, ducts, placed, lp); }
+            catch (e) { return false; }
+            return worstOf(r, t.dia || 13) >= -0.05;
+          };
+          var best = null;
+          //  5 mm 로 훑어 **처음 되는 자리**를 찾고, 1 mm 로 되돌려 깎는다.
+          //  최소 이동이라고 말하려면 눈금이 5 mm 여서는 안 된다.
+          for (var m = 5; m <= span && best === null; m += 5) {
+            for (var k = 0; k < 2 && best === null; k++) {
+              var mm = k ? -m : m;
+              if (ok(mm)) best = mm;
+            }
+          }
+          if (best !== null) {
+            var st = (best > 0) ? -1 : 1;
+            for (var b2 = best + st; Math.abs(b2) >= 1; b2 += st) {
+              if (!ok(b2)) break;
+              best = b2;
+            }
+          }
+          if (best === null) return;                    // 칸 안에서는 못 푼다 — 말로만 낸다
+          out.push({ id: String(t.id), grp: String(q.g), t: q.t, delta: best,
+                     dir: dir, was: w0 });
+        });
+
+        /*  ── **띠가 닫힌 것도 요구다** ────────────────────────────────────────
+            덕트 쪽 요구는 「얼마나?」를 **쓸어 보며** 잰다 — 덕트는 둥글고 ㄷ 는
+            꺾여 있어 식으로 안 떨어지기 때문이다. 닫힌 띠는 다르다 : 모자람이
+            **그 자리에서 바로 읽힌다.**
+                tc    무는 알 뒤로 남은 피복            (`hookBandOf` 가 잰 수)
+                need  스터럽이 그 알을 품는 데 필요한 거리
+                모자람 = need − tc
+            그만큼 그 알이 **안쪽으로** 들어오면 띠가 열린다. 쓸어 볼 까닭이 없다 —
+            이것이 장이 국소화하고 수치화해 둔 **최소 이동**이다.
+            방향은 다리가 뻗는 쪽(`dir`)이다. `ok()` 의 꼴과 맞추려고 부호를 뒤집어
+            적는다 (거기서 알은 `p − dir·δ` 로 움직인다).
+            푸는 일은 덕트와 **똑같다** — 한 자리(t)의 이동으로 말하고, 나머지는
+            `home`·`ctc` 가 줄 전체로 퍼뜨린다.                                   */
+        hooks.forEach(function (t) {
+          if (!t.cap || !t.segments || t.segments.length < 3) return;
+          var b = t.segments[1] && t.segments[1].band;
+          if (!b || !b.shut || b.tc == null) return;
+          var a0 = t.segments[0], q0 = a0 && a0.hookQ;
+          if (!q0 || q0.g == null || q0.t == null) return;
+          /*  요구하는 수는 **띠가 요구하는 것**이어야 한다 — `lo` 다.
+              `lreNeed`(= 알이 몸통에 닿는 자리)를 쓰면 띠의 아래끝(절곡부 안에
+              품긴 자리 `h_품김`)보다 작아서, 밀고도 띠가 안 열린다.            */
+          var need = b.lo;
+          var lack = need - b.tc;
+          if (!(lack > 0.5)) return;
+          //  이미 덕트 쪽에서 요구가 난 ㄷ 는 그쪽에 맡긴다 (두 번 밀지 않는다)
+          var dup = false;
+          out.forEach(function (o) { if (o.id === String(t.id)) dup = true; });
+          if (dup) return;
+          var c0 = a0.p2, f0 = a0.p1;
+          var dl0 = Math.hypot(f0.x - c0.x, f0.y - c0.y) || 1;
+          var dir0 = { x: (f0.x - c0.x) / dl0, y: (f0.y - c0.y) / dl0 };
+          out.push({ id: String(t.id), grp: String(q0.g), t: q0.t, delta: -lack,
+                     dir: dir0, was: -lack, why: 'shut' });
+        });
+        return out;
+      },
+
+      /*  ── 짝을 같이 옆으로 옮겨 본다 (JLong.slidePairs 를 태운다) ────────
+          아랫줄이 **한 켜보다 깊이** 들어간 짝만 묻는다. 옮길 자리가 있으면
+          그 자리(t)로 묶음을 고쳐 잡고 **두 줄을 다시 푼다** — 한 자리만 손으로
+          옮기면 이웃과의 간격 항이 안 맞춰지기 때문이다.
+          옮긴 것이 없으면 아무 일도 안 한다(그때는 값도 안 든다).            */
+      _slidePairs: function (g, gT, gB, sec, res, pairRes, prims, tie) {
+        if (!res || !pairRes || typeof JLong.slidePairs !== 'function') return null;
+        var ducts = this._ducts || [];
+        var seatOn = function (axn) {
+          return function (p) {
+            var st = JLong.seatsAt(p, axn, sec.walls, sec, g.dia, g.wrap).filter(function (c) { return c.used; });
+            return st.length ? JLong.nearestSeat(p, st) : null;
+          };
+        };
+        var seatT = seatOn(res.axes.n), seatB = seatOn(pairRes.axes.n);
+        var PT = res.bars.map(function (b) { return { x: b.x, y: b.y }; });
+        var PB = pairRes.bars.map(function (b) { return { x: b.x, y: b.y }; });
+        var primsB = prims.concat(res.bars.map(function (b) {
+          return { t: 'line', p: [b.x, b.y, b.x, b.y], dia: g.dia };
+        }));
+        var ctxT = { assign: PT.map(seatT), home: res.home, ducts: ducts, prims: prims, stage: 2, tie: null };
+        var ctxB = { assign: PB.map(seatB), home: pairRes.home, ducts: ducts, prims: primsB, stage: 2, tie: tie };
+        var out;
+        try { out = JLong.slidePairs(PT, PB, gT, gB, ctxT, ctxB, tie, seatT, seatB, pairRes.stuck); }
+        catch (e) { console.error('[REBAR] slidePairs:', e); return null; }
+        var moved = 0;
+        out.tie.forEach(function (t, i) { if (Math.abs(t - tie[i]) > 0.5) moved++; });
+        if (!moved) return null;
+        console.log('[JLONG] ' + g.id + ' : 짝 ' + moved + '개를 같이 옆으로 옮겼습니다');
+        //  고친 자리로 **두 줄을 다시** 푼다 (윗줄도 이제 그 자리에 묶인다)
+        var r2 = JLong.solve(gT, sec.walls, sec, ducts, prims, out.tie);
+        var p2b = prims.concat(r2.bars.map(function (b) {
+          return { t: 'line', p: [b.x, b.y, b.x, b.y], dia: g.dia };
+        }));
+        var q2 = JLong.solve(gB, sec.walls, sec, ducts, p2b, out.tie);
+        return { res: r2, pair: q2, moved: moved };
+      },
+
+      // ── Rebar Physics 결과 표 : id / 총길이 / 직경 / 조각 a~f / 꺽임 ra~re ──
+      _renderPhysicsTable: function () {
+        var body = document.getElementById('physTblBody');
+        if (!body || typeof Domain === 'undefined') return;
+        var rcv = document.getElementById('renderContainer');
+        var twp = document.querySelector('.phys-tblwrap');
+        if (rcv && twp && rcv.clientHeight) twp.style.height = rcv.clientHeight + 'px';
+        var self = this, h = '';
+        var codeById = {};
+        (this._rebarData || []).forEach(function (rd) { if (rd && rd.id != null && rd.code != null) codeById[String(rd.id)] = rd.code; });
+        //  `srebar` 로 펼쳐진 낱개(T1#3)는 **제 줄(T1)의 code** 를 쓴다
+        (Domain.trebarList || []).forEach(function (t) {
+          if (t._srebar && codeById[String(t.id)] == null && codeById[t._srebar] != null)
+            codeById[String(t.id)] = codeById[t._srebar];
+        });
+        //  마크(길이로 묶은 것) — 표의 id 칸 툴팁에 띄운다
+        var markOf = {};
+        (this._smarks || []).forEach(function (m) {
+          m.ids.forEach(function (id) { markOf[id] = m; });
+        });
+        function fmt(n) { return (n == null || !isFinite(n)) ? '' : String(Math.round(n)); }
+        /*  형상 code 는 엔진 안에서 숫자 하나다 ('23a' → 23.1 · '11a' → 11.1).
+            표에는 **도면대로 되돌려** 적는다 — fmt 는 반올림이라 23.1 을 23 으로
+            찍어서, 23 과 23a 가 표에서 구별되지 않았다. 소수 첫째자리가 가지다 :
+            .1 → a, .2 → b …                                                    */
+        function codeText(c) {
+          var n = Number(c);
+          if (!isFinite(n)) return String(c == null ? '' : c);
+          var b = Math.floor(n + 1e-9), f = Math.round((n - b) * 10);
+          return f ? (b + String.fromCharCode(96 + f)) : String(b);
+        }
+        function codeCell(id) {
+          var c = codeById[String(id)];
+          return (c == null) ? '<td class="phys-na">&mdash;</td>' : '<td>' + self._esc(codeText(c)) + '</td>';
+        }
+        function cells(vals, n) {
+          var s = '';
+          for (var i = 0; i < n; i++) s += (vals[i] == null) ? '<td class="phys-na">&mdash;</td>' : '<td>' + fmt(vals[i]) + '</td>';
+          return s;
+        }
+        /*  태어난 자리가 수상한 철근에는 **⚠ 를 붙인다.** 결과만 보면 「엔진이
+            이상하다」로 보이는 것이 대개 여기서 갈린다 — 조각이 제 면 위에 없거나,
+            법선 방향에 면이 아예 없는 경우다 (_seatDiag · _diagWarn 참조).       */
+        function idCell(id, settled) {
+          var cls = 'phys-id' + (settled ? '' : ' phys-moving');
+          var wm = self._diagWarn(id);
+          var tip = wm ? ('태어난 자리 경고 —\n' + wm + '\n\n클릭하면 J 창에서 태어난 자리와 후보 면을 봅니다')
+                       : '클릭하면 이 철근의 J 를 봅니다 (지형 · 수렴 · 항별 분해)';
+          var mk = markOf[String(id)];
+          if (mk) tip = '마크 ' + mk.mark + ' (같은 전장 ' + mk.len + ' mm 짜리 ' +
+                        mk.num + '개) — 길이로 묶은 것입니다\n\n' + tip;
+          return '<td class="' + cls + '" title="' + self._esc(tip) + '" onclick="PXUNI.openJ(&quot;' + self._esc(String(id)) + '&quot;)">' +
+                 self._esc(String(id)) +
+                 (wm ? '<span style="color:#b45309;font-weight:700;margin-left:4px;">&#9888;</span>' : '') + '</td>';
+        }
+        function rspBtn(id) {
+          return '<td><button type="button" class="px-btn phys-rsp" title="Respawn this rebar" onclick="PXUNI.respawnOne(&quot;' + self._esc(String(id)) + '&quot;)">&#8635;</button></td>';
+        }
+        (Domain.trebarList || []).forEach(function (t) {
+          var segs = [], arcs = [], total = 0;
+          if (t.state === 'FORMED') {
+            self._trebarPrimitives(t).forEach(function (pr) {
+              if (pr.t === 'line') {
+                var L = Math.hypot(pr.p[2] - pr.p[0], pr.p[3] - pr.p[1]);
+                segs.push(L); total += L;
+              } else {
+                var sweep = ((pr.p[4] - pr.p[3]) % 360 + 360) % 360;
+                var al = pr.p[2] * sweep * Math.PI / 180;
+                arcs.push(al); total += al;
+              }
+            });
+          } else {
+            (t.segments || []).forEach(function (s) {
+              var L = Math.hypot(s.p2.x - s.p1.x, s.p2.y - s.p1.y);
+              segs.push(L); total += L;
+            });
+          }
+          // 조각 a~f 먼저, 그 다음 꺽임 ra~re
+          var inter = [], i;
+          for (i = 0; i < 6; i++) inter.push(segs[i] != null ? segs[i] : null);
+          for (i = 0; i < 5; i++) inter.push(arcs[i] != null ? arcs[i] : null);
+          h += '<tr class="' + (String(self._focusId) === String(t.id) ? 'phys-focus' : '') + '">' +
+               idCell(t.id, t.state === 'FORMED') + codeCell(t.id) +
+               '<td><b>' + fmt(total) + '</b></td><td>' + fmt(t.dia) + '</td>' + cells(inter, 11) + rspBtn(t.id) + '</tr>';
+        });
+        (Domain.lrebarList || []).forEach(function (g) {
+          h += '<tr class="' + (String(self._focusId) === String(g.id) ? 'phys-focus' : '') + '">' +
+               idCell(g.id, g.state === 'SETTLED') + codeCell(g.id) +
+               '<td class="phys-na">&mdash;</td><td>' + fmt(g.dia) + '</td>' + cells([], 11) + rspBtn(g.id) + '</tr>';
+        });
+        if (!h) h = '<tr><td colspan="16" style="text-align:center;color:#94a3b8;padding:14px;">No rebar loaded.</td></tr>';
+        body.innerHTML = h;
+      },
+
+      // 개별 철근 재스폰 : 해당 id 만 초기 상태로 되돌려 안착 과정을 다시 관찰
+      respawnOne: function (id) {
+        if (typeof Domain === 'undefined' || typeof UI === 'undefined') return;
+        /*  J 엔진에서는 **그 철근 하나만 다시 푼다.** 나머지는 놓인 자리에 그대로 두고
+            척력으로만 본다 — 「다른 것은 고정하고 하나를 다시 최소화한다」는 것이
+            J 로는 뜻이 분명한 연산이다.
+            전체를 다시 푸는 것(rebarRespawn)으로 두면 화면이 하나도 안 변한다.
+            J 는 결정적이라 같은 입력이면 같은 답이 나오기 때문이다 — 「눌러도
+            아무 일도 안 일어난다」로 보이던 것이 그것이었다.                      */
+        if (this._engine === 'jfield') { this._resolveOneWithJField(id); return; }
+        var rd = null, i;
+        for (i = 0; i < (this._rebarData || []).length; i++) {
+          if (String(this._rebarData[i].id) === String(id)) { rd = this._rebarData[i]; break; }
+        }
+        if (!rd) { console.warn('[REBAR] respawnOne: 데이터 없음', id); return; }
+        var kind = String(rd.type || 'trebar').toLowerCase();
+        try {
+          if (kind === 'trebar') {
+            var nb = Domain._createTrebarFromData(rd);
+            if (!nb) return;
+            for (i = 0; i < Domain.trebarList.length; i++) if (String(Domain.trebarList[i].id) === String(id)) break;
+            if (i < Domain.trebarList.length) Domain.trebarList[i] = nb; else Domain.trebarList.push(nb);
+            Domain.queue.push({ kind: 'trebar', obj: nb });
+          } else {
+            if (typeof LRebarEngine === 'undefined') return;
+            var ng = Domain._createLrebarFromData(rd);
+            if (!ng) return;
+            for (i = 0; i < Domain.lrebarList.length; i++) if (String(Domain.lrebarList[i].id) === String(id)) break;
+            if (i < Domain.lrebarList.length) Domain.lrebarList[i] = ng; else Domain.lrebarList.push(ng);
+            Domain.queue.push({ kind: 'lrebar', obj: ng });
+          }
+        } catch (e) { console.error('[REBAR] respawnOne:', id, e); return; }
+        // 벽 적층(wallStack) 재구성 — 재스폰 대상의 이전 기여분을 제거하지 않으면
+        // 누를 때마다 한 겹씩 안쪽으로 밀린다. 나머지 안착 철근 기여만 다시 누적.
+        Domain.wallStack = {};
+        Domain.trebarList.forEach(function (t) {
+          if (String(t.id) !== String(id) && t.state === 'FORMED') Domain._accumulateStack(t.dia || 0, Domain._collectTrebarWalls(t));
+        });
+        Domain.lrebarList.forEach(function (g) {
+          if (String(g.id) !== String(id) && g.state === 'SETTLED') Domain._accumulateStack(g.dia || 0, Domain._collectLrebarWalls(g));
+        });
+        Domain.isPaused = false;
+        var b = document.getElementById('btnPause');
+        if (b) b.innerHTML = '<i class="bi bi-pause-fill"></i> Pause';
+        this._rebarSettled = false;
+        if (this._settleTimer) { clearInterval(this._settleTimer); this._settleTimer = null; }
+        if (UI.anim && UI.anim.start) UI.anim.start();
+        this._watchSettle();
+        this._renderPhysicsTable();
+      },
+
+      toggleNormals: function () {
+        this._showEngNormals = !this._showEngNormals;
+        var b = document.getElementById('btnToggleNormals');
+        if (b) b.classList.toggle('active', this._showEngNormals);
+        this._drawEngineNormals();
+      },
+      /*  태어난 자리(init 로 놓인 조각들)를 보여 줄지.
+          **기본은 끔.** 다 푼 뒤에도 점선이 남아 있으면 도면이 지저분하다.
+          보고 싶은 때는 정해져 있다 — **Respawn 을 눌러 놓고 기다리는 동안**이다.
+          그 동안만 `_spawnHold` 가 켜지고, 풀리는 순간 꺼진다.
+          `Toggle Spawn` 단추는 그대로 남겨 둔다 — init 을 맞춰 가며 볼 때 쓴다.  */
+      _showSpawn: false,
+      _spawnHold: false,      // Respawn 대기 중에만 켜진다 (속내 깃발)
+      _spawn: null,
+      SPAWN_HOLD: 420,        // 태어난 자리를 이만큼(ms) 보여 주고 푼다
+
+      toggleSpawn: function () {
+        this._showSpawn = !this._showSpawn;
+        var b = document.getElementById('btnToggleSpawn');
+        if (b) b.classList.toggle('active', this._showSpawn);
+        if (this._rebarSettled) this._finalizeArcs();
+      },
+
+      toggleNodes: function () {
+        this._showEngNodes = !this._showEngNodes;
+        var b = document.getElementById('btnToggleNodes');
+        if (b) b.classList.toggle('active', this._showEngNodes);
+        this._drawEngineNodes();
+      },
+
+      // Domain.currentSection.walls 의 bbox → 대각선 길이 (스케일 기준)
+      _sectionDiag: function (walls) {
+        var minx = 1e18, miny = 1e18, maxx = -1e18, maxy = -1e18;
+        walls.forEach(function (w) { minx = Math.min(minx, w.x1, w.x2); maxx = Math.max(maxx, w.x1, w.x2); miny = Math.min(miny, w.y1, w.y2); maxy = Math.max(maxy, w.y1, w.y2); });
+        return Math.hypot(maxx - minx, maxy - miny) || 1000;
+      },
+
+      // 안쪽 법선 화살표 — 화면 픽셀 기준 고정 크기 (스테이지 줌 배율 보정)
+      _drawEngineNormals: function () {
+        if (typeof UI === 'undefined' || !UI.mainLayer) return;
+        if (this._engNormGroup) { this._engNormGroup.destroy(); this._engNormGroup = null; }
+        var walls = (typeof Domain !== 'undefined' && Domain.currentSection && Domain.currentSection.walls) || [];
+        if (!this._showEngNormals || !walls.length) { UI.mainLayer.draw(); return; }
+        var scale = (UI.stage && UI.stage.scaleX && UI.stage.scaleX()) || 1;
+        var arrowL = 26 / scale, dotR = 6 / scale;
+        var g = new Konva.Group({ name: 'eng_normals' });
+        // 직선 벽은 전부, 아크(필렛·원) 테셀레이션 구간은 중앙 1개만 화살표 표시
+        var picks = [], ni = 0;
+        while (ni < walls.length) {
+          var n0 = walls[ni];
+          if (!n0.src) { picks.push(n0); ni++; continue; }
+          var nj = ni;
+          while (nj + 1 < walls.length && walls[nj + 1].src === n0.src) nj++;
+          picks.push(walls[(ni + nj) >> 1]);
+          ni = nj + 1;
+        }
+        picks.forEach(function (w) {
+          var mx = (w.x1 + w.x2) / 2, my = (w.y1 + w.y2) / 2;
+          var L = arrowL;
+          g.add(new Konva.Arrow({ points: [mx, my, mx + w.nx * L, my + w.ny * L], stroke: '#FFC107', fill: '#FFC107', strokeWidth: 2, pointerLength: L * 0.34, pointerWidth: L * 0.3, strokeScaleEnabled: false }));
+          g.add(new Konva.Circle({ x: mx, y: my, radius: dotR, fill: '#FF5722', strokeScaleEnabled: false }));
+        });
+        UI.mainLayer.add(g); this._engNormGroup = g; UI.mainLayer.draw();
+      },
+
+      // 벽 id(E1,E2…) 라벨 + 끝점 — 아크 테셀레이션 구간은 중앙 1개에 범위(Ea~Eb)로 표기
+      _drawEngineNodes: function () {
+        if (typeof UI === 'undefined' || !UI.mainLayer) return;
+        if (this._engNodeGroup) { this._engNodeGroup.destroy(); this._engNodeGroup = null; }
+        var walls = (typeof Domain !== 'undefined' && Domain.currentSection && Domain.currentSection.walls) || [];
+        if (!this._showEngNodes || !walls.length) { UI.mainLayer.draw(); return; }
+        var scale = (UI.stage && UI.stage.scaleX && UI.stage.scaleX()) || 1;
+        var fs = 13 / scale, dotR = 6 / scale;
+        var g = new Konva.Group({ name: 'eng_nodes' });
+        var items = [], wi = 0;
+        while (wi < walls.length) {
+          var w0 = walls[wi];
+          if (!w0.src) { items.push({ w: w0, text: String(w0.id || '') }); wi++; continue; }
+          var wj = wi;
+          while (wj + 1 < walls.length && walls[wj + 1].src === w0.src) wj++;
+          var wm = walls[(wi + wj) >> 1];
+          items.push({ w: wm, text: (wi === wj) ? String(wm.id || '') : String(w0.id || '') + '~' + String(walls[wj].id || '') });
+          wi = wj + 1;
+        }
+        items.forEach(function (it) {
+          var w = it.w, mx = (w.x1 + w.x2) / 2, my = (w.y1 + w.y2) / 2;
+          g.add(new Konva.Circle({ x: mx, y: my, radius: dotR, fill: '#FF5722', strokeScaleEnabled: false }));
+          var lbl = new Konva.Label({ x: mx + w.nx * fs * 0.6, y: my + w.ny * fs * 0.6, scaleY: -1 });
+          lbl.add(new Konva.Tag({ fill: 'rgba(0,0,0,0.78)', cornerRadius: fs * 0.2 }));
+          lbl.add(new Konva.Text({ text: it.text, fontSize: fs, fontStyle: 'bold', fontFamily: 'Arial', fill: '#00E5FF', padding: fs * 0.18 }));
+          lbl.offsetX(lbl.width() / 2); lbl.offsetY(lbl.height() / 2);
+          g.add(lbl);
+        });
+        UI.mainLayer.add(g); this._engNodeGroup = g; UI.mainLayer.draw();
+      },
+
+      _trebarPrimitives: function (t) {
+        var segs = t.segments || [], n = segs.length;
+        if (!n) return [];
+        var dia = t.dia || 13;
+        var rBase = (t.radius && t.radius > 0) ? t.radius : bendRadiusForDia(dia);   // 철근별 입력 > 직경별 맵 > EN 규칙
+        var hasFillet = (typeof geo_fillet === 'function' && typeof get_inner_angle === 'function');
+        var prims = [], cur = { x: segs[0].p1.x, y: segs[0].p1.y };
+        for (var i = 0; i < n; i++) {
+          var V = { x: segs[i].p2.x, y: segs[i].p2.y };
+          var filletDone = false;
+          if (i < n - 1 && hasFillet) {
+            var P1 = { x: segs[i].p1.x, y: segs[i].p1.y };
+            var P3 = { x: segs[i + 1].p2.x, y: segs[i + 1].p2.y };
+            var inner = get_inner_angle(P1, V, P3);   // 내각(도) 0..180
+            if (isFinite(inner) && inner <= 178 && inner >= 2) {
+              var half = (inner / 2) * Math.PI / 180, tanH = Math.tan(half) || 1e-6;
+              var availIn = Math.hypot(V.x - cur.x, V.y - cur.y), lenOut = Math.hypot(P3.x - V.x, P3.y - V.y);
+              var maxTL = Math.min(availIn * 0.95, lenOut * 0.45), r = rBase;
+              if (r / tanH > maxTL) r = maxTL * tanH;
+              if (r >= 1e-3) {
+                var f = geo_fillet(P1, V, P3, r);
+                if (f && isFinite(f.ox) && isFinite(f.r) && f.r > 0) {
+                  prims.push({ t: 'line', p: [cur.x, cur.y, f.xb, f.yb] });
+                  prims.push({ t: 'arc', p: [f.ox, f.oy, f.r, f.angb, f.ange] });
+                  cur = { x: f.xe, y: f.ye };
+                  filletDone = true;
+                }
+              }
+            }
+          }
+          if (!filletDone) { prims.push({ t: 'line', p: [cur.x, cur.y, V.x, V.y] }); cur = V; }
+        }
+        return prims;
+      },
+
+      _arcTess: function (cx, cy, r, a0, a1) {
+        var span = a1 - a0; while (span < 0) span += 360; while (span > 360) span -= 360;
+        var m = Math.max(2, Math.ceil(span / 6)), pts = [];
+        for (var i = 0; i <= m; i++) { var a = (a0 + span * i / m) * Math.PI / 180; pts.push([cx + r * Math.cos(a), cy + r * Math.sin(a)]); }
+        return pts;
+      },
+
+      _drawFilletedTrebar: function (t, group) {
+        var prims = this._trebarPrimitives(t);
+        if (!prims.length) return;
+        var self = this, pts = [];
+        function pushPt(x, y) { var L = pts.length; if (L >= 2 && Math.abs(pts[L - 2] - x) < 1e-6 && Math.abs(pts[L - 1] - y) < 1e-6) return; pts.push(x, y); }
+        prims.forEach(function (pr) {
+          if (pr.t === 'line') { pushPt(pr.p[0], pr.p[1]); pushPt(pr.p[2], pr.p[3]); }
+          else {
+            var arr = self._arcTess(pr.p[0], pr.p[1], pr.p[2], pr.p[3], pr.p[4]);
+            var lx = pts.length ? pts[pts.length - 2] : arr[0][0], ly = pts.length ? pts[pts.length - 1] : arr[0][1];
+            if (Math.hypot(arr[arr.length - 1][0] - lx, arr[arr.length - 1][1] - ly) < Math.hypot(arr[0][0] - lx, arr[0][1] - ly)) arr = arr.slice().reverse();
+            arr.forEach(function (p) { pushPt(p[0], p[1]); });
+          }
+        });
+        var dia = t.dia || 13, st = this._focusStyle(t.id);
+        group.add(new Konva.Line({ points: pts, stroke: st.color, strokeWidth: (dia > 0 ? dia : 5), lineCap: 'round', lineJoin: 'round', strokeScaleEnabled: true, opacity: st.opacity }));
+        if (st.focused) {   // 강조 외곽선(글로우) — 두껍게 한 겹 덧그림
+          group.add(new Konva.Line({ points: pts, stroke: '#FF3D00', strokeWidth: (dia > 0 ? dia : 5) * 2.1, lineCap: 'round', lineJoin: 'round', strokeScaleEnabled: true, opacity: 0.22 }));
+        }
+      },
+
+      /*  표에서 클릭한 철근(_focusId) 강조 스타일 — 없으면 전체 기본.
+          **갈고리는 색을 달리 쓴다.** 교축방향으로 다른 자리에 선 철근이라
+          (도면에서 **점선**인 그것) 횡방향과 같은 색으로 겹쳐 그리면 단면도가
+          읽히지 않는다. DXF 에서 켜를 가른 것(SREBAR)과 같은 이유다.          */
+      SRE_COLOR: '#0E9F9F',
+      _focusStyle: function (id) {
+        var hook = false;
+        (Domain.trebarList || []).forEach(function (t) {
+          if (t._srebar && String(t.id) === String(id)) hook = true;
+        });
+        var base = hook ? this.SRE_COLOR : '#8A2BE2';
+        if (!this._focusId) return { color: base, opacity: 1, focused: false };
+        var on = String(id) === String(this._focusId);
+        // 비선택 철근은 흐리되 형상은 남긴다 (0.13 은 사실상 안 보였음)
+        return on ? { color: '#FF3D00', opacity: 1, focused: true }
+                  : { color: base, opacity: 0.4, focused: false };
+      },
+
+      // 표 ID 클릭 → 해당 철근만 강조 (같은 id 재클릭이면 해제)
+      focusRebar: function (id) {
+        this._focusId = (String(this._focusId) === String(id)) ? null : String(id);
+        if (this._rebarSettled) this._finalizeArcs(); else if (typeof UI !== 'undefined' && UI.mainLayer) UI.mainLayer.draw();
+        this._renderPhysicsTable();
+      },
+
+      _watchSettle: function () {
+        var self = this;
+        if (this._settleTimer) { clearInterval(this._settleTimer); this._settleTimer = null; }
+        if (typeof Domain === 'undefined' || !Domain.queue || Domain.queue.length === 0) return;
+        var lastIndex = -1, stallTicks = 0, totalTicks = 0, stuck = [];
+        var STALL_LIMIT = 60;     // 진행 없이 정체(약 9초) → 현재 철근 강제 스킵 (느린 정상 안착은 통과)
+        var HARD_LIMIT = 4000;    // 타이머 영구화 방지 안전 상한 (약 10분)
+        this._settleTimer = setInterval(function () {
+          totalTicks++;
+          var idx = Domain.activeQueueIndex;
+          if (idx !== lastIndex) { lastIndex = idx; stallTicks = 0; }   // 진행 중이면 계속 대기
+          else stallTicks++;
+          // 정체 지속 → 현재 철근 강제 안착 처리 후 다음으로 (전체 정지 방지)
+          if (stallTicks > STALL_LIMIT && idx < Domain.queue.length) {
+            var it = Domain.queue[idx], id = (it && it.obj && it.obj.id) || ('#' + idx), kind = it && it.kind;
+            // 왜 멈췄는지 세그먼트별 진단 — 상태 / 타깃 벽 유무 / 잔여 오차
+            var why = '';
+            if (kind === 'trebar' && it.obj && it.obj.segments) {
+              why = it.obj.segments.map(function (sg) {
+                var d = sg.label + ':' + sg.state;
+                if (sg.state === 'FITTING' && sg.nodes && sg.nodes.length) {
+                  var miss = 0, maxErr = 0;
+                  sg.nodes.forEach(function (nd) {
+                    var tg = Physics.getGravityTarget(nd.x, nd.y, sg.normal, Domain.currentSection.walls, Domain.wallStack, it.obj.dia || 0);
+                    if (!tg) miss++;
+                    else maxErr = Math.max(maxErr, Math.hypot(tg.x - nd.x, tg.y - nd.y));
+                  });
+                  d += (miss ? '(타깃없음 ' + miss + '/' + sg.nodes.length + ' — nors/rot 로 법선이 벽 바깥을 향함)'
+                             : '(오차 ' + maxErr.toFixed(1) + 'mm — 수렴 실패)');
+                }
+                return d;
+              }).join(', ');
+              why = ' 세그[' + why + ']';
+            }
+            console.warn('[REBAR] 철근 안착 실패 → 스킵:', id, '(' + kind + ')' + why);
+            stuck.push(id + '(' + kind + ')');
+            if (it && it.obj) {
+              if (kind === 'trebar') {
+                // 강제 스킵이라도 barEnds(fit/ray)는 적용 — 안 하면 기본길이 바가 그대로 남음
+                try {
+                  if (it.obj.finalize) it.obj.finalize();
+                  Physics.applyTrebarEnds(it.obj, Domain.currentSection.walls, Domain.wallStack);
+                } catch (e) { console.warn('[SeoulPhD] 스킵 바 barEnds 적용 실패:', e); }
+                it.obj.state = 'FORMED';
+              } else {
+                it.obj.state = 'SETTLED';
+              }
+            }
+            Domain.activeQueueIndex++; stallTicks = 0; lastIndex = Domain.activeQueueIndex;
+            return;
+          }
+          var done = Domain.activeQueueIndex >= Domain.queue.length;
+          var allFormed = Domain.trebarList.every(function (t) { return t.state === 'FORMED'; });
+          if ((done && allFormed) || totalTicks > HARD_LIMIT) {
+            clearInterval(self._settleTimer); self._settleTimer = null;
+            self._finalizeArcs();     // FORMED 된 것만 아크, 미안착은 직선 유지
+            if (stuck.length) {
+              self._toast('안착 실패로 건너뜀: ' + stuck.join(', ') + ' — 콘솔(F12)에 세그먼트별 원인', 'err');
+              var msg = '철근 ' + stuck.length + '개가 안착 실패로 건너뛰어졌습니다: ' + stuck.join(', ') +
+                '\n\n확인: 해당 행의 num(개수)이 비었거나 0인지, init/range 값이 올바른지, path 벽 id 가 단면에 있는지(Toggle Nodes). 콘솔(F12)에 상세 로그가 있습니다.';
+              if (self._lastStuckMsg !== msg) { self._lastStuckMsg = msg; try { alert(msg); } catch (e) {} }
+            }
+          }
+        }, 150);
+      },
+
+      _finalizeArcs: function () {
+        if (typeof UI === 'undefined') return;
+        this._rebarSettled = true;
+        try { if (typeof UI.updateVisuals === 'function') UI.updateVisuals(); } catch (e) {}  // 최종 프레임 반영
+        if (UI.anim && UI.anim.stop) UI.anim.stop();      // 정지 → 굴짐 아크가 직선으로 덮이지 않음
+        if (!UI.trebarGroup) return;
+        UI.trebarGroup.destroyChildren();
+        /*  겹침 해소는 **예전 엔진에만** 건다. J 엔진은 순간격을 제약으로 이미 풀었고,
+            여기서 또 밀면 J 가 찾은 자리를 손으로 흐트러뜨리는 것이 된다.          */
+        if (this._engine !== 'jfield') this._relaxRebar();                         // 통합 z-order 겹침 해소 (trebar 강체 + lrebar 점) — 그리기 전에
+        var self = this, formed = 0;
+        //  태어난 자리 — 흐린 점선으로 밑에 깔아 둔다 (Toggle Spawn 으로 끈다)
+        if (this._engine === 'jfield' && (this._showSpawn || this._spawnHold) && this._spawn) {
+          this._spawn.forEach(function (sp) {
+            var st = self._focusStyle(sp.id), flat = [];
+            sp.pts.forEach(function (p) { flat.push(p.x, p.y); });
+            if (flat.length < 4) return;
+            UI.trebarGroup.add(new Konva.Line({
+              points: flat, stroke: '#94a3b8', strokeWidth: Math.max(sp.dia * 0.6, 4),
+              lineCap: 'round', lineJoin: 'round', strokeScaleEnabled: true,
+              dash: [60, 45], opacity: st.focused ? 0.95 : 0.35
+            }));
+          });
+        }
+        Domain.trebarList.forEach(function (t) {                                   // 이동된 위치로 작도
+          if (t.state === 'FORMED') { self._drawFilletedTrebar(t, UI.trebarGroup); formed++; }
+          else self._drawStraightTrebar(t, UI.trebarGroup);   // 미안착 바는 직선으로 남겨 사라지지 않게
+        });
+        this._drawLrebarTrue();                                                    // lrebar 실제 반경으로 재작도
+        if (UI.mainLayer) UI.mainLayer.draw();
+        this._renderPhysicsTable();                                                // 결과 표 갱신 (안착 후 길이 확정)
+        console.log('[SeoulPhD] 굴짐 아크 적용 — FORMED ' + formed + '/' + Domain.trebarList.length);
+      },
+
+      _relaxRebar: function () {
+        if (typeof Domain === 'undefined') return;
+        var GSTEP = 2.0, ITERS = 320, MAXMOVE = 250;   // GSTEP: 벽방향 인력 스텝(mm/iter), MAXMOVE: 안전 이동 상한
+        var zmap = {};
+        (this._rebarData || []).forEach(function (d) { if (d && d.id != null) zmap[d.id] = Number(d.z) || 0; });
+        function zOf(o) { return (o && o.id != null && zmap[o.id] != null) ? zmap[o.id] : 0; }
+        var sec = Domain.currentSection, walls = (sec && sec.walls) || [], covers = (sec && sec.covers) || {};
+        function coverOf(w) { var c = (w && w.tag) ? String(w.tag).toLowerCase() : 'outer'; return covers[c] || 50; }
+        function distSeg(px, py, ax, ay, bx, by) {
+          var dx = bx - ax, dy = by - ay, L2 = dx * dx + dy * dy;
+          var t = L2 ? ((px - ax) * dx + (py - ay) * dy) / L2 : 0; t = t < 0 ? 0 : (t > 1 ? 1 : t);
+          var cx = ax + t * dx, cy = ay + t * dy; return { cx: cx, cy: cy, d: Math.hypot(px - cx, py - cy) };
+        }
+        // 고정 장애물: FORMED trebar 세그먼트 (z 태그)
+        var tsegs = [];
+        (Domain.trebarList || []).forEach(function (t) {
+          if (t.state !== 'FORMED' || !t.segments) return;
+          var z = zOf(t), r = (t.dia || 0) / 2;
+          t.segments.forEach(function (s) { tsegs.push({ z: z, r: r, ax: s.p1.x, ay: s.p1.y, bx: s.p2.x, by: s.p2.y }); });
+        });
+        // 이동 대상: lrebar 파티클 (z, 벽방향 인력 gd, 배리어 벽, anchor)
+        var parts = [];
+        (Domain.lrebarList || []).forEach(function (g) {
+          if (!g || !g.particles) return;
+          var r = (g.dia || 13) / 2, z = zOf(g), gd = g.gravDir || { x: 0, y: 0 };
+          var pw = walls.filter(function (w) { return g.path && g.path.indexOf(w.id) >= 0; });
+          g.particles.forEach(function (p) { parts.push({ p: p, r: r, z: z, gd: gd, walls: pw, ax: p.x, ay: p.y }); });
+        });
+        if (!parts.length) return;
+        for (var it = 0; it < ITERS; it++) {
+          for (var i = 0; i < parts.length; i++) {
+            var a = parts[i], P = a.p;
+            P.x += a.gd.x * GSTEP; P.y += a.gd.y * GSTEP;                       // 1) 벽 방향 인력
+            for (var k = 0; k < tsegs.length; k++) {                            // 2) 같은 z trebar 겹침 → tangent 복원
+              var s = tsegs[k]; if (s.z !== a.z) continue;
+              var q = distSeg(P.x, P.y, s.ax, s.ay, s.bx, s.by), need = s.r + a.r;
+              if (q.d < need && q.d > 1e-6) { var cf = (need - q.d) / q.d; P.x += (P.x - q.cx) * cf; P.y += (P.y - q.cy) * cf; }
+            }
+            // 3) 벽 배리어 — 가장 가까운 path 벽 1개에만 적용(콘크리트 안쪽 반공간).
+            //    오목한 내측면(헌치)에서 여러 벽을 동시에 반공간 투영하면 코너 래칫으로 철근이 밀려나므로
+            //    최근접 벽 하나로만 억제한다.
+            var nw = null, nq = null, nd = 1e18;
+            for (var wi = 0; wi < a.walls.length; wi++) {
+              var q2 = distSeg(P.x, P.y, a.walls[wi].x1, a.walls[wi].y1, a.walls[wi].x2, a.walls[wi].y2);
+              if (q2.d < nd) { nd = q2.d; nw = a.walls[wi]; nq = q2; }
+            }
+            if (nw) {
+              var sd = (P.x - nq.cx) * nw.nx + (P.y - nq.cy) * nw.ny, need2 = coverOf(nw) + a.r;   // 안쪽 법선 부호거리
+              if (sd < need2) { var push = need2 - sd; P.x += nw.nx * push; P.y += nw.ny * push; }   // 콘크리트 안쪽으로만 복원
+            }
+            for (var j = 0; j < parts.length; j++) {                           // 4) 같은 z lrebar 끼리 반발
+              if (j === i) continue; var b = parts[j]; if (b.z !== a.z) continue;
+              var ex = P.x - b.p.x, ey = P.y - b.p.y, d = Math.hypot(ex, ey) || 1e-6, need3 = a.r + b.r;
+              if (d < need3) { var cf3 = (need3 - d) / d * 0.5; P.x += ex * cf3; P.y += ey * cf3; b.p.x -= ex * cf3; b.p.y -= ey * cf3; }
+            }
+            var mmx = P.x - a.ax, mmy = P.y - a.ay, mm = Math.hypot(mmx, mmy);  // 5) 안전 이동 상한
+            if (mm > MAXMOVE) { P.x = a.ax + mmx / mm * MAXMOVE; P.y = a.ay + mmy / mm * MAXMOVE; }
+          }
+        }
+        console.log('[SeoulPhD] 철근 인력+반발 정렬(z-order) — lrebar ' + parts.length + ', trebar seg ' + tsegs.length);
+      },
+
+      _drawLrebarTrue: function () {
+        if (typeof UI === 'undefined' || !UI.lrebarGroup || typeof Konva === 'undefined') return;
+        UI.lrebarGroup.destroyChildren();
+        var self = this;
+        (Domain.lrebarList || []).forEach(function (g) {
+          if (!g || !g.particles) return;
+          var r = (g.dia || 13) / 2, st = self._focusStyle(g.id);
+          g.particles.forEach(function (p) {
+            UI.lrebarGroup.add(new Konva.Circle({
+              x: p.x, y: p.y, radius: st.focused ? r * 1.15 : r,
+              fill: st.focused ? '#FF3D00' : '#FFD700',
+              stroke: st.focused ? '#7F1D1D' : '#B8860B',
+              strokeWidth: Math.max(r * 0.18, 0.8), strokeScaleEnabled: true, opacity: st.opacity
+            }));
+          });
+        });
+      },
+
+      _drawStraightTrebar: function (t, group) {
+        var segs = t.segments || [], dia = t.dia || 13, st = this._focusStyle(t.id);
+        segs.forEach(function (s) {
+          var pts = (s.state === 'SETTLED')
+            ? [s.p1.x, s.p1.y, s.p2.x, s.p2.y]
+            : [s.nodes[0].x, s.nodes[0].y, s.nodes[1].x, s.nodes[1].y];
+          group.add(new Konva.Line({ points: pts, stroke: st.color, strokeWidth: (dia > 0 ? dia : 5), lineCap: 'round', strokeScaleEnabled: true, opacity: st.opacity }));
+        });
+      },
+
+      exportDXF: function () {
+        if (typeof dxf_generator !== 'function') { alert('DXF 생성기가 로드되지 않았습니다.'); return; }
+        if (typeof Domain === 'undefined' || !Domain.currentSection) { alert('먼저 단면을 렌더링하세요.'); return; }
+        var dxf = dxf_generator();
+        dxf.init();
+        dxf.layer('SECTION', 7, 'CONTINUOUS');   // white
+        dxf.layer('TREBAR', 3, 'CONTINUOUS');    // green
+        dxf.layer('LREBAR', 1, 'CONTINUOUS');    // red
+        /*  갈고리는 **제 켜로 뺀다.** 교축방향으로 다른 자리에 선 철근이라(도면에서
+            점선인 그것) 횡방향과 같은 켜에 두면 단면도가 읽히지 않는다.           */
+        dxf.layer('SREBAR', 4, 'CONTINUOUS');    // cyan
+        (Domain.currentSection.displayPaths || []).forEach(function (path) {
+          for (var i = 0; i < path.length - 1; i++) dxf.line(path[i].x, path[i].y, path[i + 1].x, path[i + 1].y, 'SECTION');
+          if (path.length > 2) { var a = path[path.length - 1], b = path[0]; if (Math.hypot(a.x - b.x, a.y - b.y) > 1e-6) dxf.line(a.x, a.y, b.x, b.y, 'SECTION'); }
+        });
+        var self = this;
+        (Domain.trebarList || []).forEach(function (t) {
+          var ly = t._srebar ? 'SREBAR' : 'TREBAR';
+          self._trebarPrimitives(t).forEach(function (pr) {
+            if (pr.t === 'line') dxf.line(pr.p[0], pr.p[1], pr.p[2], pr.p[3], ly);
+            else dxf.arc(pr.p[0], pr.p[1], pr.p[2], pr.p[3], pr.p[4], ly);
+          });
+        });
+        (Domain.lrebarList || []).forEach(function (g) {
+          var r = (g.dia || 13) / 2;
+          (g.particles || []).forEach(function (p) { dxf.circle(p.x, p.y, r, 'LREBAR'); });
+        });
+        dxf.download('seoul_phd_' + (this._cur || 'section') + '.dxf');
+      },
+
+      _buildSectionFromBim: function () {
+        var lines = this._lines || [], arcs = this._arcs || [], circs = this._circs || [];
+        var raw = [];
+        lines.forEach(function (s) { raw.push([s[0], s[1], s[2], s[3], null]); });
+        arcs.forEach(function (c, ai) {
+          var x = c[0], y = c[1], r = c[2], sp = c[4] - c[3]; if (sp <= 0) sp += 360;
+          var n = Math.max(2, Math.ceil(sp / 10)), ppx, ppy;
+          for (var i = 0; i <= n; i++) { var a = (c[3] + sp * i / n) * Math.PI / 180, px = x + r * Math.cos(a), py = y + r * Math.sin(a); if (i > 0) raw.push([ppx, ppy, px, py, 'arc' + ai]); ppx = px; ppy = py; }
+        });
+        if (raw.length === 0 && circs.length === 0) return null;
+
+        var bnd = raw.slice();
+        circs.forEach(function (c) {
+          var N = 64, ppx, ppy;
+          for (var i = 0; i <= N; i++) { var a = i / N * 2 * Math.PI, px = c[0] + c[2] * Math.cos(a), py = c[1] + c[2] * Math.sin(a); if (i > 0) bnd.push([ppx, ppy, px, py]); ppx = px; ppy = py; }
+        });
+        var minx = 1e18, miny = 1e18, maxx = -1e18, maxy = -1e18;
+        bnd.forEach(function (s) { minx = Math.min(minx, s[0], s[2]); maxx = Math.max(maxx, s[0], s[2]); miny = Math.min(miny, s[1], s[3]); maxy = Math.max(maxy, s[1], s[3]); });
+        var diag = Math.hypot(maxx - minx, maxy - miny) || 100;
+        var cx = (minx + maxx) / 2, cy = (miny + maxy) / 2;
+        var tol = Math.max(1, diag * 0.005), eps = diag * 0.006;
+        function inside(px, py) {
+          var c = false;
+          for (var i = 0; i < bnd.length; i++) { var x1 = bnd[i][0], y1 = bnd[i][1], x2 = bnd[i][2], y2 = bnd[i][3]; if (((y1 > py) !== (y2 > py)) && (px < (x2 - x1) * (py - y1) / ((y2 - y1) || 1e-9) + x1)) c = !c; }
+          return c;
+        }
+        function near(ax, ay, bx, by) { return Math.hypot(ax - bx, ay - by) <= tol; }
+
+        // 직선/아크 세그먼트를 끝점 이어 닫힌 loop 로 체이닝
+        var segs = raw.map(function (s) { return { x1: s[0], y1: s[1], x2: s[2], y2: s[3], src: s[4] || null, used: false }; });
+        var loops = [];
+        for (var s0 = 0; s0 < segs.length; s0++) {
+          if (segs[s0].used) continue;
+          segs[s0].used = true;
+          var sx = segs[s0].x1, sy = segs[s0].y1, ex = segs[s0].x2, ey = segs[s0].y2;
+          var loop = [{ x1: sx, y1: sy, x2: ex, y2: ey, src: segs[s0].src }], guard = 0;
+          while (guard++ < segs.length + 2) {
+            if (near(ex, ey, sx, sy)) break;
+            var found = null, rev = false;
+            for (var j = 0; j < segs.length; j++) {
+              if (segs[j].used) continue;
+              if (near(segs[j].x1, segs[j].y1, ex, ey)) { found = segs[j]; rev = false; break; }
+              if (near(segs[j].x2, segs[j].y2, ex, ey)) { found = segs[j]; rev = true; break; }
+            }
+            if (!found) break;
+            found.used = true;
+            var nX = rev ? found.x1 : found.x2, nY = rev ? found.y1 : found.y2;
+            loop.push({ x1: ex, y1: ey, x2: nX, y2: nY, src: found.src });
+            ex = nX; ey = nY;
+          }
+          if (near(ex, ey, sx, sy)) { loop[loop.length - 1].x2 = sx; loop[loop.length - 1].y2 = sy; }
+          loops.push(loop);
+        }
+        // 원은 각각 독립 loop
+        circs.forEach(function (c, ci) {
+          var N = 48, loop = [], ppx, ppy;
+          for (var i = 0; i <= N; i++) { var a = i / N * 2 * Math.PI, px = c[0] + c[2] * Math.cos(a), py = c[1] + c[2] * Math.sin(a); if (i > 0) loop.push({ x1: ppx, y1: ppy, x2: px, y2: py, src: 'circ' + ci }); ppx = px; ppy = py; }
+          if (loop.length) { loop[loop.length - 1].x2 = loop[0].x1; loop[loop.length - 1].y2 = loop[0].y1; loops.push(loop); }
+        });
+
+        var walls = [], displayPaths = [], eid = 0;
+        // 외곽 루프(가장 큰 bbox) 판별 — 외곽 상면은 top(데크), 나머지 외곽은 outer, 내부 셀 루프는 inner
+        var outerIdx = -1, outerArea = -1;
+        loops.forEach(function (lp, li) {
+          var mnx = 1e18, mny = 1e18, mxx = -1e18, mxy = -1e18;
+          lp.forEach(function (s) { mnx = Math.min(mnx, s.x1, s.x2); mxx = Math.max(mxx, s.x1, s.x2); mny = Math.min(mny, s.y1, s.y2); mxy = Math.max(mxy, s.y1, s.y2); });
+          var a = (mxx - mnx) * (mxy - mny);
+          if (a > outerArea) { outerArea = a; outerIdx = li; }
+        });
+        loops.forEach(function (loop, li) {
+          if (!loop.length) return;
+          var pts = [{ x: loop[0].x1, y: loop[0].y1 }];
+          loop.forEach(function (seg) {
+            // 길이 0 세그먼트(입력 안 함/0 입력 치수) → 벽 생성 생략 (경로 점만 유지)
+            if (Math.hypot(seg.x2 - seg.x1, seg.y2 - seg.y1) < 0.5) { pts.push({ x: seg.x2, y: seg.y2 }); return; }
+            var mx = (seg.x1 + seg.x2) / 2, my = (seg.y1 + seg.y2) / 2;
+            var dx = seg.x2 - seg.x1, dy = seg.y2 - seg.y1, len = Math.hypot(dx, dy) || 1;
+            var nx = -dy / len, ny = dx / len;
+            if (!inside(mx + nx * eps, my + ny * eps)) {
+              if (inside(mx - nx * eps, my - ny * eps)) { nx = -nx; ny = -ny; }
+              else { var vx = cx - mx, vy = cy - my, vl = Math.hypot(vx, vy) || 1; nx = vx / vl; ny = vy / vl; }
+            }
+            eid++;
+            var tag = (li === outerIdx) ? (ny <= -0.5 ? 'top' : 'outer') : 'inner';
+            walls.push({ id: 'E' + eid, tag: tag, nx: nx, ny: ny, x1: seg.x1, y1: seg.y1, x2: seg.x2, y2: seg.y2, src: seg.src || null });
+            pts.push({ x: seg.x2, y: seg.y2 });
+          });
+          displayPaths.push(pts);
+        });
+        /*  덕트 — 콘크리트에 뚫린 구멍이라 개구부와 같은 길로 벽이 된다.
+            ref:deck 이 경사면을 따라가려면 바깥 윤곽이 필요해서, 여기서 한 번 남겨 둔다.
+            (위 loops 는 세그먼트 배열이라 점 배열로 바꿔 둔다)                        */
+        var ol = loops[outerIdx] || [];
+        this._sectOuter = ol.length ? [[ol[0].x1, ol[0].y1]].concat(ol.map(function (sg) { return [sg.x2, sg.y2]; })) : [];
+        this._buildDucts();
+        /*  덕트 벽은 walls 에 **넣지 않는다.**
+            물리는 walls 를 인력장의 후보로 쓴다. 덕트를 거기 섞으면 철근이 피복을 찾기도
+            전에 덕트에 끌려간다 — 순서가 뒤집힌다.
+              1단계  콘크리트 피복을 찾아 앉는다        (walls = 콘크리트만)
+              2단계  그 자리가 덕트와 겹치면 비켜난다   (ductWalls — 척력, 아직 미구현)
+            덕트는 구멍이지 목표가 아니다. 지금은 그리기와 판정에만 쓴다.              */
+        var dw = DuctBlock.walls(this._ducts, eid);
+        dw.paths.forEach(function (p) { displayPaths.push(p); });
+        eid = dw.eid;
+
+        function cval(id, def) { var el = document.getElementById(id); var n = el ? Number(el.value) : NaN; return isFinite(n) && n > 0 ? n : def; }
+        return { walls: walls, displayPaths: displayPaths, ductWalls: dw.walls, ducts: this._ducts || [],
+                 covers: { top: cval('cover_deck_s', 50), outer: cval('cover_ext_s', 40), inner: cval('cover_int_s', 30) } };
+      },
+
+      /*  'duct' 블록 — 문법과 구현은 bim_duct.js 에 있다 (격벽 페이지와 공용).      */
+      _loadDuctFromExcel: function (fullData) {
+        var self = this;
+        this._ductSpec = DuctBlock.parse(fullData,
+          function (r) { return self._rowIsEnd(r); },
+          function (r) { return self._rowIsComment(r); });
+        var n = this._ductSpec.length;
+        if (n) console.log('[REBAR] duct 로드: ' + n + '개');
+        return n;
+      },
+
+      _surfaceAt: function (x, which) {
+        return DuctBlock.surfaceOf(this._sectOuter || [])(x, which);
+      },
+
+      _buildDucts: function () {
+        var self = this;
+        this._ducts = DuctBlock.build(this._ductSpec || [],
+          function (x, w) { return self._surfaceAt(x, w); });
+        return this._ducts;
+      },
+
+      _applyGenericSection: function (sec) {
+        Domain.currentSection = sec;
+        Domain.trebarList = []; Domain.lrebarList = []; Domain.queue = [];
+        Domain.activeQueueIndex = 0; Domain.isPaused = false; Domain.wallStack = {};
+        Domain.USER_REBAR_DATA = this._rebarData || []; Domain.USER_TREBAR_DATA = null; Domain.USER_LREBAR_DATA = null;
+        (this._rebarData || []).forEach(function (rd) {
+          var t = String(rd.type || 'trebar').toLowerCase();
+          try {
+            if (t === 'trebar') {
+              var rb = Domain._createTrebarFromData(rd);
+              if (rb) { Domain.trebarList.push(rb); Domain.queue.push({ kind: 'trebar', obj: rb }); }
+            } else if (t === 'lrebar' && typeof LRebarEngine !== 'undefined') {
+              var g = Domain._createLrebarFromData(rd);
+              if (g) { Domain.lrebarList.push(g); Domain.queue.push({ kind: 'lrebar', obj: g }); }
+            }
+          } catch (e) { console.error('[SeoulPhD] 철근 생성 오류:', rd.id, e); }
+        });
+        /*  `srebar` 는 **한 줄이 철근 N 개**다. 여기서 `trebar` N 개로 펼쳐 놓으면
+            표·그림·DXF 가 그대로 쓰인다 (_expandSrebar 주석). 큐에는 안 넣는다 —
+            갈고리는 옛 엔진이 아니라 J 가, 그것도 종방향 뒤에 푼다.             */
+        this._swarnBuild = [];
+        try { this._swarnBuild = this._expandSrebar(sec) || []; }
+        catch (e) { console.error('[REBAR] srebar 펼치기:', e); }
+        // 섹션 폴리라인 (엔진 UI 그룹/렌더 함수 사용)
+        UI.sectionGroup.destroyChildren();
+        UI.normalGroup.destroyChildren();
+        UI.trebarGroup.destroyChildren();
+        UI.lrebarGroup.destroyChildren();
+        UI.debugGroup.destroyChildren();
+        // 표시용 외곽선 — 물리 벽(walls)은 직선 분할을 유지하되, 그래픽은 캡처된
+        // bim 원시도형(직선+아크+원)을 그대로 그린다 → 필렛이 폴리라인이 아닌 실제 아크로 렌더링
+        //  덕트 — 콘크리트와 구별되게 다른 색으로.
+        //  원은 **원 그대로** 그린다. 24 각형은 벽(선분+법선)으로 판별하기 위한 것이지
+        //  덕트가 각진 구멍이라는 뜻이 아니다 — 외곽선을 아크로 그리는 것과 같은 규칙이다.
+        (this._ducts || []).forEach(function (dk) {
+          if (!dk) return;
+          if (dk.shape === 'circ' && isFinite(dk.D) && dk.D > 0) {
+            UI.sectionGroup.add(new Konva.Circle({ x: dk.x, y: dk.y, radius: dk.D / 2,
+              stroke: '#FF61E6', strokeWidth: 1.5, strokeScaleEnabled: false }));
+            return;
+          }
+          if (!dk.pts || dk.pts.length < 3) return;
+          var flatD = [];
+          dk.pts.forEach(function (p) { flatD.push(p[0], p[1]); });
+          UI.sectionGroup.add(new Konva.Line({ points: flatD, stroke: '#FF61E6', strokeWidth: 1.5,
+            closed: true, lineJoin: 'round', strokeScaleEnabled: false }));
+        });
+        var _ln = this._lines || [], _ar = this._arcs || [], _ci = this._circs || [];
+        if (_ln.length || _ar.length || _ci.length) {
+          _ln.forEach(function (s) {
+            UI.sectionGroup.add(new Konva.Line({ points: [s[0], s[1], s[2], s[3]], stroke: '#ffffff', strokeWidth: 2, lineCap: 'round', strokeScaleEnabled: false }));
+          });
+          _ar.forEach(function (c) {
+            var a0 = c[3], a1 = c[4]; if (a1 <= a0) a1 += 360;
+            UI.sectionGroup.add(new Konva.Shape({
+              sceneFunc: function (ctx, shape) {
+                ctx.beginPath();
+                ctx.arc(c[0], c[1], c[2], a0 * Math.PI / 180, a1 * Math.PI / 180, false);
+                ctx.fillStrokeShape(shape);
+              },
+              stroke: '#ffffff', strokeWidth: 2, strokeScaleEnabled: false
+            }));
+          });
+          _ci.forEach(function (c) {
+            UI.sectionGroup.add(new Konva.Circle({ x: c[0], y: c[1], radius: c[2], stroke: '#ffffff', strokeWidth: 2, strokeScaleEnabled: false }));
+          });
+        } else {
+          sec.displayPaths.forEach(function (path) {   // 캡처 데이터가 없을 때의 예비 경로
+            var flat = []; path.forEach(function (p) { flat.push(p.x, p.y); });
+            UI.sectionGroup.add(new Konva.Line({ points: flat, stroke: '#ffffff', strokeWidth: 2, closed: true, lineJoin: 'round', strokeScaleEnabled: false }));
+          });
+        }
+        if (typeof UI.drawGrid === 'function') UI.drawGrid();
+        if (typeof UI.drawNormals === 'function') UI.drawNormals();
+        if (typeof UI.drawDebugNodes === 'function') UI.drawDebugNodes();
+        UI.mainLayer.draw();
+        this._drawEngineNormals();   // 토글 상태 유지 — 새 단면에 맞춰 재작도(꺼져 있으면 지움)
+        this._drawEngineNodes();
+      },
+
+      _esc: function (v) { return String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); },
+
+      // ── 로딩 로그 패널 : 마지막 엑셀 로딩 결과 다시 보기 ──
+      toggleLoadLog: function () {
+        var pan = document.getElementById('pxLoadLog');
+        var btn = document.getElementById('btnViewLog');
+        if (!pan) return;
+        var show = pan.style.display === 'none';
+        if (show) {
+          if (!this._loadLog) {
+            pan.innerHTML = '<div class="log-time">No Excel load yet.</div>';
+          } else {
+            var lg = this._loadLog, h = '<div class="log-time">' + this._esc(lg.time) + ' \u2014 ' +
+              (lg.ok ? '<span class="log-ok">SUCCESS</span>' : '<span class="log-err">FAILED</span>') + '</div>';
+            lg.lines.forEach(function (ln) { h += '<div>' + PXUNI._esc(ln) + '</div>'; });
+            pan.innerHTML = h;
+          }
+        }
+        pan.style.display = show ? '' : 'none';
+        if (btn) btn.classList.toggle('active', show);
+      },
+
+      // ── 철근 형상 코드 안내 패널 ──────────────────────────
+      toggleRebarInfo: function () {
+        var pan = document.getElementById('pxShapeInfo');
+        var btn = document.getElementById('btnShapeInfo');
+        if (!pan) return;
+        var show = pan.style.display === 'none';
+        if (show && !pan.innerHTML) pan.innerHTML = this._buildShapeInfo();
+        pan.style.display = show ? '' : 'none';
+        if (btn) btn.classList.toggle('active', show);
+      },
+
+      // TrebarFactory 로 각 코드 형상을 기본 치수로 생성해 미니 SVG 로 작도 (엔진과 항상 일치)
+      _buildShapeInfo: function () {
+        if (typeof TrebarFactory === 'undefined') return '<p style="color:#94a3b8;">Rebar engine not loaded yet.</p>';
+        var CODES = [
+          { c: 1,  lbl: 'Code 1'  }, { c: 11, lbl: 'Code 11' }, { c: 11.1, lbl: 'Code 11a' },
+          { c: 14, lbl: 'Code 14' }, { c: 15, lbl: 'Code 15' }, { c: 21, lbl: 'Code 21' },
+          /*  21a 는 21 과 **같은 모양으로 굽는** 철근이다 (가공표는 둘 다 21).
+              카드에 두 장이 걸리는 까닭은 엔진에서 뜻이 갈리기 때문이고, 기본
+              치수를 다르게 두어 **무엇이 늘어나는 쪽인가**가 그림에 보이게 했다. */
+          { c: 21.1, lbl: 'Code 21a' },
+          { c: 23, lbl: 'Code 23' }, { c: 23.1, lbl: 'Code 23a' },
+          { c: 41, lbl: 'Code 41' }
+        ];
+        var h = '<div class="shape-grid">';
+        CODES.forEach(function (cd) {
+          var t = null;
+          try { t = TrebarFactory.create(cd.c, { x: 0, y: 0 }, {}, 0); } catch (e) {}
+          if (!t || !t.segments || !t.segments.length) return;
+          var minx = 1e18, miny = 1e18, maxx = -1e18, maxy = -1e18;
+          t.segments.forEach(function (s) {
+            [s.p1, s.p2].forEach(function (pt) {
+              minx = Math.min(minx, pt.x); maxx = Math.max(maxx, pt.x);
+              miny = Math.min(miny, -pt.y); maxy = Math.max(maxy, -pt.y);   // y 반전 (엔진 y-up)
+            });
+          });
+          var span = Math.max(maxx - minx, maxy - miny, 100);
+          var pad = span * 0.45 + 60;
+          var vbW = (maxx - minx) + 2 * pad, vbH = (maxy - miny) + 2 * pad;
+          var vb = (minx - pad) + ' ' + (miny - pad) + ' ' + vbW + ' ' + vbH;
+          // 모든 타일에서 글자/화살표의 "화면 px" 크기 통일 — px(v) = 화면 v px 에 해당하는 도면 단위
+          var k = Math.min(176 / vbW, 122 / vbH);
+          var px = function (v) { return v / k; };
+          var svg = '<svg width="176" height="122" viewBox="' + vb + '" preserveAspectRatio="xMidYMid meet">';
+          t.segments.forEach(function (s, i) {
+            svg += '<line x1="' + s.p1.x + '" y1="' + (-s.p1.y) + '" x2="' + s.p2.x + '" y2="' + (-s.p2.y) + '" stroke="#1d4ed8" stroke-width="' + px(3) + '" stroke-linecap="round"/>';
+            var mx = (s.p1.x + s.p2.x) / 2, my = (-s.p1.y - s.p2.y) / 2;
+            var ux = s.p2.x - s.p1.x, uy = -(s.p2.y - s.p1.y), L = Math.hypot(ux, uy) || 1;
+            // nor +1(기본) 방향 화살표 (주황) — -1 입력 시 반대방향
+            var nx = s.normal.x, ny = -s.normal.y;   // 엔진 y-up → svg y-down
+            /*  크랭크(23 · 23a)는 **글자를 법선 쪽에, 화살표를 그 너머에** 둔다.
+                기본 배치는 글자를 화살표 반대쪽에 두는데, 크랭크는 그 반대쪽이
+                바로 몸통과 코너가 있는 자리라 글자가 형상에 겹쳤다.
+                이렇게 두면 a 는 제 세그먼트의 왼쪽, c 는 오른쪽에 놓인다.        */
+            var outLbl = (cd.c === 23 || cd.c === 23.1);
+            var d0 = outLbl ? 18 : 5, d1 = outLbl ? 30 : 22, dT = outLbl ? 8 : 8;
+            var ax0 = mx + nx * px(d0), ay0 = my + ny * px(d0);
+            var ax1 = mx + nx * px(d1), ay1 = my + ny * px(d1);
+            svg += '<line x1="' + ax0 + '" y1="' + ay0 + '" x2="' + ax1 + '" y2="' + ay1 + '" stroke="#f59e0b" stroke-width="' + px(2) + '" stroke-linecap="round"/>';
+            svg += '<line x1="' + ax1 + '" y1="' + ay1 + '" x2="' + (ax1 - nx * px(6) - ny * px(3.5)) + '" y2="' + (ay1 - ny * px(6) + nx * px(3.5)) + '" stroke="#f59e0b" stroke-width="' + px(2) + '" stroke-linecap="round"/>';
+            svg += '<line x1="' + ax1 + '" y1="' + ay1 + '" x2="' + (ax1 - nx * px(6) + ny * px(3.5)) + '" y2="' + (ay1 - ny * px(6) - nx * px(3.5)) + '" stroke="#f59e0b" stroke-width="' + px(2) + '" stroke-linecap="round"/>';
+            svg += '<text x="' + (ax1 + nx * px(dT)) + '" y="' + (ay1 + ny * px(dT)) + '" font-size="' + px(9) + '" fill="#d97706" text-anchor="middle" dominant-baseline="middle" font-weight="700">+1</text>';
+            // 조각 라벨(기호만) — 기본: 화살표 반대쪽. 23·23a: 법선 쪽(화살표 앞) / 14: 다리 상단 끝쪽 / 41: a·e 위, b 위쪽, d 아래쪽
+            var lx = outLbl ? (mx + nx * px(9)) : (mx - nx * px(13));
+            var ly = outLbl ? (my + ny * px(9)) : (my - ny * px(13));
+            if (cd.c === 14) {
+              if (i === 0) { lx = s.p1.x - ux / L * px(10); ly = (-s.p1.y) - uy / L * px(10); }   // a: 자유단(상단) 너머
+              else { lx = s.p2.x + ux / L * px(10); ly = (-s.p2.y) + uy / L * px(10); }           // b: 자유단(상단) 너머
+            } else if (cd.c === 41) {
+              if (i === 0) { lx = s.p1.x + (s.p2.x - s.p1.x) * 0.15; ly = my - px(11); }         // a: 날개 위, 좌측(자유단 쪽)
+              else if (i === 4) { lx = s.p1.x + (s.p2.x - s.p1.x) * 0.85; ly = my - px(11); }      // e: 날개 위, 우측(자유단 쪽)
+              else if (i === 1) { lx = s.p1.x + (s.p2.x - s.p1.x) * 0.25 - px(11); ly = -(s.p1.y + (s.p2.y - s.p1.y) * 0.25); }   // b: 위쪽 1/4, 바깥(좌)
+              else if (i === 3) { lx = s.p1.x + (s.p2.x - s.p1.x) * 0.25 + px(11); ly = -(s.p1.y + (s.p2.y - s.p1.y) * 0.25); }   // d: 아래쪽 1/4, 바깥(우)
+            }
+            svg += '<text x="' + lx + '" y="' + ly + '" font-size="' + px(11) + '" fill="#475569" text-anchor="middle" dominant-baseline="middle" font-weight="700">' + String.fromCharCode(97 + i) + '</text>';
+          });
+          // 꺾임점 사이각 표기 — 인접 조각 방향으로부터 계산 (엔진 형상과 항상 일치)
+          for (var ci = 0; ci < t.segments.length - 1; ci++) {
+            var s1 = t.segments[ci], s2 = t.segments[ci + 1];
+            var cxp = s1.p2.x, cyp = -s1.p2.y;
+            var v1x = s1.p2.x - s1.p1.x, v1y = -(s1.p2.y - s1.p1.y), L1 = Math.hypot(v1x, v1y) || 1;
+            var v2x = s2.p2.x - s2.p1.x, v2y = -(s2.p2.y - s2.p1.y), L2 = Math.hypot(v2x, v2y) || 1;
+            v1x /= L1; v1y /= L1; v2x /= L2; v2y /= L2;
+            var dot = Math.max(-1, Math.min(1, (-v1x) * v2x + (-v1y) * v2y));
+            var adeg = Math.round(Math.acos(dot) * 180 / Math.PI);   // 사이각(내각)
+            var bx = (-v1x + v2x), by = (-v1y + v2y), bl = Math.hypot(bx, by);
+            if (bl < 1e-6) continue;
+            bx /= bl; by /= bl;                                      // 코너 내각 이등분(안쪽) 방향
+            var spread = ((maxx + minx) / 2 < cxp ? 1 : ((maxx + minx) / 2 > cxp ? -1 : 0)) * px(11);
+            svg += '<text x="' + (cxp - bx * px(19) + spread) + '" y="' + (cyp - by * px(19)) + '" font-size="' + px(10) + '" fill="#b45309" text-anchor="middle" dominant-baseline="middle" font-weight="700">' + adeg + '&#176;</text>';
+          }
+          svg += '</svg>';
+          h += '<div class="shape-tile">' + svg + '<div class="shape-code">' + cd.lbl + '</div></div>';
+        });
+        h += '</div>';
+        h += '<div style="font-size:12px;color:#64748b;margin:-6px 0 12px;line-height:1.6;">' +
+          '<b>rot</b> 은 <b>반시계(CCW)가 +</b> 입니다 — 화면에서도 반시계로 돕니다. 코드 11 은 rot 0 에서 <b>다리 위 · 몸통 오른쪽</b>이고, 회전만으로는 거울상(다리 아래 · 몸통 오른쪽)을 만들 수 없습니다. 다리가 콘크리트 밖을 향하면 엔진이 안쪽으로 되돌립니다(<code>Physics.keepEndsInsideConcrete</code>). ' +
+          '<span style="color:#d97706;font-weight:700;">주황 화살표</span> = 각 조각의 <b>nor 방향 (+1, 미입력 기본값)</b> — 물리가 이 방향의 벽을 찾아 안착합니다. ' +
+          '반대방향으로 붙이려면 해당 조각에 <b>-1</b> 을 입력하세요 (예: nors b=-1). rot 입력 시 화살표도 형상과 함께 회전합니다. 조각 <b>기본 길이는 400</b> (code 41 의 b·d 는 1000, segs 미입력 시)입니다.</div>';
+        return h;
+      },
+
+      // 상단 중앙 토스트 — kind: 'loading'(스피너, 유지) / 'ok'(2.5s 후 자동 숨김) / 'err'(6s)
+      _toast: function (msg, kind) {
+        var t = document.getElementById('pxToast');
+        if (!t) { t = document.createElement('div'); t.id = 'pxToast'; document.body.appendChild(t); }
+        t.className = 'px-toast ' + kind;
+        t.innerHTML = (kind === 'loading' ? '<span class="px-spin"></span>' : (kind === 'ok' ? '&#10003;' : '&#9888;')) + '<span>' + this._esc(msg) + '</span>';
+        t.style.display = 'flex';
+        if (this._toastTimer) { clearTimeout(this._toastTimer); this._toastTimer = null; }
+        if (kind !== 'loading') {
+          this._toastTimer = setTimeout(function () { t.style.display = 'none'; }, kind === 'ok' ? 2500 : 6000);
+        }
+      },
+
+      loadExcel: function () {
+        var fi = document.getElementById('excelFileInput');
+        if (!fi) return;
+        var self = this;
+        fi.value = '';
+        fi.onchange = function () {
+          var file = fi.files[0]; if (!file) return;
+          var sheet = String((document.getElementById('sheetName') || {}).value || 'input').trim();
+          if (typeof window.loadSheetData !== 'function') { self._toast('Excel reader is still loading. Please try again.', 'err'); return; }
+          self._toast('Loading Excel\u2026', 'loading');
+          window.loadSheetData(file, sheet).then(function (data) {
+            console.log('[REBAR] 엑셀 로드 완료:', sheet, data.length + '행', data);
+            self._resetInputs();                 // ① 기존 웹 입력값 전체 초기화 (Dimension/철근)
+            self._excelData = data;
+            self._loadTypeFromExcel(data);       // ② 'type' 블록 → Section Type (1c/2c)
+            var nd = self._loadDimsFromExcel(data);       // ③ 'dim' 블록 → Dimension 표 (대칭/비대칭 자동)
+            self._loadCoverFromExcel(data);      // ③-1 'cover' 블록 → 피복 3칸 (deck/exterior/interior)
+            self._renderRebarTables();           // ④ 'trebar/lrebar' 블록 → REBAR 표
+            var ndu = self._loadDuctFromExcel(data);    // 'duct' 블록 → 매입물 (줄마다 하나)
+            self._rebarData = self._parseRebar(data);
+            console.log('[REBAR] 철근 파싱:', self._rebarData);
+            self.redraw();              // 재작도 (physics 포함)
+            var nre = self._rebarData ? self._rebarData.length : 0;
+            var ntre = 0, nlre = 0;
+            (self._rebarData || []).forEach(function (rd) { if (String(rd.type).toLowerCase() === 'lrebar') nlre++; else ntre++; });
+            var oncell = document.querySelector('input[name="box12cell_ncell"]:checked');
+            var cd = function (id) { var el = document.getElementById(id); return el ? el.value : '?'; };
+            self._loadLog = { time: new Date().toLocaleString(), ok: true, lines: [
+              'File      : ' + file.name,
+              'Sheet     : ' + sheet + '  (' + data.length + ' rows)',
+              'Section   : ' + (oncell ? oncell.value : '?') + ' cell',
+              'Dims      : ' + (nd || 0),
+              'Cover     : deck ' + cd('cover_deck_s') + ' / exterior ' + cd('cover_ext_s') + ' / interior ' + cd('cover_int_s'),
+              'Duct      : ' + (ndu ? ndu + ' from file' : 'none'),
+              'Rebar     : ' + nre + '  (trebar ' + ntre + ', lrebar ' + nlre + ')'
+            ] };
+            // 최종 결과 토스트 — 철근 id 중복이면 오류 상태로 (성공 토스트가 덮지 않게)
+            if (self._evalErrs && self._evalErrs.length) {
+              self._loadLog.ok = false;
+              self._loadLog.lines.push('ERROR     : bad number ' + self._evalErrs.join(' / ') + ' — rebar loading skipped');
+              self._toast('철근 수치 오류 — 숫자로 읽을 수 없음: ' + self._evalErrs.join(' / ') + ' — 철근 로딩 중단', 'err');
+            } else if (self._dupIds && self._dupIds.length) {
+              self._loadLog.ok = false;
+              self._loadLog.lines.push('ERROR     : duplicate rebar id ' + self._dupIds.join(', ') + ' \u2014 rebar loading skipped');
+              self._toast('Duplicate rebar id: ' + self._dupIds.join(', ') + ' \u2014 rebar loading skipped (dims loaded)', 'err');
+            } else {
+              self._toast('Excel loaded \u2014 dims ' + (nd || 0) + ', rebar ' + nre, 'ok');
+            }
+          }).catch(function (e) {
+            self._loadLog = { time: new Date().toLocaleString(), ok: false, lines: [
+              'File      : ' + file.name,
+              'Sheet     : ' + sheet,
+              'ERROR     : ' + e.message
+            ] };
+            self._toast('Excel load failed: ' + e.message, 'err');
+            console.error('[REBAR] 엑셀 로드 오류:', e);
+          });
+        };
+        fi.click();
+      },
+
+    // ── PSCBOX 전용 ────────────────────────────────────────────
+
+    // 웹페이지 입력값 전체 초기화 — 엑셀 로딩 직전에 호출.
+    //   Dimension 은 숫자 기본값으로, 대칭 체크박스 해제,
+    //   Section Type 1 Cell, trebar/lrebar 데이터 비움.
+    _resetInputs: function () {
+      this._excelData = null;
+      this._rebarData = null;
+      if (typeof Domain !== 'undefined') {
+        Domain.trebarList = []; Domain.lrebarList = []; Domain.queue = [];
+        Domain.USER_REBAR_DATA = []; Domain.USER_TREBAR_DATA = null; Domain.USER_LREBAR_DATA = null;
+      }
+      var defByKey = {};
+      adefs_box12cell.forEach(function (d) { defByKey[d[0]] = String(d[1]); });
+      DIM_LAYOUT.forEach(function (it) {
+        if (it.t === 'group') return;
+        var li = document.getElementById(it.l + '_s');
+        if (li) li.value = defByKey[it.l];
+        if (!it.r) return;
+        var ri = document.getElementById(it.r + '_s');
+        if (!ri) return;
+        if (it.t === 'sym') {
+          var cb = document.getElementById('asym_' + it.r);
+          if (cb) cb.checked = false;
+          ri.disabled = true;
+          ri.value = defByKey[it.l];             // 우측은 좌측 미러 기본값
+        } else {                                 // free (SLL/SLR) — 각자 기본값
+          ri.value = defByKey[it.r];
+        }
+      });
+      var r1 = document.querySelector('input[name="box12cell_ncell"][value="1"]');
+      if (r1) r1.checked = true;
+      var covDef = { cover_deck_s: '50', cover_ext_s: '40', cover_int_s: '30' };
+      Object.keys(covDef).forEach(function (cid) {
+        var el = document.getElementById(cid); if (el) el.value = covDef[cid];
+      });
+    },
+
+    // 'type' 블록 : type | 1c/2c → Section Type 라디오
+    _loadTypeFromExcel: function (fullData) {
+      if (!Array.isArray(fullData)) return;
+      for (var r = 0; r < fullData.length; r++) {
+        var row = fullData[r];
+        if (this._rowIsEnd(row)) break;
+        if (this._rowIsComment(row)) continue;
+        for (var c = 0; c < (row ? row.length : 0); c++) {
+          if (String(row[c] == null ? '' : row[c]).trim().toLowerCase() !== 'type') continue;
+          var v = String(row[c + 1] == null ? '' : row[c + 1]).trim().toLowerCase();
+          var n = (v === '2c' || v === '2') ? 2 : ((v === '1c' || v === '1') ? 1 : 0);
+          if (!n) { console.warn('[REBAR] type 값을 해석할 수 없음: ' + v); return; }
+          var rb = document.querySelector('input[name="box12cell_ncell"][value="' + n + '"]');
+          if (rb) rb.checked = true;
+          console.log('[REBAR] type 로드: ' + v + ' → ' + n + ' cell');
+          return;
+        }
+      }
+    },
+
+    // 'cover' 블록 : cover | deck | exterior | interior (3칸 순서 고정) → 피복 입력칸
+    _loadCoverFromExcel: function (fullData) {
+      if (!Array.isArray(fullData)) return;
+      for (var r = 0; r < fullData.length; r++) {
+        var row = fullData[r];
+        if (this._rowIsEnd(row)) break;
+        if (this._rowIsComment(row)) continue;
+        for (var c = 0; c < (row ? row.length : 0); c++) {
+          if (String(row[c] == null ? '' : row[c]).trim().toLowerCase() !== 'cover') continue;
+          var ids = ['cover_deck_s', 'cover_ext_s', 'cover_int_s'], n = 0;
+          for (var k = 0; k < 3; k++) {
+            var v = Number(row[c + 1 + k]);
+            if (isFinite(v) && v > 0) { var el = document.getElementById(ids[k]); if (el) { el.value = String(v); n++; } }
+          }
+          if (n) console.log('[REBAR] cover 로드: ' + n + '개 (deck/exterior/interior)');
+          return;
+        }
+      }
+    },
+
+    // 'dim' 블록 : dim | 이름 | 값 → Dimension 입력칸.
+    //   좌측 변수만 주어지면 우측은 대칭 미러, 우측이 좌측과 다른 값으로 주어지면
+    //   비대칭 체크박스를 켜고 독립 입력. '-'(회계서식 0 표시)·빈 값은 0으로 처리.
+    _loadDimsFromExcel: function (fullData) {
+      if (!Array.isArray(fullData)) return;
+      var map = {}, count = 0, keyByLower = {};
+      adefs_box12cell.forEach(function (d) { keyByLower[d[0].toLowerCase()] = d[0]; });
+      for (var r = 0; r < fullData.length; r++) {
+        var row = fullData[r];
+        if (this._rowIsEnd(row)) break;
+        if (this._rowIsComment(row)) continue;
+        var hc = -1;
+        for (var c = 0; c < (row ? row.length : 0); c++) { if (String(row[c] == null ? '' : row[c]).trim().toLowerCase() === 'dim') { hc = c; break; } }
+        if (hc < 0) continue;
+        var name = String(row[hc + 1] == null ? '' : row[hc + 1]).trim();
+        var key = keyByLower[name.toLowerCase()];
+        if (!key) { if (name) console.warn('[REBAR] 알 수 없는 dim 이름: ' + name); continue; }
+        var raw = row[hc + 2];
+        raw = (raw == null) ? '' : String(raw).trim();
+        if (raw === '' || raw === '-' || raw === '\u2013' || raw === '\u2014') raw = '0';
+        map[key] = raw; count++;
+      }
+      if (!count) return 0;
+      DIM_LAYOUT.forEach(function (it) {
+        if (it.t === 'group') return;
+        var li = document.getElementById(it.l + '_s');
+        var ri = it.r ? document.getElementById(it.r + '_s') : null;
+        if ((it.l in map) && li) li.value = map[it.l];
+        if (it.t === 'sym' && ri) {
+          var cb = document.getElementById('asym_' + it.r);
+          if (it.r in map) {                     // 우측 변수가 엑셀에 명시됨 → 비대칭 체크 + 그 값 입력
+            if (cb) cb.checked = true;
+            ri.disabled = false;
+            ri.value = map[it.r];
+          } else {                               // 좌측만 주어짐 → 대칭 미러
+            if (cb) cb.checked = false;
+            ri.disabled = true;
+            ri.value = li ? li.value : '';
+          }
+        } else if (it.t === 'free' && ri && (it.r in map)) {
+          ri.value = map[it.r];
+        }
+      });
+      console.log('[REBAR] dim 로드: ' + count + '개');
+      return count;
+    },
+
+    // 대칭 미러 : 좌측 입력 시 (비대칭 체크가 없으면) 우측 입력칸에 같은 값 복사
+    onSymLeft: function (lk, rk) {
+      var cb = document.getElementById('asym_' + rk);
+      if (cb && cb.checked) return;
+      var li = document.getElementById(lk + '_s'), ri = document.getElementById(rk + '_s');
+      if (li && ri) ri.value = li.value;
+    },
+
+    // 비대칭 체크박스 : 체크 → 우측 독립 입력, 해제 → 좌측값으로 되돌려 미러 재개
+    onAsymToggle: function (lk, rk, on) {
+      var ri = document.getElementById(rk + '_s');
+      if (ri) ri.disabled = !on;
+      if (!on) {
+        var li = document.getElementById(lk + '_s');
+        if (li && ri) ri.value = li.value;
+        this.redraw();
+      }
+    },
+
+    // 파라메트릭 재작도 : Dimension 입력칸(숫자 또는 산술식) 평가 → 가이드 + 물리 뷰
+    redraw: function () {
+      if (typeof adefs_box12cell === 'undefined') return;
+      var ap = {};
+      adefs_box12cell.forEach(function (d) {
+        var el = document.getElementById(d[0] + '_s');
+        var raw = el ? el.value : String(d[1]);
+        ap[d[0]] = (typeof Calc !== 'undefined') ? Calc.num(raw, {}, Number(raw)) : Number(raw);
+        // 숫자로 못 읽히면 형상이 조용히 깨지므로 어디가 문제인지 남긴다 (변수명은 더 이상 못 씀)
+        if (!isFinite(ap[d[0]])) console.error('[REBAR] Dimension "' + d[0] + '" 를 숫자로 읽을 수 없음: "' + raw + '"');
+      });
+      var oncell = document.querySelector('input[name="box12cell_ncell"]:checked');
+      ap.NCELL = oncell ? (Number(oncell.value) || 2) : 2;
+      this._lastAp = ap;
+      if (typeof toggleCenterVars_box12cell === 'function') toggleCenterVars_box12cell(ap.NCELL);
+      var ghdr = document.querySelector('#box12cell_vartable .px-2cell-hdr');
+      if (ghdr) ghdr.style.display = (ap.NCELL === 1) ? 'none' : '';
+      try { draw_box12cell_guide('box12cell_guide', ap); }
+      catch (e) { console.error('[REBAR] guide:', e); }
+      // 물리 뷰용 외곽 캡처 (geo 출력을 직접 사용)
+      try {
+        var g = geo_box12cell(ap);
+        this._lines = g.lines.map(function (l) { return [l.x1, l.y1, l.x2, l.y2]; });
+        this._arcs = g.arcs.map(function (a) { return [a.x, a.y, a.r, a.angb, a.ange]; });
+        this._circs = [];
+        this._drawRebar();
+      } catch (e) { console.error('[REBAR] section:', e); }
+    },
+
+    // 단면 DXF (가이드 기준 형상)
+    sectionDXF: function () {
+      if (!this._lastAp) return;
+      var g = geo_box12cell(this._lastAp);
+      var o = dxf_generator();
+      o.init();
+      o.layer('pscbox', 4, 'CONTINUOUS');
+      g.lines.forEach(function (l) { o.line(l.x1, l.y1, l.x2, l.y2, 'pscbox'); });
+      g.arcs.forEach(function (a) { o.arc(a.x, a.y, a.r, a.angb, a.ange, 'pscbox'); });
+      o.download('PSCBox.dxf');
+    },
+
+    // 물리 뷰 (generic 어댑터 경로만)
+    _drawRebar: function () {
+      if (typeof UI === 'undefined' || typeof Domain === 'undefined') return;
+      if (!this._ensureRebarHost()) return;
+      if (!this._uiInited) {
+        try { UI.init(); this._uiInited = true; } catch (e) { console.error('[REBAR] UI.init:', e); return; }
+      }
+      this._rebarSettled = false;
+      if (this._settleTimer) { clearInterval(this._settleTimer); this._settleTimer = null; }
+      if (UI.anim && UI.anim.start) UI.anim.start();
+      this._renderPhysicsTable();          // 스폰 직후 표 갱신 (안착 전 — 길이는 settle 후 확정)
+      try {
+        var sec = this._buildSectionFromBim();
+        if (sec && sec.walls.length) this._applyGenericSection(sec);
+        else console.warn('[REBAR] no walls from outline');
+        this._fitEngineStage();
+        var self = this;
+        setTimeout(function () { self._fitEngineStage(); }, 80);   // 레이아웃 확정 후 재보정
+        this._syncEngineBtn();
+        /*  J 엔진은 한 번에 푼다. 그래도 **태어난 자리를 먼저 한 번 보여 준다** —
+            Respawn 을 누르는 이유가 대개 「init 을 어디에 놓았나」를 보려는 것이라,
+            곧장 답으로 건너뛰면 그 자리가 화면에 한 번도 안 나온다.
+            잠깐 스폰 상태를 그려 두고, 그 다음 프레임에 풀어서 최종 형상으로 바꾼다.
+            예전 엔진은 프레임마다 조금씩 움직이므로 _watchSettle 이 지켜본다.     */
+        if (this._engine === 'jfield') {
+          try { if (typeof UI.updateVisuals === 'function') UI.updateVisuals(); } catch (e) {}
+          if (UI.mainLayer) UI.mainLayer.draw();
+          var selfJ = this;
+          setTimeout(function () {
+            if (selfJ._solveWithJField()) selfJ._finalizeArcs();
+          }, selfJ.SPAWN_HOLD);
+        } else this._watchSettle();
+      } catch (e) { console.error('[REBAR] rebar render:', e); }
+    },
+
+    // 페이지 구성
+    mount: function (mountId) {
+      this._mountId = mountId || 'mount-draw-pscbox';
+      var root = document.getElementById(this._mountId);
+      if (!root) return;
+      if (typeof adefs_box12cell === 'undefined') {
+        root.innerHTML = '<p style="color:#b91c1c;padding:16px;">bim_box12cell.js failed to load.</p>';
+        return;
+      }
+
+      // 좌/우 대칭 쌍 레이아웃 — sym: 우측은 좌측을 미러(체크박스로 비대칭 입력), free: 좌우 독립(부호가 다른 슬로프), single: 단독
+      var lblMap = {};
+      adefs_box12cell.forEach(function (d) { lblMap[d[0]] = ((d.length > 2) ? d[2] : d[0]).replace('(0, if not necessary)', '<small>(0=X)</small>'); });
+      var layout = DIM_LAYOUT;
+      // 초기값 : adefs_box12cell 의 기본 수치. (Variables 카드가 있던 때는 변수명을 넣어
+      //          같은 이름의 변수를 참조했지만, 이제 칸에 숫자가 직접 들어간다.)
+      var defByKey = {};
+      adefs_box12cell.forEach(function (d) { defByKey[d[0]] = String(d[1]); });
+      function dimDef(key) { return defByKey[key] == null ? '' : defByKey[key]; }
+      function dimInput(key, extra) {
+        return '<input type="text" spellcheck="false" class="form-input" id="' + key + '_s" value="' + dimDef(key) + '" onchange="PXUNI.redraw()"' + (extra || '') + '>';
+      }
+      var rows = layout.map(function (it) {
+        if (it.t === 'group') return '<tr class="px-2cell-hdr"><td colspan="5">' + it.label + '</td></tr>';
+        if (it.t === 'single') return '<tr><td class="px-dim">' + lblMap[it.l] + '</td><td>' + dimInput(it.l) + '</td><td class="px-symc"></td><td class="px-dim"></td><td></td></tr>';
+        if (it.t === 'free')   return '<tr><td class="px-dim">' + lblMap[it.l] + '</td><td>' + dimInput(it.l) + '</td><td class="px-symc"></td>' +
+                                      '<td class="px-dim">' + lblMap[it.r] + '</td><td>' + dimInput(it.r) + '</td></tr>';
+        // sym : 좌측 입력 → 우측 미러. 체크박스 체크 시 우측 독립 입력(비대칭).
+        return '<tr><td class="px-dim">' + lblMap[it.l] + '</td>' +
+               '<td><input type="text" spellcheck="false" class="form-input" id="' + it.l + '_s" value="' + dimDef(it.l) + '" ' +
+                   'oninput="PXUNI.onSymLeft(\'' + it.l + '\',\'' + it.r + '\')" onchange="PXUNI.redraw()"></td>' +
+               '<td class="px-symc"><input type="checkbox" id="asym_' + it.r + '" title="Check to enter the right side independently (asymmetric)" ' +
+                   'onchange="PXUNI.onAsymToggle(\'' + it.l + '\',\'' + it.r + '\',this.checked)"></td>' +
+               '<td class="px-dim">' + lblMap[it.r] + '</td>' +
+               '<td><input type="text" spellcheck="false" class="form-input" id="' + it.r + '_s" value="' + dimDef(it.l) + '" disabled ' +
+                   'onchange="PXUNI.redraw()"></td></tr>';
+      }).join('');
+
+      root.innerHTML =
+        '<style>' + CSS + '</style>' +
+        '<div class="px-root">' +
+
+        '  <div class="px-menubar">' +
+        '    <span class="px-mb-label">Sheet Name :</span>' +
+        '    <input type="text" spellcheck="false" id="sheetName" class="form-input" value="input" style="width:90px;" title="Excel sheet name">' +
+        '    <button type="button" class="px-btn" onclick="PXUNI.loadExcel()">&#8682; Load Excel</button>' +
+        '    <button type="button" class="px-btn px-btn-lite" id="btnViewLog" onclick="PXUNI.toggleLoadLog()">&#128220; View Log</button>' +
+        '    <input type="file" id="excelFileInput" accept=".xlsx,.xls" style="display:none;">' +
+        '  </div>' +
+        '  <div id="pxLoadLog" class="px-logpanel" style="display:none;"></div>' +
+
+        '  <div class="draw-card">' +
+        '    <div class="draw-card-header"><div><span class="draw-card-title">Dimension (mm)</span> <span class="draw-card-desc">PSC box girder &mdash; 1 / 2 cell</span></div>' +
+        '      <button type="button" class="px-btn" onclick="PXUNI.sectionDXF()">&#8681; DXF</button></div>' +
+        '    <div class="draw-card-body">' +
+        '      <div class="px-radio px-optrow">' +
+        '        <div class="px-opthalf"><b>Section Type :</b>' +
+        '          <label><input type="radio" name="box12cell_ncell" value="1" checked onchange="PXUNI.redraw()"> 1 Cell</label>' +
+        '          <label><input type="radio" name="box12cell_ncell" value="2" onchange="PXUNI.redraw()"> 2 Cell</label>' +
+        '        </div>' +
+        '        <div class="px-opthalf"><b>Cover Depth (mm) :</b>' +
+        '          <label>Deck <input type="text" spellcheck="false" class="form-input px-cover" id="cover_deck_s" value="50" onchange="PXUNI.redraw()" title="Top slab (deck) cover"></label>' +
+        '          <label>Exterior <input type="text" spellcheck="false" class="form-input px-cover" id="cover_ext_s" value="40" onchange="PXUNI.redraw()" title="Outer surface cover"></label>' +
+        '          <label>Interior <input type="text" spellcheck="false" class="form-input px-cover" id="cover_int_s" value="30" onchange="PXUNI.redraw()" title="Cell (void) surface cover"></label>' +
+        '        </div>' +
+        '      </div>' +
+        '      <div class="px-split">' +
+        '        <div class="px-guide" id="box12cell_guide"></div>' +
+        '        <div class="px-tblwrap" id="box12cell_vartable">' +
+        '          <table class="px-tbl dim-tbl"><thead><tr><th>Dimension</th><th>Value / Formula</th><th class="px-symh" title="Check to enter the right side independently">&#8646;</th><th>Dimension</th><th>Value / Formula</th></tr></thead>' +
+        '          <tbody>' + rows + '</tbody></table>' +
+        '        </div>' +
+        '      </div>' +
+        '    </div>' +
+        '  </div>' +
+
+        '  <div class="draw-card">' +
+        '    <div class="draw-card-header"><div><span class="draw-card-title">REBAR</span> <span class="draw-card-desc">trebar / lrebar input data</span></div>' +
+        '      <span style="display:inline-flex;gap:6px;align-items:center;">' +
+        '        <span id="pxRebarTools" style="display:inline-flex;gap:6px;align-items:center;"></span>' +
+        '        <button type="button" class="engine-btn engine-btn-lite" id="btnShapeInfo" onclick="PXUNI.toggleRebarInfo()" title="Rebar shape codes"><i class="bi bi-info-circle"></i> Shape Codes</button>' +
+        '      </span></div>' +
+        '    <div class="draw-card-body"><div id="pxShapeInfo" style="display:none;"></div><div id="rebarBody"></div></div>' +
+        '  </div>' +
+
+        '</div>';
+
+      // ui.js 가 참조하는 숨김 DOM (sectionSelect / toggle 버튼)
+      if (!document.getElementById('sectionSelect')) {
+        var hid = document.createElement('div');
+        hid.style.display = 'none';
+        hid.innerHTML = '<select id="sectionSelect"><option value="PSCBOX" selected>PSCBOX</option></select>';
+        root.appendChild(hid);
+      }
+
+      this._excelData = null; this._rebarData = null; this._uiInited = false;
+      this._renderRebarTables();
+      this.redraw();          // 가이드 + (마운트되는) Rebar Physics 카드
+    }
+  };
+  window.PXUNI = PXUNI;
+
+  window.fdraw_rebar = function (mountId) {
+    ensureDeps(function () { PXUNI.mount(mountId); });
+  };
+})();

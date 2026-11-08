@@ -440,12 +440,7 @@ function initLayout(phpData) {
     + '    <div class="page-view" id="page-draw-plate3d"><h1 class="page-heading">PLATE3D</h1><div class="breadcrumb"><a href="#">Home</a> / <span>PLATE3D</span></div><div id="mount-draw-plate3d"></div></div>'
     + '    <div class="page-view" id="page-draw-pscbox"><h1 class="page-heading">PSC Box Girder</h1><div class="breadcrumb"><a href="#">Home</a> / <span>PSCBOX</span></div><div id="mount-draw-pscbox"></div></div>'
     + '    <div class="page-view" id="page-draw-pscboxdia"><h1 class="page-heading">PSC Box Girder Diaphragm</h1><div class="breadcrumb"><a href="#">Home</a> / <span>PSCBOX DIAPHRAGM</span></div><div id="mount-draw-pscboxdia"></div></div>'
-    + '    <div class="page-view" id="page-draw-pscboxu"><h1 class="page-heading">REBAR — 일반 거더 / 격벽</h1><div class="breadcrumb"><a href="#">Home</a> / <span>REBAR</span></div>'
-    + '      <div style="display:flex;gap:8px;margin:0 0 14px;">'
-    + '        <button id="pscboxu-btn-gird" type="button" style="padding:8px 20px;border:1px solid #cbd5e1;border-radius:8px;background:#2563eb;color:#fff;cursor:pointer;font-weight:600;font-size:14px;">일반 거더</button>'
-    + '        <button id="pscboxu-btn-dia" type="button" style="padding:8px 20px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;color:#334155;cursor:pointer;font-weight:600;font-size:14px;">격벽 (Diaphragm)</button>'
-    + '      </div>'
-    + '      <div id="mount-pscboxu-gird"></div><div id="mount-pscboxu-dia" style="display:none;"></div></div>'
+    + '    <div class="page-view" id="page-draw-pscboxu"><h1 class="page-heading">REBAR</h1><div class="breadcrumb"><a href="#">Home</a> / <span>REBAR</span></div><div id="mount-draw-rebar"></div></div>'
     + '    <div class="page-view" id="page-draw-psc"><h1 class="page-heading">PSC Box Girder</h1><div class="breadcrumb"><a href="#">Home</a> / <a href="#">Drawings</a> / <span>PSC</span></div><div id="mount-draw-psc"></div></div>'
     + '    <div class="page-view" id="page-quick-simpleconn"><h1 class="page-heading">Simple connector</h1><div class="breadcrumb"><a href="#">Home</a> / <a href="#">MacroPLATE3D</a> / <span>Simple connector</span></div><div id="mount-quick-simpleconn"></div></div>'
     + '    <div class="page-view" id="page-quick-crossbeam"><h1 class="page-heading">Crossbeam</h1><div class="breadcrumb"><a href="#">Home</a> / <a href="#">MacroPLATE3D</a> / <span>Crossbeam</span></div><div id="mount-quick-crossbeam"></div></div>'
@@ -1161,41 +1156,18 @@ function _bindNavigation() {
         document.head.appendChild(sc);
     }
 
-    // PSCBOX 통합 — 일반 거더(fdraw_pscbox) + 격벽(fdraw_pscboxdia) 를 한 페이지에서 토글.
-    // 동결 두 모듈은 그대로 둔다 — 각자 검증된 엔진으로 제 mount 에 그린다 (전역이 갈려 공존 안전).
-    // 각 모드는 처음 고를 때 한 번만 짓고(입력 상태 보존), 이후엔 보이기/숨기기만 한다.
-    function _ensurePscboxuMod(flagKey, globalName, file, mountId) {
-        if (typeof window[globalName] === 'function') { window[globalName](mountId); return; }
-        if (window[flagKey]) return;
-        window[flagKey] = true;
-        var sc = document.createElement('script');
-        sc.src = 'https://macrobim.github.io/macroBIM/' + file + '?v=' + Date.now();   // 항상 최신
-        sc.onload = function () { window[flagKey] = false; if (typeof window[globalName] === 'function') window[globalName](mountId); };
-        sc.onerror = function () { window[flagKey] = false; var m = document.getElementById(mountId); if (m) m.innerHTML = '<p style="color:#b91c1c;padding:16px;">' + file + ' failed to load.</p>'; };
-        document.head.appendChild(sc);
-    }
+    // REBAR — 통합 단면/철근 폼 (거더 J-field 엔진 베이스 + (예정)개구부). 단일 모듈.
+    // 거더 모듈을 복사해 전역만 가른 판(fdraw_rebar / PXUNI) — design 저장소 Pages 에서 로드.
+    // 1단계: 거더 폼 + J-field 그대로(S18 결과 보존). 개구부는 다음 단계에 얹는다.
     function ensurePscboxUnified() {
-        var gird = document.getElementById('mount-pscboxu-gird');
-        var dia = document.getElementById('mount-pscboxu-dia');
-        var bG = document.getElementById('pscboxu-btn-gird');
-        var bD = document.getElementById('pscboxu-btn-dia');
-        if (!gird || !dia) return;
-        function paint(b, on) { if (!b) return; b.style.background = on ? '#2563eb' : '#fff'; b.style.color = on ? '#fff' : '#334155'; }
-        function show(mode) {
-            var isG = (mode !== 'dia');
-            gird.style.display = isG ? '' : 'none';
-            dia.style.display = isG ? 'none' : '';
-            paint(bG, isG); paint(bD, !isG);
-            if (isG) { if (!gird.firstElementChild) _ensurePscboxuMod('_pscboxuGLoading', 'fdraw_pscbox', 'bim_pscbox_test.js', 'mount-pscboxu-gird'); }
-            else { if (!dia.firstElementChild) _ensurePscboxuMod('_pscboxuDLoading', 'fdraw_pscboxdia', 'bim_pscbox_diaphragm_test.js', 'mount-pscboxu-dia'); }
-            window._pscboxuMode = isG ? 'gird' : 'dia';
-        }
-        if (!window._pscboxuWired) {
-            window._pscboxuWired = true;
-            if (bG) bG.addEventListener('click', function () { show('gird'); });
-            if (bD) bD.addEventListener('click', function () { show('dia'); });
-        }
-        show(window._pscboxuMode || 'gird');
+        if (typeof fdraw_rebar === 'function') { fdraw_rebar('mount-draw-rebar'); return; }
+        if (window._rebarUniLoading) return;
+        window._rebarUniLoading = true;
+        var sc = document.createElement('script');
+        sc.src = 'https://macrobim.github.io/design/bim_pscbox_rebar_test.js?v=' + Date.now();   // 항상 최신
+        sc.onload = function () { window._rebarUniLoading = false; if (typeof fdraw_rebar === 'function') fdraw_rebar('mount-draw-rebar'); };
+        sc.onerror = function () { window._rebarUniLoading = false; var m = document.getElementById('mount-draw-rebar'); if (m) m.innerHTML = '<p style="color:#b91c1c;padding:16px;">bim_pscbox_rebar_test.js failed to load.</p>'; };
+        document.head.appendChild(sc);
     }
 
     // Gravity wall module (bim_gravitywall.js) may not be in the page's script list — load on demand.

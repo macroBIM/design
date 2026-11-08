@@ -915,7 +915,7 @@ function _bindNavigation() {
         if (pageId === 'draw-plate3d') { ensurePlate3d(); }
         if (pageId === 'draw-pscbox') { mountDrawing('pscbox'); ensurePscbox(); }
         if (pageId === 'draw-pscboxdia') { mountDrawing('pscboxdia'); ensurePscboxDia(); }
-        if (pageId === 'draw-pscboxu') { mountDrawing('pscboxu'); ensurePscboxUnified(); }
+        if (pageId === 'draw-pscboxu') { mountDrawing('rebar'); ensurePscboxUnified(); }
         if (pageId === 'draw-psc') { mountDrawing('psc'); ensurePsc(); }
         if (pageId === 'quick-simpleconn') { ensureQuickSimpleConn(); }
         if (pageId === 'quick-crossbeam') { ensureQuickCrossbeam(); }
@@ -1278,7 +1278,7 @@ function _bindNavigation() {
     function ensureXsect(name) { ensureRWModule('bim_xsect_test.js?v=10', 'xsect', function () { if (window.XSECT) { window.XSECT.install(name); window.XSECT.mount(name); } }); }
 
     function mountDrawing(kind) {
-        ['hsection','channel','ibeam','liftinglug','rect','circle','octagon','track','gravitywall','invtwall','lwall','pier','pscbox','pscboxdia','psc'].forEach(function(k) {
+        ['hsection','channel','ibeam','liftinglug','rect','circle','octagon','track','gravitywall','invtwall','lwall','pier','pscbox','pscboxdia','psc','rebar'].forEach(function(k) {
             if (k !== kind) {
                 var other = document.getElementById('mount-draw-' + k);
                 if (other) other.innerHTML = '';

@@ -1705,7 +1705,8 @@
             walls.push({ id: 'E' + eid, tag: tag, nx: nx, ny: ny, x1: seg.x1, y1: seg.y1, x2: seg.x2, y2: seg.y2, src: seg.src || null });
             pts.push({ x: seg.x2, y: seg.y2 });
           });
-          if (isCell) {                                // 일반단면 셀 — 벽은 inner 로 만들고 3D 좌표도 모은다
+          if (isCell) {                                // 일반단면 셀 — inner 벽 + 2D 흰 윤곽 + 3D 좌표
+            displayPaths.push(pts);
             sectCells.push(pts.map(function (p) { return [p.x, p.y]; }));
           } else {
             displayPaths.push(pts);

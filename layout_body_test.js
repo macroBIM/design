@@ -1156,18 +1156,85 @@ function _bindNavigation() {
         document.head.appendChild(sc);
     }
 
-    // REBAR — 통합 단면/철근 폼 (거더 J-field 엔진 베이스 + (예정)개구부). 단일 모듈.
-    // 거더 모듈을 복사해 전역만 가른 판(fdraw_rebar / PXUNI) — design 저장소 Pages 에서 로드.
-    // 1단계: 거더 폼 + J-field 그대로(S18 결과 보존). 개구부는 다음 단계에 얹는다.
-    function ensurePscboxUnified() {
-        if (typeof fdraw_rebar === 'function') { fdraw_rebar('mount-draw-rebar'); return; }
-        if (window._rebarUniLoading) return;
-        window._rebarUniLoading = true;
+    // REBAR — 데이터 기반 엔진 자동선택 (B).
+    // 엑셀을 읽어 'open' 행이 있으면 격벽 모듈(fdraw_pscboxdia), 없으면 거더 모듈
+    // (fdraw_pscbox · J-field) 을 그대로 띄우고 파일을 넘긴다. 동결 두 원본을 그대로
+    // 재사용 — J-field 이식·커스텀 모듈 없음. 파일은 DataTransfer 로 전달.
+    function _rebarHasOpenRow(data) {
+        if (!Array.isArray(data)) return false;
+        for (var i = 0; i < data.length; i++) {
+            var row = data[i]; if (!row) continue;
+            var c0 = String(row[0] == null ? '' : row[0]).trim().toLowerCase();
+            if (c0 === '' || c0.charAt(0) === '#') continue;   // 주석·빈 행
+            if (c0 === 'end') break;
+            if (c0 === 'open') {
+                var at = 1;
+                if (isFinite(Number(row[1])) && String(row[1]).trim() !== '') at++;   // 옛 셀번호 형식
+                var sv = String(row[at] == null ? '' : row[at]).trim().toLowerCase();
+                return !(sv === 'none' || sv === '-' || sv === '');
+            }
+        }
+        return false;
+    }
+    function _rebarEnsureMod(global, file, mountId, cb) {
+        if (typeof window[global] === 'function') { window[global](mountId); if (cb) cb(); return; }
+        var flag = '_rebarLd_' + global;
+        if (window[flag]) return;
+        window[flag] = true;
         var sc = document.createElement('script');
-        sc.src = 'https://macrobim.github.io/design/bim_pscbox_rebar_test.js?v=' + Date.now();   // 항상 최신
-        sc.onload = function () { window._rebarUniLoading = false; if (typeof fdraw_rebar === 'function') fdraw_rebar('mount-draw-rebar'); };
-        sc.onerror = function () { window._rebarUniLoading = false; var m = document.getElementById('mount-draw-rebar'); if (m) m.innerHTML = '<p style="color:#b91c1c;padding:16px;">bim_pscbox_rebar_test.js failed to load.</p>'; };
+        sc.src = 'https://macrobim.github.io/macroBIM/' + file + '?v=' + Date.now();
+        sc.onload = function () { window[flag] = false; if (typeof window[global] === 'function') { window[global](mountId); if (cb) cb(); } };
+        sc.onerror = function () { window[flag] = false; var m = document.getElementById(mountId); if (m) m.innerHTML = '<p style="color:#b91c1c;padding:16px;">' + file + ' failed to load.</p>'; };
         document.head.appendChild(sc);
+    }
+    // 폼(#excelFileInput)이 생길 때까지 기다렸다가 파일을 밀어 넣는다 (deps 비동기 로드 때문).
+    function _rebarForwardWhenReady(global, file, sheet, tries) {
+        tries = tries || 0;
+        var m = window[global], fi = document.getElementById('excelFileInput');
+        if (!m || typeof m.loadExcel !== 'function' || !fi) {
+            if (tries < 120) return setTimeout(function () { _rebarForwardWhenReady(global, file, sheet, tries + 1); }, 100);
+            return;
+        }
+        var sn = document.getElementById('sheetName'); if (sn) sn.value = sheet;
+        var orig = fi.click; fi.click = function () {};          // 파일선택창 억제
+        try { m.loadExcel(); } catch (e) {}                      // onchange 핸들러만 세팅
+        fi.click = orig;
+        try {
+            var dt = new DataTransfer(); dt.items.add(file); fi.files = dt.files;
+            fi.dispatchEvent(new Event('change'));               // 핸들러 발동 → 내 파일 처리
+        } catch (e) { console.error('[REBAR] 파일 전달:', e); }
+    }
+    function _rebarDispatch(file) {
+        var hint = document.getElementById('rebarDispHint');
+        var sheet = String(((document.getElementById('rebarSheetName') || {}).value) || 'input').trim();
+        if (typeof window.loadSheetData !== 'function') { if (hint) hint.textContent = 'Excel reader 로딩 중 — 잠시 뒤 다시'; return; }
+        if (hint) hint.textContent = '읽는 중…';
+        window.loadSheetData(file, sheet).then(function (data) {
+            var open = _rebarHasOpenRow(data);
+            if (hint) hint.textContent = open ? '격벽(개구부) 감지 → 격벽 엔진' : '일반단면 → 거더 J-field 엔진';
+            if (open) _rebarEnsureMod('fdraw_pscboxdia', 'bim_pscbox_diaphragm_test.js', 'mount-rebar-sub', function () { _rebarForwardWhenReady('PXDIA', file, sheet); });
+            else      _rebarEnsureMod('fdraw_pscbox', 'bim_pscbox_test.js', 'mount-rebar-sub', function () { _rebarForwardWhenReady('PXBOX', file, sheet); });
+        }).catch(function (e) { if (hint) hint.textContent = '엑셀 읽기 실패: ' + (e && e.message || e); });
+    }
+    function ensurePscboxUnified() {
+        var mount = document.getElementById('mount-draw-rebar');
+        if (!mount) return;
+        if (!mount.querySelector('#rebarDisp')) {
+            mount.innerHTML =
+                '<div id="rebarDisp" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:0 0 14px;padding:12px 14px;border:1px solid #e2e8f0;border-radius:10px;background:#f8fafc;">' +
+                '  <span style="font-size:13px;color:#334155;">Sheet</span>' +
+                '  <input type="text" id="rebarSheetName" value="input" style="font:inherit;font-size:13px;padding:4px 8px;border:1px solid #cbd5e1;border-radius:6px;width:90px;">' +
+                '  <button id="rebarLoadBtn" type="button" style="font:inherit;font-size:13px;font-weight:700;color:#fff;background:#2563eb;border:1px solid #2563eb;border-radius:6px;padding:6px 14px;cursor:pointer;">&#8682; Load Excel</button>' +
+                '  <input type="file" id="rebarDispFile" accept=".xlsx,.xls" style="display:none;">' +
+                '  <span id="rebarDispHint" style="font-size:12px;color:#64748b;">엑셀을 넣으면 <b>open</b> 행 유무로 일반(J-field)/격벽 엔진을 자동 선택합니다.</span>' +
+                '</div>' +
+                '<div id="mount-rebar-sub"></div>';
+            var btn = mount.querySelector('#rebarLoadBtn'), fileIn = mount.querySelector('#rebarDispFile');
+            if (btn && fileIn) {
+                btn.addEventListener('click', function () { fileIn.click(); });
+                fileIn.addEventListener('change', function () { var f = fileIn.files[0]; if (f) _rebarDispatch(f); fileIn.value = ''; });
+            }
+        }
     }
 
     // Gravity wall module (bim_gravitywall.js) may not be in the page's script list — load on demand.

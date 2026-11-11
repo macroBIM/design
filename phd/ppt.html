@@ -1,0 +1,671 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PF 기반 철근 자동배치 — 연구 중간보고</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/reveal.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+KR:wght@400;500;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --blue:#1e40af; --blue2:#2563eb; --blue3:#3b82f6; --ink:#0f172a; --mut:#64748b;
+    --line:#e2e8f0; --hair:#eef2f7; --bg:#f8fafc; --soft:#eff4ff; --ok:#059669; --warn:#d97706; --bad:#dc2626;
+  }
+  .reveal{font-family:'Noto Sans KR','Inter',system-ui,sans-serif; font-size:30px; color:var(--ink);}
+  .reveal .slides{text-align:left;}
+  .reveal .slides section{padding:0; height:100%;}
+  .reveal h1,.reveal h2,.reveal h3,.reveal h4{color:var(--ink); font-weight:800; letter-spacing:-.01em; text-transform:none; margin:0;}
+  .reveal p{margin:.3em 0; line-height:1.4;}
+  .reveal strong{color:var(--blue);}
+  .reveal em{font-style:normal; color:var(--mut);}
+  .reveal table{font-size:.5em; border-collapse:collapse; width:100%; margin:.3em 0;}
+  .reveal table th{background:var(--blue); color:#fff; font-weight:700; padding:6px 9px; border:1px solid var(--blue); text-align:left; white-space:nowrap;}
+  .reveal table td{padding:5px 9px; border:1px solid var(--line); color:var(--ink); vertical-align:top;}
+  .reveal table tr:nth-child(even) td{background:var(--bg);}
+  .reveal section img{margin:0;}
+  .reveal .slide-number{background:transparent; color:var(--mut); font-size:15px;}
+
+  /* ── slide chrome ── */
+  .sl{position:absolute; inset:0; padding:54px 70px 56px; display:flex; flex-direction:column; box-sizing:border-box;}
+  .kick{display:flex; align-items:center; gap:12px; margin-bottom:8px;}
+  .kick .no{display:inline-flex; align-items:center; justify-content:center; min-width:40px; height:40px; padding:0 10px;
+    background:var(--blue); color:#fff; border-radius:9px; font-weight:800; font-size:21px;}
+  .kick .sec{color:var(--blue); font-weight:800; font-size:23px;}
+  .sl h2{font-size:38px; line-height:1.15; margin:2px 0 6px;}
+  .sl .lede{color:var(--mut); font-size:23px; font-weight:500; margin-bottom:14px; max-width:92%;}
+  .foot{position:absolute; left:70px; right:70px; bottom:20px; display:flex; justify-content:space-between;
+    color:#94a3b8; font-size:14px; border-top:1px solid var(--hair); padding-top:8px;}
+  .body{flex:1; min-height:0; overflow:hidden;}
+
+  /* cards & grids */
+  .grid{display:grid; gap:14px;}
+  .g2{grid-template-columns:1fr 1fr;} .g3{grid-template-columns:1fr 1fr 1fr;} .g4{grid-template-columns:repeat(4,1fr);}
+  .card{border:1px solid var(--line); border-radius:12px; padding:14px 16px; background:#fff;}
+  .card.soft{background:var(--soft); border-color:#dbe4ff;}
+  .card h4{font-size:21px; color:var(--blue); margin-bottom:6px;}
+  .card p,.card li{font-size:18px; color:#334155; line-height:1.38;}
+  .card .k{font-size:14px; letter-spacing:.08em; text-transform:uppercase; color:var(--mut); font-weight:700;}
+  .num{font-size:40px; font-weight:800; color:var(--blue); line-height:1;}
+  .num.sm{font-size:30px;}
+  .chips{display:flex; flex-wrap:wrap; gap:8px;}
+  .chip{background:var(--soft); color:var(--blue); border:1px solid #dbe4ff; border-radius:999px; padding:4px 13px; font-size:17px; font-weight:600;}
+  ul.tick{list-style:none; padding:0; margin:0;}
+  ul.tick li{position:relative; padding-left:24px; margin:6px 0; font-size:19px; line-height:1.35;}
+  ul.tick li::before{content:''; position:absolute; left:4px; top:10px; width:9px; height:9px; border-radius:2px; background:var(--blue2);}
+  .st{font-weight:700; font-size:15px; padding:2px 9px; border-radius:6px; display:inline-block;}
+  .st.y{background:#dcfce7; color:#166534;} .st.h{background:#fef3c7; color:#92400e;} .st.n{background:#fee2e2; color:#991b1b;}
+  pre.code{background:#0f172a; color:#e2e8f0; border-radius:12px; padding:16px 18px; font-size:14.5px; line-height:1.5;
+    font-family:'SFMono-Regular',ui-monospace,Menlo,Consolas,monospace; overflow:auto; max-height:560px;}
+  pre.code .c{color:#64748b;} pre.code .k{color:#93c5fd;} pre.code .s{color:#fbbf24;}
+  .tag{display:inline-block; background:#1e293b; color:#cbd5e1; font-size:12px; padding:2px 8px; border-radius:5px; margin-bottom:6px; font-family:ui-monospace,monospace;}
+  .flowrow{display:flex; align-items:stretch; gap:10px;}
+  .flowrow .step{flex:1; border:1px solid var(--line); border-radius:12px; padding:12px 14px; background:#fff;}
+  .flowrow .arrow{display:flex; align-items:center; color:var(--blue3); font-size:30px; font-weight:800;}
+
+  /* title & section */
+  .title{justify-content:center; background:linear-gradient(135deg,#1e3a8a 0%,#2563eb 60%,#3b82f6 100%); color:#fff;}
+  .title .brand{font-size:20px; letter-spacing:.3em; text-transform:uppercase; opacity:.85; margin-bottom:18px;}
+  .title h1{color:#fff; font-size:70px; line-height:1.05; font-weight:800;}
+  .title .sub{color:#dbeafe; font-size:26px; margin-top:16px;}
+  .title .meta{color:#bfdbfe; font-size:19px; margin-top:28px;}
+  .section{justify-content:center; background:var(--soft);}
+  .section .big{font-size:150px; font-weight:800; color:#c7d7fe; line-height:1;}
+  .section h2{font-size:56px; margin-top:4px;}
+  .divider{height:5px; width:64px; background:var(--blue2); border-radius:3px; margin:16px 0;}
+</style>
+</head>
+<body>
+<div class="reveal"><div class="slides">
+
+<!-- 1 TITLE -->
+<section data-background-color="#1e3a8a"><div class="sl title">
+  <div class="brand">PF-based Automatic Rebar Placement</div>
+  <h1>PF 기반<br>철근 자동배치</h1>
+  <div class="sub">연구 중간보고</div>
+  <div class="meta">서울대학교 대학원 · 박사논문 · 연구 이름 · 학번<br>2026. 10. 24.</div>
+</div></section>
+
+<!-- 2 INDEX -->
+<section><div class="sl">
+  <div class="kick"><span class="sec">Index</span></div>
+  <div class="divider"></div>
+  <div class="body grid g2" style="align-content:start;gap:10px 40px;">
+    <ul class="tick" style="font-size:24px;">
+      <li><b>01</b> &nbsp;연구 배경과 필요성</li>
+      <li><b>02</b> &nbsp;주장</li>
+      <li><b>03</b> &nbsp;방법 — 장(PF)과 J 최소화</li>
+      <li><b>04</b> &nbsp;프로그램 구성</li>
+    </ul>
+    <ul class="tick" style="font-size:24px;">
+      <li><b>05</b> &nbsp;처리 흐름</li>
+      <li><b>06</b> &nbsp;검증</li>
+      <li><b>07</b> &nbsp;한계와 다음 단계</li>
+    </ul>
+  </div>
+  <div class="foot"><span>PF 기반 철근 자동배치 — 연구 중간보고</span><span>Index</span></div>
+</div></section>
+
+<!-- 3 -->
+<section><div class="sl">
+  <div class="kick"><span class="no">01</span><span class="sec">연구 배경과 필요성</span></div>
+  <h2>설계도서 작성의 문제</h2>
+  <div class="lede">격벽처럼 철근이 많고 덕트·매입물이 섞인 단면은 샵도면 작성 자체가 어렵다.</div>
+  <div class="body">
+    <p style="color:var(--mut);font-size:19px;margin-bottom:12px;">현장 시공이 아니라 샵도면·철근상세도를 그리는 단계의 문제</p>
+    <div class="grid g4">
+      <div class="card soft"><div class="num sm">01</div><p>격벽부는 철근이 많아 도면 표현이 복잡함</p></div>
+      <div class="card soft"><div class="num sm">02</div><p>철근 수량 집계·가공치수 산정이 어려움</p></div>
+      <div class="card soft"><div class="num sm">03</div><p>도면상 철근 누락·간섭 확인이 어려움</p></div>
+      <div class="card soft"><div class="num sm">04</div><p>배근 위치·순서 판단이 작성자 숙련도에 의지함</p></div>
+    </div>
+  </div>
+  <div class="foot"><span>01 연구 배경과 필요성</span><span>3</span></div>
+</div></section>
+
+<!-- 4 LIT TABLE -->
+<section><div class="sl">
+  <div class="kick"><span class="no">01</span><span class="sec">연구 배경과 필요성 — 기존 연구 목록</span></div>
+  <h2>「BIM 참고논문」 12편</h2>
+  <div class="lede">교량·PSC 덕트를 다룬 연구는 없다.</div>
+  <div class="body" style="overflow:auto;">
+  <table>
+    <thead><tr><th>연도</th><th>저자</th><th>제목</th><th>게재</th><th>접근</th></tr></thead>
+    <tbody>
+      <tr><td>2000</td><td>Navon et al.</td><td>Automated rebar constructability diagnosis</td><td>J. Constr. Eng. Manage.</td><td>간섭 검출·진단</td></tr>
+      <tr><td>2012</td><td>Park</td><td>BIM-based simulator for rebar placement</td><td>한국건축시공학회지</td><td>간섭 검출·진단</td></tr>
+      <tr><td>2017</td><td>Mangal et al.</td><td>Automated clash resolution of steel rebar in RC beam–column joints using BIM and GA</td><td>ISARC</td><td>철근량 최적화</td></tr>
+      <tr><td>2018</td><td>Mangal & Cheng</td><td>Automated optimization of steel reinforcement in RC building frames (BIM + hybrid GA)</td><td>Autom. Constr.</td><td>철근량 최적화</td></tr>
+      <tr><td>2019</td><td>Liu et al.</td><td>Automated clash resolution of rebar design in RC joints using MARL and BIM</td><td>ISARC</td><td>경로계획·강화학습</td></tr>
+      <tr><td>2020a</td><td>Liu et al.</td><td>Automated clash resolution for reinforcement steel design via Q-learning and BIM</td><td>Autom. Constr.</td><td>경로계획·강화학습</td></tr>
+      <tr><td>2020b</td><td>Liu et al.</td><td>Intelligent rebar layout in RC building frames using artificial potential field</td><td>Autom. Constr.</td><td>경로계획·APF</td></tr>
+      <tr><td>2021</td><td>Liu et al.</td><td>Automatic and optimal rebar layout by decomposed optimization algorithms</td><td>Autom. Constr.</td><td>경로계획·분해 최적화</td></tr>
+      <tr><td>2022</td><td>Xu et al.</td><td>Automated steel reinforcement detailing using evolutionary optimization and APF</td><td>Autom. Constr.</td><td>경로계획·APF</td></tr>
+      <tr><td>2024</td><td>Li</td><td>DfMA-oriented rebar design optimization using graph neural network</td><td>HKUST 박사논문</td><td>철근량 최적화·간섭조정</td></tr>
+      <tr><td>2025</td><td>Widjaja et al.</td><td>Automatic rebar layout algorithms considering design characteristics of RC members</td><td>Ain Shams Eng. J.</td><td>공식 기반 배치</td></tr>
+      <tr><td>2025</td><td>Widjaja & Kim</td><td>Intelligent rebar optimization framework — diaphragm wall, Singapore MRT</td><td>Smart Cities</td><td>길이·이음 최적화</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <div class="foot"><span>01 연구 배경과 필요성</span><span>4</span></div>
+</div></section>
+
+<!-- 5 기존연구 ① -->
+<section><div class="sl">
+  <div class="kick"><span class="no">01</span><span class="sec">연구 배경과 필요성 — 기존 연구 ①</span></div>
+  <div class="body grid g2" style="align-content:start;">
+    <div class="card">
+      <span class="chip">간섭 검출·진단</span>
+      <p style="font-size:15px;color:var(--mut);margin:8px 0;">Navon et al. 2000 · Park 2012 &nbsp;|&nbsp; 시작점: 완성된 배근</p>
+      <p><b>문제</b> 완성된 배근 설계 속 혼잡·충돌·피복 위반을 사람이 찾기 어렵다</p>
+      <p><b>기법</b> 규칙 기반 검사(순간격·직경 합) · Revit API 간섭 목록 · 배근 순서 시뮬레이션</p>
+      <p><b>해결</b> 충돌 철근 목록 · 강조 표시 · 시공성 보고서</p>
+      <p style="color:var(--bad);"><b>한계</b> 검출만 — 해소는 수동, 배치 생성 없음</p>
+    </div>
+    <div class="card">
+      <span class="chip">철근량 최적화</span>
+      <p style="font-size:15px;color:var(--mut);margin:8px 0;">Mangal 2017·2018 · Li 2024 &nbsp;|&nbsp; 시작점: 구조해석 결과</p>
+      <p><b>문제</b> 소요 철근량을 만족하는 개수·직경 조합을 손으로 고른다</p>
+      <p><b>기법</b> GA · hybrid GA (GA + Hooke-Jeeves) · GNN (Li 2024)</p>
+      <p><b>해결</b> 최소 철근량의 개수·직경 → IFC 모델 자동 생성</p>
+      <p style="color:var(--bad);"><b>한계</b> 위치·형상은 정하지 않음 — 간섭은 「개수 범위」로만 판정</p>
+    </div>
+  </div>
+  <div class="foot"><span>01 연구 배경과 필요성</span><span>5</span></div>
+</div></section>
+
+<!-- 6 기존연구 ② -->
+<section><div class="sl">
+  <div class="kick"><span class="no">01</span><span class="sec">연구 배경과 필요성 — 기존 연구 ②</span></div>
+  <div class="body grid g2" style="align-content:start;">
+    <div class="card">
+      <span class="chip">경로계획 (강화학습·APF)</span>
+      <p style="font-size:15px;color:var(--mut);margin:8px 0;">Liu 2019·2020a·2020b·2021 · Xu 2022 &nbsp;|&nbsp; 시작점: 균등배치 끝점</p>
+      <p><b>문제</b> 보-기둥 접합부에서 방향이 다른 주근끼리 충돌</p>
+      <p><b>기법</b> 철근=에이전트 · MARL · Q-learning(격자) · APF(인력·척력) · BPSO</p>
+      <p><b>해결</b> 시점→목표점 경로 우회 → 무간섭 주근 3D 좌표 · 설계시간 약 90% 단축</p>
+      <p style="color:var(--bad);"><b>한계</b> 끝점은 균등배치로 고정 · shape code 불일치 · 국소최소 · 재학습</p>
+    </div>
+    <div class="card">
+      <span class="chip">공식 기반 배치</span>
+      <p style="font-size:15px;color:var(--mut);margin:8px 0;">Widjaja et al. 2025 &nbsp;|&nbsp; 시작점: 피복 사이 균등분할</p>
+      <p><b>문제</b> 해석 결과에서 철근 좌표·길이를 손으로 산정</p>
+      <p><b>기법</b> 닫힌식 — 피복 사이 균등분할 · special-length 우선 · BS 8666 후프 길이</p>
+      <p><b>해결</b> 철근 좌표표 · 절단 길이 · 물량 기둥 −10.6% · 보 −2.2%</p>
+      <p style="color:var(--bad);"><b>한계</b> 직사각형 단면만 · 간섭 고려 없음 · 수작업 적용</p>
+    </div>
+  </div>
+  <div class="foot"><span>01 연구 배경과 필요성</span><span>6</span></div>
+</div></section>
+
+<!-- 7 문제점 -->
+<section><div class="sl">
+  <div class="kick"><span class="no">01</span><span class="sec">연구 배경과 필요성 — 기존 연구의 문제점</span></div>
+  <h2>시작점이 다르다</h2>
+  <div class="lede">기존은 정해진 배치를 고치고, 본 연구는 단면에서 배치를 만든다.</div>
+  <div class="body grid g2" style="align-content:start;">
+    <div class="card soft">
+      <span class="k">기존</span>
+      <p style="margin-top:6px;">정해진 끝점 사이에서 <b>경로만 우회</b> <em>(Liu 2020b, Fig. 6)</em></p>
+    </div>
+    <div class="card soft">
+      <span class="k">본 연구</span>
+      <p style="margin-top:6px;">단면에서 <b>형상이 스스로 자리를 잡음</b> — 점선(형상 코드)이 피복면에 끌려 늘어나고 코너가 확정</p>
+    </div>
+    <div style="grid-column:1 / -1;" class="chips">
+      <span class="chip">단면 위치를 미리 고정</span>
+      <span class="chip">형상 코드 불일치</span>
+      <span class="chip">장애물 = 철근뿐</span>
+      <span class="chip">건축 정형 부재 한정</span>
+      <span class="chip">횡철근·갈고리 미흡</span>
+      <span class="chip">국소최소·재학습</span>
+    </div>
+  </div>
+  <div class="foot"><span>01 연구 배경과 필요성</span><span>7</span></div>
+</div></section>
+
+<!-- 8 APF 차이 -->
+<section><div class="sl">
+  <div class="kick"><span class="no">01</span><span class="sec">연구 배경과 필요성 — APF 와 무엇이 다른가</span></div>
+  <div class="lede">퍼텐셜 필드 자체는 새 기법이 아니다 — 차이는 <b>무엇을 움직이고 어디로 끌어당기는가</b>다.</div>
+  <div class="body">
+    <table>
+      <thead><tr><th style="width:14%;"></th><th>기존 APF</th><th>본 연구</th></tr></thead>
+      <tbody>
+        <tr><td><b>대상</b></td><td>점 하나 (철근 중심선의 궤적)</td><td>철근 형상 전체 (조각 → 코너 → 자유단)</td></tr>
+        <tr><td><b>끌어당기는 곳</b></td><td>고정된 목표점</td><td>피복면 — 목표점이 없다</td></tr>
+        <tr><td><b>장애물</b></td><td>놓인 철근 · 콘크리트 경계</td><td>덕트 · 매입물 · 개구부 · 놓인 철근</td></tr>
+        <tr><td><b>형상</b></td><td>곡선 경로를 사후 직선화</td><td>BS 8666 형상 코드 그대로</td></tr>
+      </tbody>
+    </table>
+    <div class="card" style="margin-top:12px;background:#fff7ed;border-color:#fed7aa;">
+      <p style="font-size:17px;color:#9a3412;"><b>공통점</b> &nbsp;놓인 철근을 다음 철근의 장애물로 쓰는 순차 배치는 Liu et al. 2020b 에도 있다 — 본 연구의 독창성으로 주장하지 않는다.</p>
+    </div>
+  </div>
+  <div class="foot"><span>01 연구 배경과 필요성</span><span>8</span></div>
+</div></section>
+
+<!-- 9 예시 -->
+<section><div class="sl">
+  <div class="kick"><span class="no">01</span><span class="sec">연구 배경과 필요성 — 그 예를 숫자로</span></div>
+  <div class="lede">같은 다리에서도 덕트 배치는 자리마다 다르고, 갈고리 치수는 단면마다 바뀐다.</div>
+  <div class="body grid g3" style="align-content:start;">
+    <div class="card"><span class="k">북실대교 · 상부 덕트(한쪽)</span><div class="num" style="margin:8px 0;">17 + 6</div><p>8-244 주두부 배근도(2) · P1 상부슬래브 — ⊕ 덕트 두 줄</p></div>
+    <div class="card"><span class="k">주두부 P1 → 옆 세그먼트 S14</span><div class="num" style="margin:8px 0;">8 + 2</div><p>단면 외형이 같아도 자리마다 규칙을 새로 짜야 한다</p></div>
+    <div class="card"><span class="k">8-244 · 갈고리 T1-3</span><div class="num" style="margin:8px 0;">X = 206~480</div><p>도면도 한 수로 못 적는다 — <b>32개가 각자 다른 길이</b> (범위로 적음)</p></div>
+  </div>
+  <div class="foot"><span>01 연구 배경과 필요성</span><span>9</span></div>
+</div></section>
+
+<!-- 10 필요성 -->
+<section><div class="sl">
+  <div class="kick"><span class="no">01</span><span class="sec">연구 배경과 필요성 — 필요성</span></div>
+  <h2>필요성</h2>
+  <div class="lede">철근 위치를 미리 정하지 않고, 덕트·매입물·간격 한계를 지키며, 형상 코드 그대로 스스로 자리를 잡는 배치가 필요하다.</div>
+  <div class="body">
+    <div class="flowrow">
+      <div class="step"><span class="k">기존: 균등배치 끝점 고정</span><p style="margin-top:6px;"><b>단면 위치를 미리 고정하지 않음</b></p></div>
+      <div class="arrow">+</div>
+      <div class="step"><span class="k">기존: 장애물 = 철근뿐</span><p style="margin-top:6px;"><b>덕트·매입물·최소·최대 ctc 도 장애물로</b></p></div>
+      <div class="arrow">+</div>
+      <div class="step"><span class="k">기존: 경로를 사후 직선화</span><p style="margin-top:6px;"><b>형상 코드 그대로</b></p></div>
+      <div class="arrow">→</div>
+      <div class="step soft" style="background:var(--soft);border-color:#dbe4ff;"><span class="k" style="color:var(--blue);">PF · J 최소화</span><p style="margin-top:6px;color:var(--blue);"><b>스스로 자리를 잡는 배치</b></p></div>
+    </div>
+    <p style="color:var(--mut);font-size:18px;margin-top:16px;">기존 연구의 문제점을 하나씩 뒤집은 것. 단면·덕트·매입물이 바뀌어도 새 단면에는 입력만 주면 되어야 한다.</p>
+  </div>
+  <div class="foot"><span>01 연구 배경과 필요성</span><span>10</span></div>
+</div></section>
+
+<!-- 11 주장 -->
+<section><div class="sl">
+  <div class="kick"><span class="no">02</span><span class="sec">주장</span></div>
+  <h2>주장</h2>
+  <div class="lede">PF(potential field)를 통해, 입력이 번거로운 다음 항목을 자동 배치할 수 있다.</div>
+  <div class="body grid g3" style="align-content:start;">
+    <div class="card"><div class="num sm">1</div><h4>규정 형상 구현</h4><p>BS 8666 등으로 정의된 철근 형상을 <b>단면에 구애받지 않고</b> 구현</p><p style="color:var(--mut);font-size:16px;">코드는 같아도 치수·각도·길이는 단면마다 다시 계산 (다리 190 = 280−2×45, 88.282° = 90°−arctan 0.03)</p></div>
+    <div class="card"><div class="num sm">2</div><h4>간섭 회피 배치</h4><p>매입물·철근 등의 <b>간섭을 피해 자동 배치</b></p><p style="color:var(--mut);font-size:16px;">덕트·매입물 자리가 단면마다 다르고, 간섭을 피한 자리를 사람이 하나씩 잡아야 한다</p></div>
+    <div class="card"><div class="num sm">3</div><h4>지지 종방향 배치</h4><p>갈고리 철근이 <b>지지하는 종방향 철근</b>을 배치</p><p style="color:var(--mut);font-size:16px;">종방향 자리가 갈고리에, 갈고리 치수가 종방향에 달림 (서로가 서로의 입력)</p></div>
+  </div>
+  <div class="foot"><span>02 주장</span><span>11</span></div>
+</div></section>
+
+<!-- 12 방법 장 -->
+<section><div class="sl">
+  <div class="kick"><span class="no">03</span><span class="sec">방법 — 장(PF)과 J 최소화</span></div>
+  <div class="lede">철근의 자리는 사람이 적지 않는다 — 자리·길이·코너는 <b>J 의 최소점</b>에서 나온다. 입력은 「어떤 형상을, 대략 어디에, 몇 개, 얼마 간격으로」.</div>
+  <div class="body">
+    <table>
+      <thead><tr><th style="width:16%;">장</th><th>만드는 것</th><th>철근에 하는 일</th></tr></thead>
+      <tbody>
+        <tr><td><b>끌어당기는 장</b></td><td>콘크리트 피복면 (외곽·개구부 면)</td><td>가장 가까운 피복선에 앉힌다</td></tr>
+        <tr><td><b>미는 장</b></td><td>덕트·매입물·이미 놓인 철근</td><td>겹치면 옆으로 밀어낸다 (이웃끼리 평형까지)</td></tr>
+        <tr><td><b>간격 장</b></td><td>설계자 입력 ctc·ctcmin·ctcmax·range</td><td>ctc 자리로 되돌리고, 한계를 벗어나는 순간 힘이 켜진다</td></tr>
+        <tr><td><b>자르는 장</b></td><td>격벽 개구부</td><td>밀린 자리에서 토막낸다 (미는 것이 먼저)</td></tr>
+        <tr><td><b>정착장</b></td><td>종방향 철근</td><td>갈고리 다리·몸통이 그 철근을 물거나 받친다</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="foot"><span>03 방법 — 장(PF)과 J 최소화</span><span>12</span></div>
+</div></section>
+
+<!-- 13 세 걸음 -->
+<section><div class="sl">
+  <div class="kick"><span class="no">03</span><span class="sec">방법 — 장(PF)과 J 최소화</span></div>
+  <h2>한 J 안에서 끌림·밀림·간격이 동시에 겨룬다</h2>
+  <div class="body grid g3" style="align-content:start;margin-top:8px;">
+    <div class="card"><h4>끌림</h4><p>가까운 면이 저절로 이긴다. <em>min 은 규칙이 아니라 거리의 정의</em></p></div>
+    <div class="card"><h4>밀림 · 간격</h4><p>한계를 넘는 순간(g&lt;0)에만 힘이 생긴다. ctcmin·range 는 딱딱하게, ctcmax 는 되내려가게. <em>B 는 한쪽 배리어</em></p></div>
+    <div class="card"><h4>배치한계 · 복귀</h4><p>ctc 자리로 복귀. range 는 배치한계</p></div>
+    <div class="card soft" style="grid-column:1 / -1;background:var(--soft);border-color:#dbe4ff;"><h4 style="color:var(--blue);">사전식 (lexicographic)</h4><p>위반 없는 자리 중 J 최소, 없으면 가장 얕게 무는 자리</p></div>
+  </div>
+  <div class="foot"><span>03 방법 — 장(PF)과 J 최소화</span><span>13</span></div>
+</div></section>
+
+<!-- 14 프로그램 구성 -->
+<section><div class="sl">
+  <div class="kick"><span class="no">04</span><span class="sec">프로그램 구성</span></div>
+  <div class="lede">JavaScript 약 <b>16,500 줄</b> — 엑셀 한 장이 입력이다. J 엔진 두 파일은 검증 중 동결 <em>(012ae5c)</em>.</div>
+  <div class="body" style="overflow:auto;">
+    <table>
+      <thead><tr><th>층</th><th>파일</th><th>줄</th><th>하는 일</th></tr></thead>
+      <tbody>
+        <tr><td>입력</td><td>엑셀 시트</td><td>—</td><td>dim · cover · open · duct · trebar · lrebar · srebar · crebar</td></tr>
+        <tr><td>단면</td><td>bim_box12cell.js · geomath.js</td><td>2,155</td><td>치수 → 단면 선·호 → 벽(선분 + 바깥 법선 + 피복 종류)</td></tr>
+        <tr><td>매입물</td><td>bim_duct.js</td><td>161</td><td>덕트 행 → 다각형 (데크·밑면 기준 깊이)</td></tr>
+        <tr><td>형상</td><td>trebar.js</td><td>478</td><td>형상 코드 공장 : 1·11·11a·14·15·21·21a·23·23a·41</td></tr>
+        <tr><td><b>J 엔진</b></td><td>jfield.js</td><td>2,654</td><td>횡철근·갈고리 : 끌림 + 밀림의 J 최소화 · 직선탐색 lineMin</td></tr>
+        <tr><td><b>J 엔진</b></td><td>jlong.js</td><td>1,253</td><td>종방향 : 무리 전체를 한꺼번에 (간격·범위·매입물·균등배치 복귀)</td></tr>
+        <tr><td>옛 엔진</td><td>physics.js · domain.js · lrebar.js</td><td>1,598</td><td>탐색 + 용수철. 격벽 페이지의 데크 철근·폐합철근 안착</td></tr>
+        <tr><td>페이지</td><td>bim_pscbox_test.js</td><td>4,297</td><td>일반 박스 단면 — J 엔진이 기본</td></tr>
+        <tr><td>페이지</td><td>bim_pscbox_diaphragm_test.js</td><td>3,397</td><td>격벽 — 개구부·덕트 평형·철망·개구부 보강·폐합철근</td></tr>
+        <tr><td>측정</td><td>bench/ · tools/check_freeze.js</td><td>557</td><td>solver 를 부르지 않는 판정기·결정도·엔진 동결 확인</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="foot"><span>04 프로그램 구성</span><span>14</span></div>
+</div></section>
+
+<!-- 15 code energy -->
+<section><div class="sl">
+  <div class="kick"><span class="no">04</span><span class="sec">프로그램 구성 — J 를 세우는 곳</span></div>
+  <div class="lede">끌림과 밀림이 한 함수 안에서 더해진다. 밀림 항은 겹칠 때(g&lt;0)만 켜진다. <em>jfield.js · energy (줄임)</em></div>
+  <div class="body"><span class="tag">JS · jfield.js · UTF-8</span>
+<pre class="code"><span class="k">energy</span>: function (pose, seg, cons, ducts, placed, lpts, assign) {
+  let J = 0;
+  <span class="c">// ① 끌림 — 배정된 피복면까지의 거리² (침범 쪽은 K_COV 배)</span>
+  pts.forEach((p, i) =&gt; { const g = this.slack(p.x, p.y, c);
+    J += g * g * (g &lt; 0 ? K.K_COV : 1); });
+  <span class="c">// ② 덕트 — 순간격을 못 지키면 벌점</span>
+  (ducts||[]).forEach(d =&gt; { const g = this.segToPoint(pts, d) - need;
+    if (g &lt; 0) { const e = this.clrRes(g); J += e.r * e.r; } });
+  <span class="c">// ③ 앞서 놓인 횡방향 철근 (같은 z) — 선분끼리</span>
+  (placed||[]).forEach(q =&gt; { if (!this.sameZ(q, seg)) return;
+    this.clearPairs(pts, q.p1, q.p2).forEach(n =&gt; {
+      const g = n.d - (q.dia + seg.dia)/2;
+      if (g &lt; 0) { const e = this.clrRes(g, K.K_TRE); J += e.r*e.r; } }); });
+  <span class="c">// ④ 앞서 놓인 종방향 철근 (단면에서 점)</span>
+  (lpts||[]).forEach(q =&gt; { const g = this.segToPoint(pts, q) - this.lreNeed(q, seg.dia);
+    if (g &lt; 0) { const e = this.clrRes(g, K.K_BAR); J += e.r*e.r; } });
+  <span class="c">// ⑤⑥ 갈고리 — 종방향에 걸림 · 면과 평행</span>
+  if (seg.hook && seg.hookQ) J += this.hookEnergy(pose, seg);
+  if (seg.hook && seg.parW)  J += this.parEnergy(pose, seg);
+  <span class="c">// ⓪ 제자리 항 — 입력 자세(init)에서 벗어난 만큼</span>
+  J += K.K_AXIAL*ax*ax + K.K_ANCHOR*(pp*pp + at*at);
+  return J;
+}</pre>
+  </div>
+  <div class="foot"><span>04 프로그램 구성</span><span>15</span></div>
+</div></section>
+
+<!-- 16 code settle -->
+<section><div class="sl">
+  <div class="kick"><span class="no">04</span><span class="sec">프로그램 구성 — J 를 최소화하는 곳</span></div>
+  <div class="lede">1단계는 끌림만으로 앉히고, 2단계는 덕트·놓인 철근까지 한 J 로 LM 하강. 걸음이 1e-4 mm 보다 작아지면 평형. <em>jfield.js · settle · descend (줄임)</em></div>
+  <div class="body"><span class="tag">JS · jfield.js · UTF-8</span>
+<pre class="code"><span class="c">// settle — 조각 하나를 두 단계로</span>
+const r1 = this.alternate(pose0, seg, cons, [], [], []);   <span class="c">// 1단계: 끌림만</span>
+const start = { cx: r1.pose.cx + nx/nl*nud,                <span class="c">// 안쪽으로 1 mm</span>
+                cy: r1.pose.cy + ny/nl*nud, th: r1.pose.th };
+const r2 = this.alternate(start, seg, cons, ducts, placed, lpts); <span class="c">// 2단계: 한 J</span>
+
+<span class="c">// descend — 자세 (cx, cy, θ) 세 자유도의 LM 하강</span>
+let last = this.energy(pose, seg, cons, ducts, placed, lpts, assign);
+for (; i &lt; K.ITER; i++) {
+  const rows = this.residuals(pose, seg, cons, ducts, placed, lpts, assign);
+  <span class="c">// H = AᵀA , g = Aᵀr (가우스-뉴턴) · 대각에 λ (Marquardt)</span>
+  const d  = this.solve3(A, [-g[0], -g[1], -g[2]]);
+  const nx = { cx: pose.cx+d[0], cy: pose.cy+d[1], th: <span class="c">/* init ± THMAX */</span> };
+  const Jn = this.energy(nx, seg, cons, ducts, placed, lpts, assign);
+  if (Jn &lt;= last && !bad) {           <span class="c">// J 가 내려가면 받는다</span>
+    pose = nx; last = Jn; lam = Math.max(lam*0.3, 1e-12);
+    if (move &lt; K.TOL) break;          <span class="c">// 걸음 &lt; 1e-4 mm → 평형</span>
+  } else { lam *= 8; if (lam &gt; 1e12) break; }  <span class="c">// 안 내려가면 잔걸음</span>
+}</pre>
+  </div>
+  <div class="foot"><span>04 프로그램 구성</span><span>16</span></div>
+</div></section>
+
+<!-- 17 처리 흐름 -->
+<section><div class="sl">
+  <div class="kick"><span class="no">05</span><span class="sec">처리 흐름</span></div>
+  <div class="lede">끌림으로 벽체에 앉은 뒤, 그 자리의 철근·덕트와 함께 <b>한 J 로 평형</b>을 찾는다. 횡·종방향 모두 같다.</div>
+  <div class="body">
+    <div class="flowrow">
+      <div class="step"><span class="k">① 출발</span><p style="margin-top:6px;">형상 코드(BS 8666) 모양·입력 출발점</p></div>
+      <div class="arrow">→</div>
+      <div class="step"><span class="k">② 끌림</span><p style="margin-top:6px;">1단계, 벽체를 찾아 앉는다 (덕트·놓인 철근은 아직 안 봄)</p></div>
+      <div class="arrow">→</div>
+      <div class="step"><span class="k">③ 한 J 평형</span><p style="margin-top:6px;">2단계, 끌림+덕트+놓인 철근+제자리 — 상부슬래브 덕트에 다리가 밀림</p></div>
+      <div class="arrow">→</div>
+      <div class="step soft" style="background:var(--soft);border-color:#dbe4ff;"><span class="k" style="color:var(--blue);">④ 정착</span><p style="margin-top:6px;color:var(--blue);">코너 교점 → 자유단, 놓인 철근에 더한다</p></div>
+    </div>
+    <div class="card" style="margin-top:16px;background:#fff7ed;border-color:#fed7aa;">
+      <p style="font-size:18px;color:#9a3412;"><b>놓인 철근 → 다음 철근의 조건</b> &nbsp;④ 에서 더해진 철근이 다음 철근 ③ 의 밀림 항이 된다 (횡방향은 선분·같은 z 만, 종방향은 점). 갈고리는 종방향 철근으로 끌린다. 격벽은 한 무리를 한꺼번에 평형 → 그 뒤 개구부로 자른다.</p>
+    </div>
+  </div>
+  <div class="foot"><span>05 처리 흐름</span><span>17</span></div>
+</div></section>
+
+<!-- 18 검증 흐름 -->
+<section><div class="sl">
+  <div class="kick"><span class="no">06</span><span class="sec">검증 — 검증 흐름</span></div>
+  <div class="lede">판정기를 먼저 고정하고, 시나리오로 흔들어서 성공률을 잰다.</div>
+  <div class="body" style="overflow:auto;">
+    <table>
+      <thead><tr><th>단계</th><th>내용</th><th>상태</th></tr></thead>
+      <tbody>
+        <tr><td><b>0</b> 결정도 계수</td><td>철근마다 유일 결정 D · 과소 U · 과대 제약 I 로 분류 — (U+I)/전체 = 논문의 크기</td><td><span class="st h">◐ 도구 있음·집계 미보고</span></td></tr>
+        <tr><td><b>1</b> 판정기 V1–V5</td><td>solver 를 부르지 않는 순수 기하 판정 — 모든 방법에 같은 잣대</td><td><span class="st y">● 구현 · bench/measure.js</span></td></tr>
+        <tr><td><b>2</b> 실행기</td><td>단면마다 새로 실행 → CONVERGED · STALLED · DIVERGED · CRASHED</td><td><span class="st y">● 구현 · bench/engine.js</span></td></tr>
+        <tr><td><b>3</b> 시나리오 격자</td><td>S1–S6 로 단면을 바꿔 반복 → 재생성 성공률·조건 충족률</td><td><span class="st n">○ 미실시 (0건)</span></td></tr>
+        <tr><td><b>4</b> 최적성 갭</td><td>자유도를 하나씩 풀어 E 가 더 떨어지는지 — 순서·자세 의존성</td><td><span class="st n">○ 미실시</span></td></tr>
+        <tr><td><b>5</b> 하드 제약</td><td>배리어 / 증강 라그랑지안 → 기준 위반 전수 0</td><td><span class="st h">◐ 한쪽 배리어만·AL 미구현</span></td></tr>
+        <tr><td><b>6</b> 덕트 N 개 (주장 2)</td><td>덕트 여럿에서 C1–C3 — 추가 절단·간격 편차</td><td><span class="st h">◐ 72개 적용·C1–C3 미실시</span></td></tr>
+        <tr><td><b>7</b> 베이스라인 비교</td><td>B1 · B2 · B3 · 기존 APF 를 같은 판정기로</td><td><span class="st n">○ 미실시</span></td></tr>
+      </tbody>
+    </table>
+    <p style="color:var(--mut);font-size:15px;margin-top:8px;">측정 전에 고정(manifest): s_min · c · τ · 가중치 · ε · 스텝 예산 · 타이브레이크 · 불가능 케이스 목록 — 가중치는 튜닝하지 않고 설계기준의 우선순위에서 유도. 상태는 2026-10-24 저장소 기준.</p>
+  </div>
+  <div class="foot"><span>06 검증</span><span>18</span></div>
+</div></section>
+
+<!-- 19 검증 항목 -->
+<section><div class="sl">
+  <div class="kick"><span class="no">06</span><span class="sec">검증 — 검증 항목</span></div>
+  <div class="lede">무엇으로 판정하고 · 무엇을 흔들고 · 누구와 비교하는가.</div>
+  <div class="body grid g3" style="align-content:start;">
+    <div class="card"><h4>판정 — 통과 기준</h4>
+      <p style="font-size:15px;color:var(--mut);">V1–V5 + 기준해 대비 위치 (측정 전 고정)</p>
+      <ul class="tick" style="font-size:16px;"><li>V1 자기교차 없음</li><li>V2 단면 내부</li><li>V3 피복 d ≥ c</li><li>V4 순간격 ≥ s_min</li><li>V5 요청 수 모두 배치 — 불가 시 정확히 보고</li></ul>
+    </div>
+    <div class="card"><h4>흔드는 것 — 시나리오</h4>
+      <p style="font-size:15px;color:var(--mut);">난수가 아니라 격자로 (재현성)</p>
+      <ul class="tick" style="font-size:16px;"><li>S1 피복 40→100 mm</li><li>S2 개구부 크기 ±30%</li><li>S3 개구부 위치 ±500 mm</li><li>S4 덕트 추가·이동</li><li>S5 외곽 경사 0→30°</li><li>S6 철근 수 ±20%</li><li>C1–C3 덕트 밀집 (주장 2) · M1–M5 (주장 3)</li></ul>
+    </div>
+    <div class="card"><h4>비교 대상</h4>
+      <p style="font-size:15px;color:var(--mut);">UI 가 아니라 알고리즘 함수끼리</p>
+      <ul class="tick" style="font-size:16px;"><li>B1 단순 오프셋 — 하한</li><li>B2 견고한 오프셋 (라이브러리)</li><li>B3 거리함수+등분, 필드 없음 (제거 실험)</li><li>CAF 척력 없이 — 중간 단</li><li>APF 기존 rebar APF (연성 벌점) — 직접 비교</li></ul>
+    </div>
+  </div>
+  <div class="foot"><span>06 검증</span><span>19</span></div>
+</div></section>
+
+<!-- 20 지표 원안대비 -->
+<section><div class="sl">
+  <div class="kick"><span class="no">06</span><span class="sec">검증 — 지표 : 원안 대비 수정안</span></div>
+  <div class="lede">원안 지표는 많고 겹치며, 통과해도 기여가 증명되지 않는 구멍이 있다.</div>
+  <div class="body" style="overflow:auto;">
+    <table>
+      <thead><tr><th>원안 (2026-09-26)</th><th>문제</th><th>수정</th></tr></thead>
+      <tbody>
+        <tr><td>재생성 성공률 (V1–V5 통과)</td><td>단순 오프셋도 통과 — 설계 의도대로 섰는지 안 봄</td><td>기준해 대비 성공률 (S1·S5) · 조건 충족률 (S4)</td></tr>
+        <tr><td>N_derived (유도값 수)</td><td>새로 생긴 입력(rot·init·길이)을 안 셈</td><td>사람이 정하는 값 전체를 유도값·판단값으로 나눠 셈</td></tr>
+        <tr><td>기준 위반 0 — 원리적 보장</td><td>하드 제약(증강 라그랑지안) 미구현</td><td>측정값으로만 보고</td></tr>
+        <tr><td>N_cut = 0</td><td>안 자르고 멀리 밀어도 0</td><td>이동량·ctc 이탈을 같이 잰다</td></tr>
+        <tr><td>닿음 140/150</td><td>닿음 허용오차에 따라 숫자가 바뀜</td><td>허용오차 측정 전 고정·지지율로 정의</td></tr>
+        <tr><td>지표 18개 (주장 1:9 · 2:2 · 3:7)</td><td>겹치고 많음·전부 비블라인드</td><td>주장마다 주지표 1 + 안전장치 2 · 블라인드 단면</td></tr>
+      </tbody>
+    </table>
+    <p style="color:var(--mut);font-size:15px;margin-top:8px;">기준해 = 엔진과 독립적으로 계산한 기대 위치 — 변성 관계에 의한 검증 (Chen et al., 2018). 계산식·허용오차는 측정 전에 문서로 고정.</p>
+  </div>
+  <div class="foot"><span>06 검증</span><span>20</span></div>
+</div></section>
+
+<!-- 21 기여도 지표 -->
+<section><div class="sl">
+  <div class="kick"><span class="no">06</span><span class="sec">검증 — 공학적 기여도 지표 (수정안)</span></div>
+  <div class="lede">주장마다 주지표 하나 + 안전장치 둘 — 블라인드 단면에서 다시 잰다.</div>
+  <div class="body" style="overflow:auto;">
+    <table style="font-size:.44em;">
+      <thead><tr><th>주장</th><th>구분</th><th>지표</th><th>판정 기준 (측정 전 고정)</th><th>지금</th></tr></thead>
+      <tbody>
+        <tr><td><b>1</b> 형상</td><td>주지표</td><td>사람이 정하는 값의 수 — 유도값·판단값(rot·init·길이) 분리, 도면 BBS 와 비교</td><td>유도값 0 · 판단값 ≤ 도면</td><td><span class="st n">미집계</span></td></tr>
+        <tr><td>1 형상</td><td>안전장치</td><td>기준해 대비 재생성 성공률 (S1 피복·S5 경사)</td><td>V1–V5 + 기대 위치 ± tol</td><td><span class="st n">미측정</span></td></tr>
+        <tr><td>1 형상</td><td>안전장치</td><td>기준 위반 건수 — 측정값(보장 아님)</td><td>0</td><td><span class="st y">양평 C-C 0</span></td></tr>
+        <tr><td><b>2</b> 간섭</td><td>주지표</td><td>S4 덕트 추가·이동 해소 성공률</td><td>겹침 0·ctc 범위·피복 모두</td><td><span class="st n">미측정</span></td></tr>
+        <tr><td>2 간섭</td><td>안전장치</td><td>이동량 — 공칭 ctc 대비 평균·최대 %</td><td>사전 한계 이내</td><td><span class="st h">최대 89.5 mm (양평 B-B)</span></td></tr>
+        <tr><td>2 간섭</td><td>안전장치</td><td>절단·보강 수 (도면 대비)·불가 사례 보고</td><td>도면 이하·불가 100% 보고</td><td><span class="st y">추가 절단 0</span></td></tr>
+        <tr><td><b>3</b> 정착</td><td>주지표</td><td>지지율 = 지지된 종방향 / 지지 대상 종방향</td><td>닿음 허용오차 사전 고정</td><td><span class="st h">140/150 · 12/13</span></td></tr>
+        <tr><td>3 정착</td><td>안전장치</td><td>섭동 후 추종률 (M1·M2) — 수동 수정 없이 유지</td><td>높을수록</td><td><span class="st n">미측정</span></td></tr>
+        <tr><td>3 정착</td><td>안전장치</td><td>갈고리 규준 (135°·6d·굽힘 반경)·불리 지표 F_flip</td><td>위반 0·F_flip 함께 보고</td><td><span class="st n">미측정</span></td></tr>
+        <tr><td>공통</td><td>전제</td><td>블라인드 단면 1–2개에서 주지표 셋을 다시 측정</td><td>엔진 동결 후 처음 보는 단면</td><td><span class="st n">미실시</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="foot"><span>06 검증</span><span>21</span></div>
+</div></section>
+
+<!-- 22 입력→생성 -->
+<section><div class="sl">
+  <div class="kick"><span class="no">06</span><span class="sec">검증 — 입력 한 줄이 수십~수백 가닥을</span></div>
+  <div class="lede">길이·코너·갈고리 치수는 입력에 없다.</div>
+  <div class="body grid g4" style="align-content:center;">
+    <div class="card soft" style="text-align:center;"><div class="num">2 행</div><div style="color:var(--blue2);font-size:30px;">↓</div><div class="num">168</div><p>양평 B-B · 폐합철근</p></div>
+    <div class="card soft" style="text-align:center;"><div class="num">8 행</div><div style="color:var(--blue2);font-size:30px;">↓</div><div class="num">32</div><p>양평 B-B · 개구부 보강</p></div>
+    <div class="card soft" style="text-align:center;"><div class="num">4 행</div><div style="color:var(--blue2);font-size:30px;">↓</div><div class="num">52</div><p>북실 P1 · 철망</p></div>
+    <div class="card soft" style="text-align:center;"><div class="num">4 행</div><div style="color:var(--blue2);font-size:30px;">↓</div><div class="num">710</div><p>양평 C-C · 종방향 (도면 742)</p></div>
+  </div>
+  <p style="color:var(--mut);font-size:16px;margin-top:10px;">사람이 계산하던 값(N_derived)의 전수 집계는 아직 — 검증 단면 넷의 철근표에서 「입력인가/결과인가」를 세는 것이 남은 일.</p>
+  <div class="foot"><span>06 검증</span><span>22</span></div>
+</div></section>
+
+<!-- 23 주장1 -->
+<section><div class="sl">
+  <div class="kick"><span class="no">06</span><span class="sec">검증 — 주장 1 : 규정 형상을 단면에 구애받지 않고</span></div>
+  <div class="lede">형상 코드 7종류가 단면 다섯 개에 섰다 — 향상은 <b>사람이 넣던 값의 수</b>로 증명해야 한다.</div>
+  <div class="body">
+    <div class="grid g4" style="margin-bottom:10px;">
+      <div class="card soft"><span class="k">검증 — 도면 재현</span><div class="num sm" style="margin:6px 0;">7종·5단면</div><p style="font-size:15px;">양평 C-C·북실 S14·S15·P1·양평 B-B</p></div>
+      <div class="card soft"><span class="k">도면 대비</span><div class="num sm" style="margin:6px 0;">±1.5 mm</div><p style="font-size:15px;">양평 C-C — 피복 칸 같은 철근 6종</p></div>
+      <div class="card soft"><span class="k">횡철근</span><div class="num sm" style="margin:6px 0;">0 · 0</div><p style="font-size:15px;">피복 위반·같은 층 겹침</p></div>
+      <div class="card soft"><span class="k">규정 형상</span><div class="num sm" style="margin:6px 0;">BS 8666</div><p style="font-size:15px;">코드 1·11·15·21·21a·23·23a</p></div>
+    </div>
+    <table style="font-size:.44em;">
+      <thead><tr><th>비교 대상</th><th>기존 방식</th><th>향상으로 주장할 것</th><th>지금</th></tr></thead>
+      <tbody>
+        <tr><td>수작업 상세</td><td>다리 190(=280−2×45)·88.282° 를 사람이 계산해 넣음</td><td>유도값 → 0 — 엔진이 결과로 낸다</td><td>값은 나옴·전수 집계 미실시</td></tr>
+        <tr><td>파라메트릭(규칙)</td><td>피복·경사 바뀌면 규칙·치수를 다시 짬</td><td>입력 그대로 재생성 — 성공률 (S1·S5)</td><td>미측정</td></tr>
+        <tr><td>기존 연구</td><td>경로 사후 직선화 — 형상 코드와 다름 (Li 2024)</td><td>BS 8666 형상 코드 그대로 선다</td><td>코드 7종 구현 (정성)</td></tr>
+      </tbody>
+    </table>
+    <p style="color:var(--bad);font-size:14px;margin-top:6px;">빠진 것: 11a·14·41 은 실제 단면에서 안 써 봄·41 미안착·판단값(rot·init·길이) 집계 안 함·비블라인드</p>
+  </div>
+  <div class="foot"><span>06 검증</span><span>23</span></div>
+</div></section>
+
+<!-- 24 주장2 -->
+<section><div class="sl">
+  <div class="kick"><span class="no">06</span><span class="sec">검증 — 주장 2 : 매입물·철근 간섭 회피</span></div>
+  <div class="lede">덕트 72개 격벽에서 철근을 자르지 않고 밀어 세웠다 — 향상은 <b>덕트가 바뀔 때</b> 증명해야 한다.</div>
+  <div class="body">
+    <div class="grid g3" style="margin-bottom:10px;">
+      <div class="card soft"><span class="k">덕트 겹친 폐합철근</span><div class="num sm" style="margin:6px 0;">6 → 0</div><p style="font-size:15px;">양평 B-B · 24가닥 평형 이동</p></div>
+      <div class="card soft"><span class="k">추가 절단</span><div class="num sm" style="margin:6px 0;">0</div><p style="font-size:15px;">양평 B-B·북실 P1 (덕트 72·54)</p></div>
+      <div class="card soft"><span class="k">이동량</span><div class="num sm" style="margin:6px 0;">최대 89.5 mm</div><p style="font-size:15px;">이웃 순간격 ≥ 16.5 mm</p></div>
+    </div>
+    <table style="font-size:.44em;">
+      <thead><tr><th>비교 대상</th><th>기존 방식</th><th>향상으로 주장할 것</th><th>지금</th></tr></thead>
+      <tbody>
+        <tr><td>수작업 상세</td><td>북실 도면은 덕트 밑에서 철근을 끊고 보강근을 더함</td><td>끊지 않고 밀어 연속성 유지 — 절단·보강 수 감소</td><td>보강 수 미집계·기준 미정</td></tr>
+        <tr><td>덕트 변경 (S4)</td><td>덕트가 옮겨지면 간섭 철근을 사람이 다시 찾아 옮김</td><td>입력 그대로 다시 평형 — S4 해소 성공률</td><td>미측정</td></tr>
+        <tr><td>기존 연구</td><td>장애물 = 철근뿐 — 덕트·ctc 한계 없음</td><td>덕트·매입물·ctc min/max 를 한 J 에</td><td>덕트 54·72 적용 (정성)</td></tr>
+      </tbody>
+    </table>
+    <p style="color:var(--bad);font-size:14px;margin-top:6px;">빠진 것: 이동량 한계 미정·공간 부족 사례·양평 2-072 는 덕트 없이 그려져 도면 대비 불가</p>
+  </div>
+  <div class="foot"><span>06 검증</span><span>24</span></div>
+</div></section>
+
+<!-- 25 주장3 -->
+<section><div class="sl">
+  <div class="kick"><span class="no">06</span><span class="sec">검증 — 주장 3 : 갈고리가 지지하는 종방향</span></div>
+  <div class="lede">갈고리가 종방향을 물고 받치게 세웠다 — 향상은 <b>종방향이 옮겨질 때</b> 증명해야 한다.</div>
+  <div class="body">
+    <div class="grid g3" style="margin-bottom:10px;">
+      <div class="card soft"><span class="k">타이 다리가 물음</span><div class="num sm" style="margin:6px 0;">140 / 150</div><p style="font-size:15px;">양평 C-C</p></div>
+      <div class="card soft"><span class="k">받치는 ∩ 이 받침</span><div class="num sm" style="margin:6px 0;">12 / 13</div><p style="font-size:15px;">북실 S14</p></div>
+      <div class="card soft"><span class="k">종방향 도면 점과 짝</span><div class="num sm" style="margin:6px 0;">702 / 742</div><p style="font-size:15px;">줄 방향 ±1 mm</p></div>
+    </div>
+    <table style="font-size:.44em;">
+      <thead><tr><th>비교 대상</th><th>기존 방식</th><th>향상으로 주장할 것</th><th>지금</th></tr></thead>
+      <tbody>
+        <tr><td>수작업 상세</td><td>갈고리 치수를 철근마다 계산 — T1-3 만 32개 (X=206~480)</td><td>갈고리 치수 → 0 — 종방향 위치에서 결과로</td><td>철근표 대조 미실시</td></tr>
+        <tr><td>변경 대응 (M1·M2)</td><td>종방향이 옮겨지면 무는 갈고리를 하나씩 다시 계산</td><td>종방향 옮기면 갈고리가 따라온다 — 추종률</td><td>미측정 (주장 3 핵심)</td></tr>
+        <tr><td>기존 연구·상용</td><td>12편·Revit·Tekla — 철근–철근 치수 관계 없음</td><td>그 관계를 J 의 항으로 처음 구현</td><td>정성 비교</td></tr>
+      </tbody>
+    </table>
+    <p style="color:var(--bad);font-size:14px;margin-top:6px;">빠진 것: 안 닿은 10개(종방향 한 켜 깊이)·격벽 두 단면엔 갈고리 미입력·허용오차 미고정·비블라인드</p>
+  </div>
+  <div class="foot"><span>06 검증</span><span>25</span></div>
+</div></section>
+
+<!-- 26 한계 -->
+<section><div class="sl">
+  <div class="kick"><span class="no">07</span><span class="sec">한계와 다음 단계 — 한계</span></div>
+  <div class="lede">엔진(jfield·jlong)은 <b>012ae5c</b> 로 동결한 채 검증했다.</div>
+  <div class="body grid g2" style="align-content:start;gap:12px;">
+    <div class="card"><div class="num sm">1</div><h4>블라인드 검증이 아니다</h4><p>격벽 페이지의 규칙(열차 평형·seat=open·길이 열·간격 항)은 북실·양평 단면을 보면서 작업 중에 늘었다.</p></div>
+    <div class="card"><div class="num sm">2</div><h4>격벽 페이지는 완전한 J 엔진이 아니다</h4><p>폐합철근이 자기 평면에서 안착하는 단계는 예전 물리(U21 + 닫힘)를 쓴다.</p></div>
+    <div class="card"><div class="num sm">3</div><h4>폐합철근 피복은 자기 축 방향으로만</h4><p>양평 B-B 경사 복부 옆 수직 고리 14개가 약 200 mm 짧게 끝나고, 가로 한 줄이 개구부 아래로 17 mm 내려간다.</p></div>
+    <div class="card"><div class="num sm">4</div><h4>형상 코드 41 은 아직 안착하지 않음</h4><p>폐합철근(닫힌 5조각)은 U(21) + 닫는 한 변으로 대신한다.</p></div>
+    <div class="card" style="grid-column:1 / -1;"><div class="num sm">5</div><h4>시트 문법이 격벽 범위와 캔틸레버를 구분하지 못함</h4><p>북실 가로 철근 일부가 캔틸레버 위로 지나간다.</p></div>
+  </div>
+  <div class="foot"><span>07 한계와 다음 단계</span><span>26</span></div>
+</div></section>
+
+<!-- 27 다음 단계 -->
+<section><div class="sl">
+  <div class="kick"><span class="no">07</span><span class="sec">한계와 다음 단계 — 다음 단계</span></div>
+  <div class="body grid g3" style="align-content:start;">
+    <div class="card"><h4>아직 하지 않은 검증</h4><p style="font-size:16px;">9/25–26 논문 계획의 항목 — 재생성 성공률·시나리오 S1–S6·비교 B1–B3·N_derived 집계·I형 거더 등 다른 단면·3D (향후)</p></div>
+    <div class="card"><h4>정해야 할 것</h4><ul class="tick" style="font-size:15px;"><li>폐합철근 끝·절단점이 모든 면에 피복을 지킬지</li><li>북실 캔틸레버 위 가로 철근 — 길이 제한·±WTL 자동 정지</li><li>개구부 보강근 면 간격 — 도면 ~100 mm, 엔진 42.5 mm</li><li>덕트에서 도면은 끊고 엔진은 미는 차이의 평가</li><li>격벽 간격 한계와 덕트 최소간격 충돌 시 우선순위</li></ul></div>
+    <div class="card soft"><h4 style="color:var(--blue);">다음 단계</h4><ul class="tick" style="font-size:15px;"><li>위 결정 반영 → 북실·양평 다시 돌리고 검증 표 갱신</li><li>재생성 성공률·N_derived 집계를 bench 판정기로 자동화</li><li>시나리오 S1–S6·비교 B1–B3 실행</li><li>코드 41·폐합철근 피복 정리 후 다른 단면 형식으로 확장</li></ul></div>
+  </div>
+  <div class="foot"><span>07 한계와 다음 단계</span><span>27</span></div>
+</div></section>
+
+<!-- 28 참고문헌 -->
+<section><div class="sl">
+  <div class="kick"><span class="sec">참고문헌 — BIM 참고논문 12편</span></div>
+  <div class="divider"></div>
+  <div class="body" style="overflow:auto;font-size:15px;line-height:1.5;color:#334155;">
+    <p>Navon, R., Shapira, A., Shechori, Y. (2000). Automated rebar constructability diagnosis. <em>J. Constr. Eng. Manage.</em> 126(5), 389–397.</p>
+    <p>Park, U.-Y. (2012). BIM-based simulator for rebar placement. <em>J. Korea Inst. Build. Constr.</em> 12(1), 98–107.</p>
+    <p>Mangal, M., Wang, Q., Cheng, J.C.P. (2017). Automated clash resolution of steel rebar in RC beam–column joints using BIM and GA. <em>ISARC 2017.</em></p>
+    <p>Mangal, M., Cheng, J.C.P. (2018). Automated optimization of steel reinforcement in RC building frames using BIM and hybrid GA. <em>Autom. Constr.</em> 90, 39–57.</p>
+    <p>Liu, J., Liu, P., Feng, L., Wu, W., Lan, H. (2019). Automated clash resolution of rebar design in RC joints using MARL and BIM. <em>ISARC 2019</em>, 921–928.</p>
+    <p>Liu, J., Liu, P., Feng, L., Wu, W., Li, D., Chen, Y.F. (2020a). Automated clash resolution for reinforcement steel design in concrete frames via Q-learning and BIM. <em>Autom. Constr.</em> 112, 103062.</p>
+    <p>Liu, J., Xu, C., Wu, Z., Chen, Y.F. (2020b). Intelligent rebar layout in RC building frames using artificial potential field. <em>Autom. Constr.</em> 114, 103172.</p>
+    <p>Liu, J., Li, S., Xu, C., Wu, Z., Ao, N., Chen, Y.F. (2021). Automatic and optimal rebar layout in RC structure by decomposed optimization algorithms. <em>Autom. Constr.</em> 126, 103655.</p>
+    <p>Xu, C., Liu, J., Wu, Z., Chen, Y.F. (2022). Automated steel reinforcement detailing in RC frames using evolutionary optimization and APF. <em>Autom. Constr.</em> 138, 104224.</p>
+    <p>Li, M. (2024). DfMA-oriented rebar design optimization for RC structures using graph neural network. <em>PhD thesis, HKUST.</em></p>
+    <p>Widjaja, D.D., Khant, L.P., Rachmawati, T.S.N., Kim, S. (2025). Development of automatic rebar layout algorithms considering design characteristics of RC members. <em>Ain Shams Eng. J.</em> 16, 103367.</p>
+    <p>Widjaja, D.D., Kim, S. (2025). Intelligent rebar optimization framework for urban transit infrastructure. <em>Smart Cities</em> 8, 130.</p>
+  </div>
+  <div class="foot"><span>참고문헌</span><span>28</span></div>
+</div></section>
+
+<!-- 29 QA -->
+<section data-background-color="#eff4ff"><div class="sl section">
+  <div class="big">Q&amp;A</div>
+  <h2>질의응답 시간입니다</h2>
+</div></section>
+
+<!-- 30 Thank you -->
+<section data-background-color="#1e3a8a"><div class="sl title">
+  <h1>Thank you</h1>
+  <div class="sub">PF 기반 철근 자동배치 — 연구 중간보고</div>
+  <div class="meta">2026. 10. 24.</div>
+</div></section>
+
+</div></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/reveal.min.js"></script>
+<script>
+  Reveal.initialize({
+    width: 1280, height: 720, margin: 0.02,
+    hash: true, slideNumber: 'c/t', controls: true, progress: true,
+    transition: 'slide', center: false, overview: true, keyboard: true, touch: true
+  });
+</script>
+</body>
+</html>

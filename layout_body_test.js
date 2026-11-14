@@ -936,7 +936,34 @@ function _bindNavigation() {
     }
 
     // Pier input module (bim_pier_test.js) — single-page, single entry fdraw_pier. Load on demand.
+    // 버튼 이름 · 아이콘은 여기서만 바꾼다. bim_pier_test.js 는 운영도 같이 쓰는 파일이라 손대지 않는다.
+    // PIER 는 값이 바뀔 때마다 카드를 새로 그리므로, 그려질 때마다 다시 붙인다.
+    var PIER_ICON_BOX = '<svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor" aria-hidden="true"><path d="M8.186 1.113a.5.5 0 0 0-.372 0L1.846 3.5 8 5.961 14.154 3.5zM15 4.239l-6.5 2.6v7.922l6.5-2.6V4.24zM7.5 14.762V6.838L1 4.239v7.923zM7.443.184a1.5 1.5 0 0 1 1.114 0l7.129 2.852A.5.5 0 0 1 16 3.5v8.662a1 1 0 0 1-.629.928l-7.185 2.874a.5.5 0 0 1-.372 0L.63 13.09a1 1 0 0 1-.63-.928V3.5a.5.5 0 0 1 .314-.464z"/></svg>';
+    var PIER_ICON_DOWN = '<svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor" aria-hidden="true"><path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5"/><path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708z"/></svg>';
+    var PIER_LABELS = {
+        'data-pr-3d':  PIER_ICON_BOX + '3D View',
+        'data-pr-stl': PIER_ICON_DOWN + 'Download STL',
+        'data-pr-dxf': PIER_ICON_DOWN + 'Download DXF'
+    };
+    function relabelPier(mount) {
+        Object.keys(PIER_LABELS).forEach(function (attr) {
+            mount.querySelectorAll('[' + attr + ']').forEach(function (b) {
+                if (b.getAttribute('data-mb-label') === '1') return;
+                b.innerHTML = PIER_LABELS[attr];
+                b.setAttribute('data-mb-label', '1');
+            });
+        });
+    }
+    function watchPier() {
+        var m = document.getElementById('mount-draw-pier');
+        if (!m || m._mbWatch) return;
+        m._mbWatch = new MutationObserver(function () { relabelPier(m); });
+        m._mbWatch.observe(m, { childList: true, subtree: true });
+        relabelPier(m);
+    }
+
     function ensurePier() {
+        watchPier();
         if (typeof fdraw_pier === 'function') { fdraw_pier('mount-draw-pier'); return; }
         if (window._pierLoading) return;
         window._pierLoading = true;

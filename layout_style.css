@@ -257,3 +257,12 @@ body{font-family:'Pretendard',-apple-system,BlinkMacSystemFont,'Apple SD Gothic 
 /* ── PIER: 본문 폭을 스토어 상품 화면(main.wrap.wide)과 같게 — 최대 1400, 좌우 20 (머리줄 로고와 줄이 맞는다) ── */
 .content-wrap:has(#page-draw-pier.active){padding:24px 0;}
 #page-draw-pier{max-width:1400px;margin:0 auto;padding-inline:20px;}
+
+/* ── PIER 버튼: 스토어 상품 화면의 버튼(.actbar .btn.btn-ghost)과 같게 ── */
+#page-draw-pier .pr-btn{display:inline-flex;align-items:center;justify-content:center;gap:5px;min-width:0;
+  font-family:"Inter","Pretendard",system-ui,sans-serif;font-size:12px;font-weight:600;line-height:16px;letter-spacing:0;text-transform:none;
+  padding:5px 12px;border-radius:6px;background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;box-shadow:none;filter:none;
+  transition:background .15s,border-color .15s;}
+#page-draw-pier .pr-btn:hover{background:#dbeafe;border-color:#93c5fd;color:#1d4ed8;filter:none;}
+#page-draw-pier .pr-btn:active{transform:none;filter:none;}
+#page-draw-pier .pr-btn svg{flex:none;}

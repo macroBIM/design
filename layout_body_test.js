@@ -1108,8 +1108,24 @@ function _bindNavigation() {
         document.head.appendChild(sc);
     }
 
+    // Rebar Physics 그림판(Konva). 페이지 머리의 태그가 실패해도 여기서 다시 건다 —
+    // 주소를 차례로 시도하고, AMD(define) 가 있으면 잠시 비켜 전역 Konva 로 붙게 한다.
+    var KONVA_URLS = ['https://cdn.jsdelivr.net/npm/konva@9.3.6/konva.min.js', 'https://unpkg.com/konva@9.3.6/konva.min.js', 'https://cdnjs.cloudflare.com/ajax/libs/konva/9.3.6/konva.min.js'];
+    function _ensureKonva(cb) {
+        if (window.Konva) { cb(); return; }
+        (function tryAt(i) {
+            if (window.Konva || i >= KONVA_URLS.length) { if (!window.Konva) console.error('[layout] Konva 를 어느 주소에서도 받지 못함'); cb(); return; }
+            var amd = window.define, sc = document.createElement('script');
+            if (amd && amd.amd) window.define = undefined;
+            sc.src = KONVA_URLS[i];
+            sc.onload = sc.onerror = function () { if (amd && amd.amd) window.define = amd; tryAt(i + 1); };
+            document.head.appendChild(sc);
+        })(0);
+    }
+
     // PSC Box (1/2-cell) parametric module (bim_pscbox_test.js) — single entry fdraw_pscbox. Load on demand.
     function ensurePscbox() {
+        if (!window.Konva) { _ensureKonva(ensurePscbox); return; }
         if (typeof fdraw_pscbox === 'function') { fdraw_pscbox('mount-draw-pscbox'); return; }
         if (window._pscboxLoading) return;
         window._pscboxLoading = true;
@@ -1134,6 +1150,7 @@ function _bindNavigation() {
 
     // PSC Box diaphragm (격벽) — bim_pscbox_test.js 를 복사해 전역만 가른 판. 진입점 fdraw_pscboxdia.
     function ensurePscboxDia() {
+        if (!window.Konva) { _ensureKonva(ensurePscboxDia); return; }
         if (typeof fdraw_pscboxdia === 'function') { fdraw_pscboxdia('mount-draw-pscboxdia'); return; }
         if (window._pscboxDiaLoading) return;
         window._pscboxDiaLoading = true;
@@ -1165,6 +1182,7 @@ function _bindNavigation() {
         return false;
     }
     function _rebarEnsureMod(global, file, mountId, cb) {
+        if (!window.Konva) { _ensureKonva(function () { _rebarEnsureMod(global, file, mountId, cb); }); return; }
         if (typeof window[global] === 'function') { window[global](mountId); if (cb) cb(); return; }
         var flag = '_rebarLd_' + global;
         if (window[flag]) return;

@@ -150,15 +150,15 @@ function initLayout(phpData) {
     var totalVisits = phpData && phpData.totalVisits ? Number(phpData.totalVisits).toLocaleString() : '0';
 
     var html = ''
-    /* ══ SIDEBAR ══ */
-    + '<nav id="sidebar">'
-    + '  <div class="sidebar-header"><div class="logo-info"><a href="http://www.macrobim.com" class="name" style="text-decoration:none;color:inherit;display:flex;align-items:center;gap:8px;"><svg xmlns="http://www.w3.org/2000/svg" viewBox="-52 -38.8 104 104" style="width:26px;height:26px;flex-shrink:0;"><polygon points="0,16.9 40,40 0,63.1 -40,40" fill="none" stroke="#000" stroke-width="3.2" stroke-linejoin="round"/><polygon points="-40,18.1 0,41.1 0,54.1 -40,31" fill="#BFD4FA" stroke="#000" stroke-width="3.2" stroke-linejoin="round"/><polygon points="0,41.1 40,18.1 40,31 0,54.1" fill="#93B5F5" stroke="#000" stroke-width="3.2" stroke-linejoin="round"/><polygon points="0,-5 40,18.1 0,41.1 -40,18.1" fill="#E3ECFD" stroke="#000" stroke-width="3.2" stroke-linejoin="round"/><polygon points="-40,-11.9 0,11.2 0,32.1 -40,9.1" fill="#1D4ED8" stroke="#000" stroke-width="3.2" stroke-linejoin="round"/><polygon points="0,11.2 40,-11.9 40,9.1 0,32.1" fill="#1E40AF" stroke="#000" stroke-width="3.2" stroke-linejoin="round"/><polygon points="0,-35 40,-11.9 0,11.2 -40,-11.9" fill="#3B82F6" stroke="#000" stroke-width="3.2" stroke-linejoin="round"/></svg><span style="font-weight:700;color:#111;">macro</span><span style="font-weight:800;color:#111;">BIM</span></a></div></div>'
-    + '  <div class="nav-menu">'
-    + '    <a class="nav-item" href="#" data-page="home"><i class="bi bi-house-door"></i> Home</a>'
-    + '    <a class="nav-item" href="#" data-page="draw-plate3d"><i class="bi bi-stack"></i> PLATE3D</a>'
-    + '    <a class="nav-item" href="#" data-page="draw-pier"><i class="bi bi-building"></i> Pier</a>'
-    + '  </div>'
-    + '</nav>'
+    /* ══ TOP NAV ══ */
+    + '<header id="topnav">'
+    + '  <a href="http://www.macrobim.com" class="topnav-logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="-52 -38.8 104 104" style="width:24px;height:24px;flex-shrink:0;"><polygon points="0,16.9 40,40 0,63.1 -40,40" fill="none" stroke="#000" stroke-width="3.2" stroke-linejoin="round"/><polygon points="-40,18.1 0,41.1 0,54.1 -40,31" fill="#BFD4FA" stroke="#000" stroke-width="3.2" stroke-linejoin="round"/><polygon points="0,41.1 40,18.1 40,31 0,54.1" fill="#93B5F5" stroke="#000" stroke-width="3.2" stroke-linejoin="round"/><polygon points="0,-5 40,18.1 0,41.1 -40,18.1" fill="#E3ECFD" stroke="#000" stroke-width="3.2" stroke-linejoin="round"/><polygon points="-40,-11.9 0,11.2 0,32.1 -40,9.1" fill="#1D4ED8" stroke="#000" stroke-width="3.2" stroke-linejoin="round"/><polygon points="0,11.2 40,-11.9 40,9.1 0,32.1" fill="#1E40AF" stroke="#000" stroke-width="3.2" stroke-linejoin="round"/><polygon points="0,-35 40,-11.9 0,11.2 -40,-11.9" fill="#3B82F6" stroke="#000" stroke-width="3.2" stroke-linejoin="round"/></svg><span style="font-weight:700;">macro</span><span style="font-weight:800;">BIM</span></a>'
+    + '  <nav class="topnav-menu">'
+    + '    <a class="topnav-item" href="#" data-page="home">Home</a>'
+    + '    <a class="topnav-item" href="#" data-page="draw-plate3d">PLATE3D</a>'
+    + '    <a class="topnav-item" href="#" data-page="draw-pier">Pier</a>'
+    + '  </nav>'
+    + '</header>'
 
     /* ══ MAIN ══ */
     + '<div id="main">'
@@ -795,8 +795,8 @@ function _bindNavigation() {
         document.querySelectorAll('.nav-sub a').forEach(function(s) { s.classList.remove('active'); });
         var sb = document.querySelector('.nav-sub a[data-page="' + pageId + '"]');
         if (sb) sb.classList.add('active');
-        document.querySelectorAll('.nav-item[data-page]').forEach(function(s) { s.classList.remove('active'); });
-        var topItem = document.querySelector('.nav-item[data-page="' + pageId + '"]');
+        document.querySelectorAll('.topnav-item[data-page]').forEach(function(s) { s.classList.remove('active'); });
+        var topItem = document.querySelector('.topnav-item[data-page="' + pageId + '"]');
         if (topItem) topItem.classList.add('active');
 
         if (pageId === 'dashboard') { loadVisitChart(); }
@@ -1330,7 +1330,7 @@ function _bindNavigation() {
     document.getElementById('macrobeamToggle').addEventListener('click', function(e) {
         e.preventDefault(); this.classList.toggle('open'); document.getElementById('macrobeam-sub').classList.toggle('show');
     });
-    document.querySelectorAll('.nav-item[data-page]').forEach(function(el) {
+    document.querySelectorAll('.topnav-item[data-page]').forEach(function(el) {
         el.addEventListener('click', function(e) { e.preventDefault(); goPage(this.getAttribute('data-page')); });
     });
     document.querySelectorAll('.nav-sub a[data-page]').forEach(function(el) {

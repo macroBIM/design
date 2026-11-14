@@ -1,0 +1,52 @@
+/*
+  site.css — www.macrobim.com 공용 머리줄 · 푸터
+  서버 주소: /css/site.css  (dev 브랜치는 /css/dev/site.css)
+
+  값은 스토어 store/assets/css/store.css 의 .site-head · .brand · .head-nav · .site-foot · .foot-* 와 같다.
+  클래스 이름도 스토어와 같아서, 스토어가 이 파일을 불러오면 HTML 을 고치지 않아도 된다.
+  다른 규칙과 부딪히지 않게 .wrap 은 머리줄 · 푸터 안에서만 쓴다.
+*/
+
+/* ── 머리줄 ── */
+.site-head { position: sticky; top: 0; z-index: 20; padding-top: env(safe-area-inset-top, 0px); background: #fbfbfd; border-bottom: 1px solid rgba(0, 0, 0, .08); }
+.site-head .wrap,
+.site-foot .wrap { width: 100%; max-width: 1400px; margin: 0 auto; padding-inline: 20px; box-sizing: border-box; }
+.site-head .wrap { display: flex; align-items: center; gap: 40px; min-height: 52px; }
+.brand { display: flex; flex: none; align-items: center; gap: 12px; white-space: nowrap; color: #2563eb; text-decoration: none; font-family: "Pretendard", "Inter", -apple-system, system-ui, "Segoe UI", Roboto, sans-serif; font-weight: 700; font-size: 21px; line-height: 1; letter-spacing: -.025em; }
+.brand:hover { color: #1d4ed8; }
+.brand-logo { display: block; height: 28px; width: auto; }
+.brand-sep { width: 1px; height: 20px; background: rgba(0, 0, 0, .18); }
+.head-nav { display: flex; align-items: center; gap: 32px; font-size: 14px; font-weight: 600; }
+.head-nav a { color: #111; text-decoration: none; white-space: nowrap; padding-block: 6px; border-bottom: 2px solid transparent; }
+.head-nav a:hover { color: #111; border-bottom-color: #111; }
+.head-nav a[aria-current] { border-bottom-color: #111; }
+@media (max-width: 760px) { .site-head .wrap { gap: 24px; min-height: 72px; } .head-nav { gap: 22px; font-size: 15px; } .head-nav .hide-sm { display: none; } }
+@media (max-width: 480px) {
+  .site-head .wrap { gap: 12px; min-height: 56px; }
+  .brand { gap: 8px; font-size: 18px; }
+  .brand-logo { height: 22px; }
+  .brand-sep { height: 16px; }
+  .head-nav { gap: 14px; font-size: 14px; }
+}
+@media (max-width: 380px) {
+  .site-head .wrap { gap: 10px; }
+  .brand { gap: 6px; font-size: 17px; }
+  .brand-sep { display: none; }
+  .brand-logo { height: 20px; }
+}
+
+/* ── 푸터 ── */
+.site-foot { padding-block: 18px 26px; font-size: 12px; line-height: 1.6; color: #6e6e73; background: transparent; }
+.foot-links { display: flex; flex-wrap: wrap; gap: 4px 0; padding-top: 16px;
+  background: linear-gradient(#d2d2d7, #d2d2d7) top center / calc(100% - 40px) 1px no-repeat; }
+.foot-links a { color: #424245; text-decoration: none; }
+.foot-links a:hover { text-decoration: underline; }
+.foot-links a + a::before { content: ""; display: inline-block; width: 1px; height: 11px; background: #d2d2d7; margin: 0 12px; vertical-align: -1px; }
+.foot-in { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 0; padding-top: 16px;
+  background: linear-gradient(#d2d2d7, #d2d2d7) top center / calc(100% - 40px) 1px no-repeat; }
+.foot-in > * + *::before { content: ""; display: inline-block; width: 1px; height: 11px; background: #d2d2d7; margin: 0 12px; vertical-align: -1px; }
+.foot-links + .foot-in { padding-top: 8px; background: none; }
+.foot-loc { margin-left: auto; }
+.foot-loc::before { display: none !important; }
+.foot-biz { margin: 8px 0 0; font-size: 11.5px; line-height: 1.7; color: #86868b; }
+.foot-biz a { color: #6e6e73; text-decoration: underline; text-underline-offset: 2px; }

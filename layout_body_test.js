@@ -442,7 +442,7 @@ function initLayout(phpData) {
     + '    <div class="page-view" id="page-draw-pscbox"><h1 class="page-heading">PSC Box Girder</h1><div class="breadcrumb"><a href="#">Home</a> / <span>PSCBOX</span></div><div id="mount-draw-pscbox"></div></div>'
     + '    <div class="page-view" id="page-draw-pscboxdia"><h1 class="page-heading">PSC Box Girder Diaphragm</h1><div class="breadcrumb"><a href="#">Home</a> / <span>PSCBOX DIAPHRAGM</span></div><div id="mount-draw-pscboxdia"></div></div>'
     + '    <div class="page-view" id="page-draw-pscboxu"><h1 class="page-heading">REBAR</h1><div class="breadcrumb"><a href="#">Home</a> / <span>REBAR</span></div><div id="mount-draw-rebar"></div></div>'
-    + '    <div class="page-view" id="page-rebar-para"><h1 class="page-heading">REBAR PARA</h1><div class="breadcrumb"><a href="#">Home</a> / <span>REBAR PARA</span></div><div id="mount-rebar-para"></div></div>'
+    + '    <div class="page-view" id="page-rebar-para"><h1 class="page-heading">REBAR PARA</h1><div class="breadcrumb"><a href="#">Home</a> / <span>REBAR PARA</span></div><div id="mount-draw-rebarpara"></div></div>'
     + '    <div class="page-view" id="page-draw-psc"><h1 class="page-heading">PSC Box Girder</h1><div class="breadcrumb"><a href="#">Home</a> / <a href="#">Drawings</a> / <span>PSC</span></div><div id="mount-draw-psc"></div></div>'
     + '    <div class="page-view" id="page-quick-simpleconn"><h1 class="page-heading">Simple connector</h1><div class="breadcrumb"><a href="#">Home</a> / <a href="#">MacroPLATE3D</a> / <span>Simple connector</span></div><div id="mount-quick-simpleconn"></div></div>'
     + '    <div class="page-view" id="page-quick-crossbeam"><h1 class="page-heading">Crossbeam</h1><div class="breadcrumb"><a href="#">Home</a> / <a href="#">MacroPLATE3D</a> / <span>Crossbeam</span></div><div id="mount-quick-crossbeam"></div></div>'
@@ -918,7 +918,7 @@ function _bindNavigation() {
         if (pageId === 'draw-pscbox') { mountDrawing('pscbox'); ensurePscbox(); }
         if (pageId === 'draw-pscboxdia') { mountDrawing('pscboxdia'); ensurePscboxDia(); }
         if (pageId === 'draw-pscboxu') { mountDrawing('rebar'); ensurePscboxUnified(); }
-        if (pageId === 'rebar-para') { ensureRebarPara(); }
+        if (pageId === 'rebar-para') { mountDrawing('rebarpara'); ensureRebarSrv(); }
         if (pageId === 'draw-psc') { mountDrawing('psc'); ensurePsc(); }
         if (pageId === 'quick-simpleconn') { ensureQuickSimpleConn(); }
         if (pageId === 'quick-crossbeam') { ensureQuickCrossbeam(); }
@@ -1219,18 +1219,30 @@ function _bindNavigation() {
             else      _rebarEnsureMod('fdraw_pscbox', 'bim_pscbox_test.js', 'mount-rebar-sub', function () { _rebarForwardWhenReady('PXBOX', file, sheet); });
         }).catch(function (e) { if (hint) hint.textContent = '엑셀 읽기 실패: ' + (e && e.message || e); });
     }
-    //  REBAR PARA — 논문 시뮬레이션 화면(rebar_para.js, 공개 UI). 계산은 서버 rebar_api.php {"mode":"para"}.
-    function ensureRebarPara() {
-        var mount = document.getElementById('mount-rebar-para');
+    //  REBAR PARA — 서버 엔진 화면(rebar_srv/rebar_server.js : REBAR 와 같은 틀 · 엑셀 · 2D · 3D · 철근표 + 표준 I/T 거더 · 검증).
+    //  계산은 전부 서버 rebar_api.php(비공개 PHP). 다른 메뉴와 DOM id 가 같아 mountDrawing 목록으로 서로 지운다.
+    function ensureRebarSrv() {
+        var mount = document.getElementById('mount-draw-rebarpara');
         if (!mount) return;
-        if (window.RebarPara) { window.RebarPara.mount(mount); return; }
-        if (window._rebarParaLoading) return;
-        window._rebarParaLoading = true;
-        var sc = document.createElement('script');
-        sc.src = 'https://macrobim.github.io/design/rebar_para.js?v=' + Date.now();
-        sc.onload = function () { window._rebarParaLoading = false; if (window.RebarPara) window.RebarPara.mount(mount); };
-        sc.onerror = function () { window._rebarParaLoading = false; mount.innerHTML = '<p style="color:#b91c1c">rebar_para.js 를 불러오지 못했습니다.</p>'; };
-        document.head.appendChild(sc);
+        var go = function () { if (window.PXR && !mount.firstElementChild) window.PXR.mount('mount-draw-rebarpara'); };
+        if (window.PXR) { go(); return; }
+        if (window._rebarSrvLoading) return;
+        window._rebarSrvLoading = true;
+        var B = 'https://macrobim.github.io/design/rebar_srv/', v = '?v=' + Date.now();
+        if (!document.getElementById('rebarSrvCss')) { var ln = document.createElement('link'); ln.id = 'rebarSrvCss'; ln.rel = 'stylesheet'; ln.href = B + 'pscbox-ui.css' + v; document.head.appendChild(ln); }
+        var q = [];
+        if (!window.XLSX) q.push('https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js');
+        if (!window.Konva) q.push('https://cdnjs.cloudflare.com/ajax/libs/konva/9.3.6/konva.min.js');
+        if (!window.RWSVG || !window.RWSVG.render3d) q.push(B + 'bim_draw_test_core.js' + v);
+        if (!window.pscDrawGuide) q.push(B + 'pscbox.guide.js' + v);
+        q.push(B + 'rebar_server.js' + v);
+        (function next(i) {
+            if (i >= q.length) { window._rebarSrvLoading = false; go(); return; }
+            var sc = document.createElement('script'); sc.src = q[i];
+            sc.onload = function () { next(i + 1); };
+            sc.onerror = function () { if (i === q.length - 1) { window._rebarSrvLoading = false; mount.innerHTML = '<p style="color:#b91c1c">rebar_server.js 를 불러오지 못했습니다.</p>'; } else next(i + 1); };
+            document.head.appendChild(sc);
+        })(0);
     }
     function ensurePscboxUnified() {
         var mount = document.getElementById('mount-draw-rebar');
@@ -1368,7 +1380,7 @@ function _bindNavigation() {
     function ensureXsect(name) { ensureRWModule('bim_xsect_test.js?v=10', 'xsect', function () { if (window.XSECT) { window.XSECT.install(name); window.XSECT.mount(name); } }); }
 
     function mountDrawing(kind) {
-        ['hsection','channel','ibeam','liftinglug','rect','circle','octagon','track','gravitywall','invtwall','lwall','pier','pscbox','pscboxdia','psc','rebar'].forEach(function(k) {
+        ['hsection','channel','ibeam','liftinglug','rect','circle','octagon','track','gravitywall','invtwall','lwall','pier','pscbox','pscboxdia','psc','rebar','rebarpara'].forEach(function(k) {
             if (k !== kind) {
                 var other = document.getElementById('mount-draw-' + k);
                 if (other) other.innerHTML = '';

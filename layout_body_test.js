@@ -145,7 +145,25 @@ window.MB = window.MB || {};
     };
 })();
 
+/* 머리줄 · 푸터는 사이트 공용 /css/site.css, 글꼴은 스토어 /store/assets/css/fonts.css.
+   페이지 <head> 가 이미 걸어 두었으면(/dev/ 는 /css/dev/site.css) 건드리지 않는다. */
+function _ensureSiteCss() {
+    function has(part) {
+        return Array.prototype.some.call(document.querySelectorAll('link[rel="stylesheet"]'),
+            function (l) { return (l.getAttribute('href') || '').indexOf(part) >= 0; });
+    }
+    function add(href, rel, type) {
+        var l = document.createElement('link'); l.rel = rel || 'stylesheet'; l.href = href;
+        if (type) l.type = type;
+        document.head.appendChild(l);
+    }
+    if (!has('/store/assets/css/fonts.css')) add('/store/assets/css/fonts.css');
+    if (!has('/site.css')) add('/css/site.css');
+    if (!document.querySelector('link[rel="icon"]')) add('/store/assets/img/macrobim-icon.svg', 'icon', 'image/svg+xml');
+}
+
 function initLayout(phpData) {
+    _ensureSiteCss();
     var visits = phpData && phpData.visits ? Number(phpData.visits).toLocaleString() : '0';
     var totalVisits = phpData && phpData.totalVisits ? Number(phpData.totalVisits).toLocaleString() : '0';
 
@@ -206,11 +224,11 @@ function initLayout(phpData) {
     + '          </a>'
     + '        </div>'
     + '      </div>'
-    /* 푸터 마크업은 스토어 store/index.html 과 같다 · 약관은 스토어 페이지로 */
+    /* 푸터 마크업(클래스)은 스토어 store/index.html 과 같다 · 문구는 영어 · 약관은 스토어 페이지로 */
     + '      <footer class="site-foot"><div class="wrap">'
-    + '        <nav class="foot-links" aria-label="약관"><a href="/store/terms.html">이용약관</a><a href="/store/privacy.html"><b>개인정보처리방침</b></a><a href="/store/refund.html">환불 정책</a><a href="/store/support.html">고객지원</a><a href="/store/guide.html">사용법</a></nav>'
-    + '        <div class="foot-in"><span>Copyright © 2026 매크로 엔지니어링. All rights reserved.</span><span class="foot-loc">대한민국</span></div>'
-    + '        <div class="foot-biz">상호 매크로 엔지니어링 · 대표자 박영진 · 경기도 성남시 분당구 판교공원로5길 27, 201호 (판교동) · 사업자등록번호 688-15-02549 · 통신판매업 신고 제2026-성남분당A-1005호 · <a href="mailto:support@macrobim.com">support@macrobim.com</a> · 전화 010-4965-3195 · 호스팅 제공 카페24</div>'
+    + '        <nav class="foot-links" aria-label="Policies"><a href="/store/terms.html">Terms of Service</a><a href="/store/privacy.html"><b>Privacy Policy</b></a><a href="/store/refund.html">Refund Policy</a><a href="/store/support.html">Support</a><a href="/store/guide.html">Guide</a></nav>'
+    + '        <div class="foot-in"><span>Copyright © 2026 Macro Engineering. All rights reserved.</span><span class="foot-loc">Republic of Korea</span></div>'
+    + '        <div class="foot-biz">Macro Engineering · Representative: Park Young-jin · 201, 27 Pangyogongwon-ro 5-gil, Bundang-gu, Seongnam-si, Gyeonggi-do, Korea · Business Registration No. 688-15-02549 · Mail-order Sales Registration No. 2026-성남분당A-1005 · <a href="mailto:support@macrobim.com">support@macrobim.com</a> · Tel +82-10-4965-3195 · Hosted by Cafe24</div>'
     + '      </div></footer>'
     + '      </div>'
     + '    </div>'

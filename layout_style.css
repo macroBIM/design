@@ -242,3 +242,10 @@ body{font-family:'Pretendard',-apple-system,BlinkMacSystemFont,'Apple SD Gothic 
 .content-wrap:has(#page-home.active){padding:0;}
 .home-page{min-height:calc(100vh - 53px);display:flex;flex-direction:column;}
 .home-main{flex:1 0 auto;width:100%;max-width:1140px;margin:0 auto;padding:24px 20px 40px;}
+
+/* ── PLATE3D: 제목 · 경로를 한 줄로 작게, 프레임이 창에 꼭 맞게 ── */
+.content-wrap:has(#page-draw-plate3d.active){padding:12px 20px;}
+#page-draw-plate3d.active{display:flex;flex-wrap:wrap;align-items:baseline;column-gap:12px;}
+#page-draw-plate3d .page-heading{font-size:17px;margin:0;}
+#page-draw-plate3d .breadcrumb{font-size:12px;margin:0 0 10px;}
+#mount-draw-plate3d{flex-basis:100%;}

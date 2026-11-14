@@ -157,7 +157,7 @@ function initLayout(phpData) {
     + '  <nav class="head-nav">'
     + '    <a class="topnav-item" href="#" data-page="home" aria-current="page">Home</a>'
     + '    <a class="topnav-item" href="#" data-page="draw-plate3d">PLATE3D</a>'
-    + '    <a class="topnav-item" href="#" data-page="draw-pier">Pier</a>'
+    + '    <a class="topnav-item" href="#" data-page="draw-pier">PIER</a>'
     + '  </nav>'
     + '</div></header>'
 
@@ -185,8 +185,8 @@ function initLayout(phpData) {
     + '            </div>'
     + '          </a>'
     + '          <a href="#" onclick="event.preventDefault();showPage(\'draw-pier\')" class="home-card">'
-    + '            <div style="font-size:28px;color:#111;margin-bottom:14px;"><i class="bi bi-building"></i></div>'
-    + '            <h3 style="font-size:18px;font-weight:700;color:#111;margin:0 0 8px;">Pier</h3>'
+    + '            <div style="font-size:28px;color:#111;margin-bottom:14px;line-height:1;"><svg viewBox="0 0 28 28" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" aria-hidden="true"><path d="M2 5.5h24v2.5l-7 3.5H9L2 8z"/><path d="M10.5 11.5h7v10h-7z"/><path d="M5.5 21.5h17v3.5h-17z"/><path d="M6 3.5v2M22 3.5v2"/></svg></div>'
+    + '            <h3 style="font-size:18px;font-weight:700;color:#111;margin:0 0 8px;">PIER</h3>'
     + '            <p style="font-size:13px;color:#8a8a8a;line-height:1.65;margin:0 0 14px;">Bridge pier parametric design. Input dimensions, generate multi-view drawings with DXF export.</p>'
     + '            <div style="display:flex;flex-wrap:wrap;gap:6px;">'
     + '              <span style="font-size:10.5px;font-weight:600;padding:3px 10px;border-radius:20px;background:#f0f0f0;color:#555;">Parametric</span>'
@@ -360,7 +360,7 @@ function initLayout(phpData) {
     + '    <div class="page-view" id="page-draw-gravitywall"><h1 class="page-heading">Gravity Wall Layout</h1><div class="breadcrumb"><a href="#">Home</a> / <a href="#">Retaining Wall</a> / <span>Gravity Wall</span></div><div id="mount-draw-gravitywall"></div></div>'
     + '    <div class="page-view" id="page-draw-invtwall"><h1 class="page-heading">Inverted-T Wall Layout</h1><div class="breadcrumb"><a href="#">Home</a> / <a href="#">Retaining Wall</a> / <span>Inverted-T Wall</span></div><div id="mount-draw-invtwall"></div></div>'
     + '    <div class="page-view" id="page-draw-lwall"><h1 class="page-heading">L-shaped Wall Layout</h1><div class="breadcrumb"><a href="#">Home</a> / <a href="#">Retaining Wall</a> / <span>L-shaped Wall</span></div><div id="mount-draw-lwall"></div></div>'
-    + '    <div class="page-view" id="page-draw-pier"><h1 class="page-heading">Pier Input</h1><div class="breadcrumb"><a href="#">Home</a> / <span>Pier</span></div><div id="mount-draw-pier"></div></div>'
+    + '    <div class="page-view" id="page-draw-pier"><h1 class="page-heading">PIER</h1><div class="breadcrumb"><a href="#">Home</a> / <span>PIER</span></div><div id="mount-draw-pier"></div></div>'
     + '    <div class="page-view" id="page-draw-plate3d"><h1 class="page-heading">PLATE3D</h1><div class="breadcrumb"><a href="#">Home</a> / <span>PLATE3D</span></div><div id="mount-draw-plate3d"></div></div>'
     + '    <div class="page-view" id="page-draw-pscbox"><h1 class="page-heading">PSC Box Girder</h1><div class="breadcrumb"><a href="#">Home</a> / <span>PSCBOX</span></div><div id="mount-draw-pscbox"></div></div>'
     + '    <div class="page-view" id="page-draw-pscboxdia"><h1 class="page-heading">PSC Box Girder Diaphragm</h1><div class="breadcrumb"><a href="#">Home</a> / <span>PSCBOX DIAPHRAGM</span></div><div id="mount-draw-pscboxdia"></div></div>'
@@ -964,8 +964,11 @@ function _bindNavigation() {
 
         var want = 0;                       // 프레임이 스스로 요청한 높이
         function sizeFrame() {
-            var top = fr.getBoundingClientRect().top;
-            var room = Math.floor(window.innerHeight - top - 12);
+            // 바깥 상자(.content-wrap)의 아래 여백까지 빼야 페이지가 넘치지 않는다
+            var wrap = fr.closest('.content-wrap');
+            var padB = wrap ? parseFloat(getComputedStyle(wrap).paddingBottom) || 0 : 0;
+            var top = fr.getBoundingClientRect().top + (wrap ? wrap.scrollTop : 0);
+            var room = Math.floor(window.innerHeight - top - padB - 2);
             var h = want ? Math.min(want, room) : room;
             fr.style.height = Math.max(520, h) + 'px';
         }

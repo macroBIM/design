@@ -228,7 +228,7 @@ function initLayout(phpData) {
     + '      <footer class="site-foot"><div class="wrap">'
     + '        <nav class="foot-links" aria-label="Policies"><a href="/store/terms.html">Terms of Service</a><a href="/store/privacy.html"><b>Privacy Policy</b></a><a href="/store/refund.html">Refund Policy</a><a href="/store/support.html">Support</a><a href="/store/guide.html">Guide</a></nav>'
     + '        <div class="foot-in"><span>Copyright © 2026 Macro Engineering. All rights reserved.</span><span class="foot-loc">Republic of Korea</span></div>'
-    + '        <div class="foot-biz">Macro Engineering · Representative: Park Young-jin · 201, 27 Pangyogongwon-ro 5-gil, Bundang-gu, Seongnam-si, Gyeonggi-do, Korea · Business Registration No. 688-15-02549 · Mail-order Sales Registration No. 2026-성남분당A-1005 · <a href="mailto:support@macrobim.com">support@macrobim.com</a> · Tel +82-10-4965-3195 · Hosted by Cafe24</div>'
+    + '        <div class="foot-biz">Macro Engineering · Representative: Park Youngjin · 201, 27 Pangyogongwon-ro 5-gil, Bundang-gu, Seongnam-si, Gyeonggi-do, Korea · Business Registration No. 688-15-02549 · Mail-order Sales Registration No. 2026-Seongnam Bundang-A-1005 · <a href="mailto:support@macrobim.com">support@macrobim.com</a> · Tel +82-10-4965-3195 · Hosted by Cafe24</div>'
     + '      </div></footer>'
     + '      </div>'
     + '    </div>'

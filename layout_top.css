@@ -1,0 +1,49 @@
+/*
+    layout_top.css — 상단 머리줄 레이아웃(운영 layout_body.js)이 쓰는 스타일
+    layout_style.css 위에 덧씌운다. layout_body.js 가 시작할 때 이 파일을 건다.
+    layout_style.css 는 시험 페이지(index_claude, 왼쪽 메뉴)도 같이 쓰므로 그 파일은 그대로 두고,
+    새 화면에서 달라지는 것만 여기 둔다. 머리줄 · 푸터 모양은 공용 /css/site.css.
+*/
+body{display:flex;flex-direction:column;padding:0;gap:0;background:#fff;
+  font-family:'Pretendard',-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Malgun Gothic',system-ui,sans-serif;
+  -webkit-font-smoothing:antialiased;letter-spacing:-.005em;}
+#app-root{flex-direction:column;gap:0;}
+#app-root > .site-head{flex:none;}
+.content-wrap{border-radius:0;box-shadow:none;border:0;padding:24px 32px;}
+.page-heading{color:#111;}
+.breadcrumb,.breadcrumb a{color:#aaa;}
+.breadcrumb a:hover{color:#111;}
+.breadcrumb span{color:#666;}
+
+/* ── HOME (스토어 목록 화면과 같게: 옅은 회색 바닥 · 테두리 없는 흰 카드) ── */
+.content-wrap:has(#page-home.active){background:#f5f5f7;}
+.home-card{display:block;padding:30px;border-radius:18px;background:#fff;color:#1d1d1f;text-decoration:none;cursor:pointer;transition:transform .3s,box-shadow .3s;}
+.home-card:hover{transform:scale(1.015);box-shadow:0 8px 28px rgba(0,0,0,.09);}
+.home-card h3{color:#1d1d1f !important;}
+.content-wrap:has(#page-home.active){padding:0;}
+.home-page{min-height:calc(100vh - 53px);display:flex;flex-direction:column;}
+.home-main{flex:1 0 auto;width:100%;max-width:1140px;margin:0 auto;padding:24px 20px 40px;}
+
+/* ── PLATE3D: 제목 · 경로를 한 줄로 작게, 프레임이 창에 꼭 맞게 ── */
+.content-wrap:has(#page-draw-plate3d.active){padding:12px 20px;}
+#page-draw-plate3d.active{display:flex;flex-wrap:wrap;align-items:baseline;column-gap:12px;}
+#page-draw-plate3d .page-heading{font-size:17px;margin:0;}
+#page-draw-plate3d .breadcrumb{font-size:12px;margin:0 0 10px;}
+#mount-draw-plate3d{flex-basis:100%;}
+.home-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:40px;}
+@media (max-width:900px){.home-cards{grid-template-columns:1fr;}}
+.home-card > div:first-child{height:28px;line-height:28px;}
+.home-card > div:first-child svg{display:block;}
+
+/* ── PIER: 본문 폭을 스토어 상품 화면(main.wrap.wide)과 같게 — 최대 1400, 좌우 20 (머리줄 로고와 줄이 맞는다) ── */
+.content-wrap:has(#page-draw-pier.active){padding:24px 0;}
+#page-draw-pier{max-width:1400px;margin:0 auto;padding-inline:20px;}
+
+/* ── PIER 버튼: 스토어 상품 화면의 버튼(.actbar .btn.btn-ghost)과 같게 ── */
+#page-draw-pier .pr-btn{display:inline-flex;align-items:center;justify-content:center;gap:5px;min-width:0;
+  font-family:"Inter","Pretendard",system-ui,sans-serif;font-size:12px;font-weight:600;line-height:16px;letter-spacing:0;text-transform:none;
+  padding:5px 12px;border-radius:6px;background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;box-shadow:none;filter:none;
+  transition:background .15s,border-color .15s;}
+#page-draw-pier .pr-btn:hover{background:#dbeafe;border-color:#93c5fd;color:#1d4ed8;filter:none;}
+#page-draw-pier .pr-btn:active{transform:none;filter:none;}
+#page-draw-pier .pr-btn svg{flex:none;}

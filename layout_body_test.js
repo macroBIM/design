@@ -152,7 +152,7 @@ function initLayout(phpData) {
     var html = ''
     /* ══ TOP NAV ══ */
     + '<header id="topnav">'
-    + '  <a href="http://www.macrobim.com" class="topnav-logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="-52 -38.8 104 104" style="width:24px;height:24px;flex-shrink:0;"><polygon points="0,16.9 40,40 0,63.1 -40,40" fill="none" stroke="#000" stroke-width="3.2" stroke-linejoin="round"/><polygon points="-40,18.1 0,41.1 0,54.1 -40,31" fill="#BFD4FA" stroke="#000" stroke-width="3.2" stroke-linejoin="round"/><polygon points="0,41.1 40,18.1 40,31 0,54.1" fill="#93B5F5" stroke="#000" stroke-width="3.2" stroke-linejoin="round"/><polygon points="0,-5 40,18.1 0,41.1 -40,18.1" fill="#E3ECFD" stroke="#000" stroke-width="3.2" stroke-linejoin="round"/><polygon points="-40,-11.9 0,11.2 0,32.1 -40,9.1" fill="#1D4ED8" stroke="#000" stroke-width="3.2" stroke-linejoin="round"/><polygon points="0,11.2 40,-11.9 40,9.1 0,32.1" fill="#1E40AF" stroke="#000" stroke-width="3.2" stroke-linejoin="round"/><polygon points="0,-35 40,-11.9 0,11.2 -40,-11.9" fill="#3B82F6" stroke="#000" stroke-width="3.2" stroke-linejoin="round"/></svg><span style="font-weight:700;">macro</span><span style="font-weight:800;">BIM</span></a>'
+    + '  <a href="http://www.macrobim.com" class="topnav-logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="-52 -38.8 104 104" style="width:24px;height:24px;flex-shrink:0;"><polygon points="0,16.9 40,40 0,63.1 -40,40" fill="none" stroke="#000" stroke-width="3.2" stroke-linejoin="round"/><polygon points="-40,18.1 0,41.1 0,54.1 -40,31" fill="#BFD4FA" stroke="#000" stroke-width="3.2" stroke-linejoin="round"/><polygon points="0,41.1 40,18.1 40,31 0,54.1" fill="#93B5F5" stroke="#000" stroke-width="3.2" stroke-linejoin="round"/><polygon points="0,-5 40,18.1 0,41.1 -40,18.1" fill="#E3ECFD" stroke="#000" stroke-width="3.2" stroke-linejoin="round"/><polygon points="-40,-11.9 0,11.2 0,32.1 -40,9.1" fill="#1D4ED8" stroke="#000" stroke-width="3.2" stroke-linejoin="round"/><polygon points="0,11.2 40,-11.9 40,9.1 0,32.1" fill="#1E40AF" stroke="#000" stroke-width="3.2" stroke-linejoin="round"/><polygon points="0,-35 40,-11.9 0,11.2 -40,-11.9" fill="#3B82F6" stroke="#000" stroke-width="3.2" stroke-linejoin="round"/></svg><span><span style="font-weight:700;">macro</span><span style="font-weight:800;">BIM</span></span></a>'
     + '  <nav class="topnav-menu">'
     + '    <a class="topnav-item" href="#" data-page="home">Home</a>'
     + '    <a class="topnav-item" href="#" data-page="draw-plate3d">PLATE3D</a>'
@@ -166,7 +166,7 @@ function initLayout(phpData) {
 
     /* ── HOME ── */
     + '    <div class="page-view active" id="page-home">'
-    + '      <div style="max-width:1140px;margin:0 auto;min-height:100%;display:flex;flex-direction:column;">'
+    + '      <div style="max-width:1140px;margin:0 auto;min-height:calc(100vh - 100px);display:flex;flex-direction:column;">'
     + '        <div style="padding:48px 0 40px;margin-bottom:32px;text-align:center;">'
     + '          <p style="font-size:13px;font-weight:500;letter-spacing:0.04em;color:#8a8a8a;margin:0 0 12px;">Fast & Simple BIM Tools</p>'
     + '          <h1 style="font-size:42px;font-weight:800;line-height:1.1;color:#111;margin:0 0 16px;letter-spacing:-0.02em;">3D BIM &amp; Drawings, faster.</h1>'
@@ -1313,33 +1313,8 @@ function _bindNavigation() {
     }
     window.mountDrawing = mountDrawing;
 
-    document.getElementById('tablesToggle').addEventListener('click', function(e) {
-        e.preventDefault(); this.classList.toggle('open'); document.getElementById('tables-sub').classList.toggle('show');
-    });
-    document.getElementById('codeToggle').addEventListener('click', function(e) {
-        e.preventDefault(); this.classList.toggle('open'); document.getElementById('code-sub').classList.toggle('show');
-    });
-    document.getElementById('drawingsToggle').addEventListener('click', function(e) {
-        e.preventDefault(); this.classList.toggle('open'); document.getElementById('drawings-sub').classList.toggle('show');
-    });
-    document.getElementById('retainingToggle').addEventListener('click', function(e) {
-        e.preventDefault(); this.classList.toggle('open'); document.getElementById('retaining-sub').classList.toggle('show');
-    });
-    document.getElementById('quick3dToggle').addEventListener('click', function(e) {
-        e.preventDefault(); this.classList.toggle('open'); document.getElementById('quick3d-sub').classList.toggle('show');
-    });
-    document.getElementById('macrobeamToggle').addEventListener('click', function(e) {
-        e.preventDefault(); this.classList.toggle('open'); document.getElementById('macrobeam-sub').classList.toggle('show');
-    });
     document.querySelectorAll('.topnav-item[data-page]').forEach(function(el) {
         el.addEventListener('click', function(e) { e.preventDefault(); goPage(this.getAttribute('data-page')); });
-    });
-    document.querySelectorAll('.nav-sub a[data-page]').forEach(function(el) {
-        el.addEventListener('click', function(e) {
-            e.preventDefault(); goPage(this.getAttribute('data-page'));
-            var pt = this.closest('.nav-sub').previousElementSibling;
-            if (pt) { pt.classList.add('open'); this.closest('.nav-sub').classList.add('show'); }
-        });
     });
 
     function ensureQna() {

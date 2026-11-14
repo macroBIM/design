@@ -16,7 +16,7 @@
  */
 (function () {
   'use strict';
-  var API = 'rebar_api.php';
+  var API = '/rebar_api.php';   // 절대경로 — /dev/ 처럼 하위 경로에서 열려도 루트의 서버 입구로
 
   // ── 치수 스키마 (adefs_box12cell: key, 기본값, 라벨?) · 공개 UI 데이터 (알고리즘 아님) ──
   var ADEFS = [
@@ -179,7 +179,7 @@
       kpi((le.pocketHit || 0) + ' / ' + (le.pocketN || 0), 'J 종방향 절곡부 ≤ 1 mm (max ' + f2(le.pocketMax) + ')', le.pocketHit === le.pocketN) +
       kpi(t.jBarN ? Math.round(100 * t.jBarOk / t.jBarN) + '%' : '-', '임의배치 N=' + t.n + ' (±' + (t.jitter ? t.jitter[0] + 'mm ±' + t.jitter[2] + '°' : '') + ')', t.jBarN ? t.jBarOk === t.jBarN : null) +
       kpi((t.apfOk != null ? t.apfOk : '-') + ' / ' + (t.n || 0), 'APF 도달 (목표점 = 정답)', null) +
-      kpi(4 + 11 * nVert, '파라메트릭 유도값 수 (엑셀 기준)', null) +
+      (/^FDOT/.test(data.sectionKey || '') ? kpi(v.param.nDerived, '표준도에서 유도하는 값 수', null) : kpi(4 + 11 * nVert, '파라메트릭 유도값 수 (엑셀 기준)', null)) +
       kpi(f1(v.props_in.A) + ' in²', '단면적 (공표 ' + v.pub.A + ')', Math.abs(v.props_in.A - v.pub.A) < 1) + '</div>';
     var th = 'style="background:#f1f5f9;padding:5px 6px;text-align:right;white-space:nowrap"', td = 'style="padding:4px 6px;text-align:right;border-bottom:1px solid #f1f5f9;font-variant-numeric:tabular-nums"';
     h += '<div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px"><div><div class="draw-card-title" style="margin-bottom:6px">횡방향 꺾임점</div><table style="width:100%;border-collapse:collapse;font-size:12px"><tr><th ' + th + '>철근</th><th ' + th + '>코드</th><th ' + th + '>φ°</th><th ' + th + '>정답 x</th><th ' + th + '>정답 y</th><th ' + th + '>J 오차</th></tr>';

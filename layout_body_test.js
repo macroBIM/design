@@ -209,6 +209,7 @@ function initLayout(phpData) {
     + '    <a class="nav-item" href="#" data-page="draw-pscbox"><i class="bi bi-box-seam"></i> PSCBOX</a>'
     + '    <a class="nav-item" href="#" data-page="draw-pscboxdia"><i class="bi bi-layout-split"></i> PSCBOX DIAPHRAGM</a>'
     + '    <a class="nav-item" href="#" data-page="draw-pscboxu"><i class="bi bi-layers"></i> REBAR</a>'
+    + '    <a class="nav-item" href="#" data-page="rebar-para"><i class="bi bi-bounding-box"></i> REBAR PARA</a>'
     + '    <a class="nav-item" href="#" data-page="qna"><i class="bi bi-question-circle"></i> QnA</a>'
     + '  </div>'
     + '</nav>'
@@ -441,6 +442,7 @@ function initLayout(phpData) {
     + '    <div class="page-view" id="page-draw-pscbox"><h1 class="page-heading">PSC Box Girder</h1><div class="breadcrumb"><a href="#">Home</a> / <span>PSCBOX</span></div><div id="mount-draw-pscbox"></div></div>'
     + '    <div class="page-view" id="page-draw-pscboxdia"><h1 class="page-heading">PSC Box Girder Diaphragm</h1><div class="breadcrumb"><a href="#">Home</a> / <span>PSCBOX DIAPHRAGM</span></div><div id="mount-draw-pscboxdia"></div></div>'
     + '    <div class="page-view" id="page-draw-pscboxu"><h1 class="page-heading">REBAR</h1><div class="breadcrumb"><a href="#">Home</a> / <span>REBAR</span></div><div id="mount-draw-rebar"></div></div>'
+    + '    <div class="page-view" id="page-rebar-para"><h1 class="page-heading">REBAR PARA</h1><div class="breadcrumb"><a href="#">Home</a> / <span>REBAR PARA</span></div><div id="mount-rebar-para"></div></div>'
     + '    <div class="page-view" id="page-draw-psc"><h1 class="page-heading">PSC Box Girder</h1><div class="breadcrumb"><a href="#">Home</a> / <a href="#">Drawings</a> / <span>PSC</span></div><div id="mount-draw-psc"></div></div>'
     + '    <div class="page-view" id="page-quick-simpleconn"><h1 class="page-heading">Simple connector</h1><div class="breadcrumb"><a href="#">Home</a> / <a href="#">MacroPLATE3D</a> / <span>Simple connector</span></div><div id="mount-quick-simpleconn"></div></div>'
     + '    <div class="page-view" id="page-quick-crossbeam"><h1 class="page-heading">Crossbeam</h1><div class="breadcrumb"><a href="#">Home</a> / <a href="#">MacroPLATE3D</a> / <span>Crossbeam</span></div><div id="mount-quick-crossbeam"></div></div>'
@@ -916,6 +918,7 @@ function _bindNavigation() {
         if (pageId === 'draw-pscbox') { mountDrawing('pscbox'); ensurePscbox(); }
         if (pageId === 'draw-pscboxdia') { mountDrawing('pscboxdia'); ensurePscboxDia(); }
         if (pageId === 'draw-pscboxu') { mountDrawing('rebar'); ensurePscboxUnified(); }
+        if (pageId === 'rebar-para') { ensureRebarPara(); }
         if (pageId === 'draw-psc') { mountDrawing('psc'); ensurePsc(); }
         if (pageId === 'quick-simpleconn') { ensureQuickSimpleConn(); }
         if (pageId === 'quick-crossbeam') { ensureQuickCrossbeam(); }
@@ -1215,6 +1218,19 @@ function _bindNavigation() {
             if (open) _rebarEnsureMod('fdraw_pscboxdia', 'bim_pscbox_diaphragm_test.js', 'mount-rebar-sub', function () { _rebarForwardWhenReady('PXDIA', file, sheet); });
             else      _rebarEnsureMod('fdraw_pscbox', 'bim_pscbox_test.js', 'mount-rebar-sub', function () { _rebarForwardWhenReady('PXBOX', file, sheet); });
         }).catch(function (e) { if (hint) hint.textContent = '엑셀 읽기 실패: ' + (e && e.message || e); });
+    }
+    //  REBAR PARA — 논문 시뮬레이션 화면(rebar_para.js, 공개 UI). 계산은 서버 rebar_api.php {"mode":"para"}.
+    function ensureRebarPara() {
+        var mount = document.getElementById('mount-rebar-para');
+        if (!mount) return;
+        if (window.RebarPara) { window.RebarPara.mount(mount); return; }
+        if (window._rebarParaLoading) return;
+        window._rebarParaLoading = true;
+        var sc = document.createElement('script');
+        sc.src = 'https://macrobim.github.io/design/rebar_para.js?v=' + Date.now();
+        sc.onload = function () { window._rebarParaLoading = false; if (window.RebarPara) window.RebarPara.mount(mount); };
+        sc.onerror = function () { window._rebarParaLoading = false; mount.innerHTML = '<p style="color:#b91c1c">rebar_para.js 를 불러오지 못했습니다.</p>'; };
+        document.head.appendChild(sc);
     }
     function ensurePscboxUnified() {
         var mount = document.getElementById('mount-draw-rebar');

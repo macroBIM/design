@@ -144,14 +144,15 @@ const BUILDER = { rebar: 'loadRebarTables', strength: 'loadStrengthTables',
 
   const items = await page.evaluate(() =>
     Array.prototype.map.call(
-      document.querySelectorAll('.nav-item[data-page], .nav-sub a[data-page]'),
+      document.querySelectorAll('.topnav-item[data-page], .nav-item[data-page], .nav-sub a[data-page]'),
       a => a.getAttribute('data-page')));
-  ok(items.length > 15, LAYOUT + ': the menu is built', items.length + ' items');
+  ok(items.length >= 3, LAYOUT + ': the menu is built', items.length + ' items');
   console.log('');
 
   for (const id of items) {
     const click = () => page.evaluate(id => {
-      const a = document.querySelector('.nav-item[data-page="' + id + '"]') ||
+      const a = document.querySelector('.topnav-item[data-page="' + id + '"]') ||
+                document.querySelector('.nav-item[data-page="' + id + '"]') ||
                 document.querySelector('.nav-sub a[data-page="' + id + '"]');
       a.click();
     }, id);
@@ -216,7 +217,7 @@ const BUILDER = { rebar: 'loadRebarTables', strength: 'loadStrengthTables',
      decorative. */
   console.log('');
   await page.evaluate(() => {
-    const a = document.querySelector('.nav-item[data-page="draw-plate3d"]');
+    const a = document.querySelector('.topnav-item[data-page="draw-plate3d"], .nav-item[data-page="draw-plate3d"]');
     a.click();
   });
   await page.waitForTimeout(900);
@@ -225,7 +226,7 @@ const BUILDER = { rebar: 'loadRebarTables', strength: 'loadStrengthTables',
     m.querySelectorAll('*').forEach(k => k.setAttribute('data-kept', '1'));
   });
   await page.evaluate(() => {
-    const a = document.querySelector('.nav-item[data-page="draw-plate3d"]');
+    const a = document.querySelector('.topnav-item[data-page="draw-plate3d"], .nav-item[data-page="draw-plate3d"]');
     a.click();
   });
   await page.waitForTimeout(350);
@@ -270,7 +271,7 @@ const BUILDER = { rebar: 'loadRebarTables', strength: 'loadStrengthTables',
   ok(afterEsc > 0, 'Escape left the page alone', afterEsc + ' nodes');
 
   await page.evaluate(() => {
-    const a = document.querySelector('.nav-item[data-page="draw-plate3d"]');
+    const a = document.querySelector('.topnav-item[data-page="draw-plate3d"], .nav-item[data-page="draw-plate3d"]');
     a.click();
   });
   await page.waitForTimeout(350);

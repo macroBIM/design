@@ -152,62 +152,39 @@ window.MB = window.MB || {};
     };
 })();
 
+/* 머리줄 · 푸터는 사이트 공용 /css/site.css, 글꼴은 스토어 /store/assets/css/fonts.css, 새 화면 스타일은 layout_top.css.
+   페이지 <head> 가 이미 걸어 두었으면(/dev/ 는 /css/dev/site.css) 건드리지 않는다. */
+function _ensureSiteCss() {
+    function has(part) {
+        return Array.prototype.some.call(document.querySelectorAll('link[rel="stylesheet"]'),
+            function (l) { return (l.getAttribute('href') || '').indexOf(part) >= 0; });
+    }
+    function add(href, rel, type) {
+        var l = document.createElement('link'); l.rel = rel || 'stylesheet'; l.href = href;
+        if (type) l.type = type;
+        document.head.appendChild(l);
+    }
+    // 새 화면 스타일 — layout_style.css(시험 페이지와 같이 씀) 위에 덧씌운다
+    if (!has('layout_top.css')) add('https://macrobim.github.io/design/layout_top.css?v=1');
+    if (!has('/store/assets/css/fonts.css')) add('/store/assets/css/fonts.css');
+    if (!has('/site.css')) add('/css/site.css');
+    if (!document.querySelector('link[rel="icon"]')) add('/store/assets/img/macrobim-icon.svg', 'icon', 'image/svg+xml');
+}
+
 function initLayout(phpData) {
+    _ensureSiteCss();
     var html = ''
-    /* ══ SIDEBAR ══ */
-    + '<nav id="sidebar">'
-    + '  <div class="sidebar-header"><div class="logo-info"><a href="http://www.macrobim.com" class="name" style="text-decoration:none;color:inherit;">macroBIM</a></div></div>'
-    + '  <div class="nav-menu">'
-    + '    <a class="nav-item" href="#" data-page="home"><i class="bi bi-house-door"></i> Home</a>'
-    + '    <a class="nav-item" href="#" id="tablesToggle"><i class="bi bi-table"></i> Tables <span class="arrow">&#8250;</span></a>'
-    + '    <div class="nav-sub" id="tables-sub">'
-    + '      <a href="#" data-page="rebar">Rebar Tables</a>'
-    + '      <a href="#" data-page="strength">Steel Strength</a>'
-    + '      <a href="#" data-page="steel">Steel Section Tables</a>'
-    + '      <a href="#" data-page="bendradius">Rebar Bend Radius</a>'
-    + '    </div>'
-    /* Tables 바로 아래는 실제로 무언가를 만들고 검토하는 자리다 — 표를
-       찾아보고 나면 다음은 이쪽이다. MacroBEAM 은 견디는지를 보고,
-       PLATE3D 는 시트로 형상을 만든다. */
-    + '    <a class="nav-item" href="#" id="macrobeamToggle"><i class="bi bi-bar-chart-line"></i> MacroBEAM <span class="arrow">&#8250;</span></a>'
-    + '    <div class="nav-sub" id="macrobeam-sub">'
-    + '      <a href="#" data-page="beam-formula">SimpleBEAM</a>'
-    + '      <a href="#" data-page="beam-multi">MultiBEAM</a>'
-    + '    </div>'
-    /* MacroPLATE3D — PLATE3D 가 만드는 모델을 시트 대신 화면에서 적는 방식.
-       PLATE3D 바로 위에 둔다: 같은 엔진을 쓰고, 시트를 쓸지 폼을 쓸지가
-       고르는 자리이므로 둘이 붙어 있어야 고를 수 있다. */
-    + '    <a class="nav-item" href="#" id="quick3dToggle"><i class="bi bi-lightning-charge"></i> MacroPLATE3D <span class="arrow">&#8250;</span></a>'
-    + '    <div class="nav-sub" id="quick3d-sub">'
-    + '      <a href="#" data-page="quick-simpleconn">Simple connector</a>'
-    + '    </div>'
-    + '    <a class="nav-item" href="#" data-page="draw-plate3d"><i class="bi bi-stack"></i> PLATE3D</a>'
-    + '    <a class="nav-item" href="#" id="codeToggle"><i class="bi bi-calculator"></i> Code <span class="arrow">&#8250;</span></a>'
-    + '    <div class="nav-sub" id="code-sub">'
-    + '      <a href="#" data-page="rebarleng">Rebar Anchorage / Splice</a>'
-    + '    </div>'
-    + '    <a class="nav-item" href="#" id="drawingsToggle"><i class="bi bi-card-image"></i> Drawings <span class="arrow">&#8250;</span></a>'
-    + '    <div class="nav-sub" id="drawings-sub">'
-    + '      <a href="#" data-page="draw-hsection">H Section</a>'
-    + '      <a href="#" data-page="draw-channel">Channel</a>'
-    + '      <a href="#" data-page="draw-liftinglug">Lifting Lug</a>'
-    + '      <a href="#" data-page="draw-ibeam">I Beam</a>'
-    + '      <a href="#" data-page="draw-psc">PSC</a>'
-    + '      <a href="#" data-page="draw-rect">Rect</a>'
-    + '      <a href="#" data-page="draw-circle">Circle</a>'
-    + '      <a href="#" data-page="draw-octagon">Octagon</a>'
-    + '      <a href="#" data-page="draw-track">Track</a>'
-    + '    </div>'
-    + '    <a class="nav-item" href="#" id="retainingToggle"><i class="bi bi-bricks"></i> Retaining Wall <span class="arrow">&#8250;</span></a>'
-    + '    <div class="nav-sub" id="retaining-sub">'
-    + '      <a href="#" data-page="draw-gravitywall">Gravity Wall</a>'
-    + '      <a href="#" data-page="draw-invtwall">Inverted-T Wall</a>'
-    + '      <a href="#" data-page="draw-lwall">L-shaped Wall</a>'
-    + '    </div>'
-    + '    <a class="nav-item" href="#" data-page="draw-pier"><i class="bi bi-building"></i> Pier</a>'
-    + '    <a class="nav-item" href="#" data-page="qna"><i class="bi bi-question-circle"></i> QnA</a>'
-    + '  </div>'
-    + '</nav>'
+    /* ══ TOP NAV ══ */
+    /* 머리줄 · 푸터 모양은 공용 /css/site.css (스토어와 같은 클래스) · 로고는 스토어 파일 */
+    + '<header class="site-head"><div class="wrap">'
+    + '  <a href="./" class="brand" aria-label="macroBIM"><img class="brand-logo" src="/store/assets/img/macrobim-logo-h.svg" alt="macroBIM" width="135" height="28"></a>'
+    + '  <nav class="head-nav">'
+    + '    <a class="topnav-item" href="#" data-page="home" aria-current="page">HOME</a>'
+    + '    <a class="topnav-item" href="#" data-page="draw-plate3d">PLATE3D</a>'
+    + '    <a class="topnav-item" href="#" data-page="draw-pier">PIER</a>'
+    + '    <a href="/store/">STORE</a>'
+    + '  </nav>'
+    + '</div></header>'
 
     /* ══ MAIN ══ */
     + '<div id="main">'
@@ -215,64 +192,50 @@ function initLayout(phpData) {
 
     /* ── HOME ── */
     + '    <div class="page-view active" id="page-home">'
-    + '      <div style="max-width:1140px;margin:0 auto;">'
-    + '        <div style="background:#0c1222;padding:42px 32px;border-radius:14px;margin-bottom:32px;position:relative;overflow:hidden;">'
-    + '          <div style="position:absolute;top:-120px;right:-80px;width:400px;height:400px;border-radius:50%;background:radial-gradient(circle,rgba(37,99,235,0.12) 0%,transparent 70%);pointer-events:none;"></div>'
-    + '          <div style="position:relative;z-index:1;">'
-    + '            <div style="display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:#06b6d4;border:1px solid rgba(6,182,212,0.25);padding:5px 14px;border-radius:20px;margin-bottom:18px;"><i class="bi bi-lightning-charge-fill"></i> Fast &amp; Simple BIM Tools</div>'
-    + '            <h1 style="font-size:38px;font-weight:800;line-height:1.1;color:#e8edf6;margin:0 0 12px;">3D BIM &amp; Drawings, <span style="background:linear-gradient(135deg,#2563eb,#06b6d4);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">faster.</span></h1>'
-    + '            <p style="font-size:14px;color:#8899b4;max-width:500px;line-height:1.7;margin:0;">Hours of drafting — done in seconds. Parametric sections, structures, and joints, all in your browser. No install. Just open and go.</p>'
-    + '          </div>'
+    + '      <div class="home-page">'
+    + '      <div class="home-main">'
+    + '        <div style="padding:48px 0 40px;margin-bottom:32px;text-align:center;">'
+    + '          <p style="font-size:13px;font-weight:500;letter-spacing:0.04em;color:#8a8a8a;margin:0 0 12px;">Structural Drawings</p>'
+    + '          <h1 style="font-size:42px;font-weight:800;line-height:1.1;color:#1d1d1f;margin:0 0 16px;letter-spacing:-0.025em;">3D BIM &amp; Drawings, faster.</h1>'
+    + '          <p style="font-size:15px;color:#86868b;max-width:500px;line-height:1.7;margin:0 auto;">Enter the dimensions, get the drawing.<br>Plans, sections, rebar and quantities, exported to DXF.</p>'
     + '        </div>'
-    + '        <h2 style="font-size:20px;font-weight:700;color:#0f172a;margin:0 0 6px;padding-left:14px;border-left:4px solid #2563eb;">Macro Products</h2>'
-    + '        <p style="font-size:13px;color:#64748b;margin:0 0 16px;">Easy and convenient drawing tools</p>'
-    + '        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:36px;">'
-    + '          <a href="#" onclick="event.preventDefault();showPage(\'beam-formula\')" style="background:#fff;border:1px solid #e0e7f1;border-radius:12px;padding:24px;text-decoration:none;display:block;cursor:pointer;transition:border-color .2s;" onmouseover="this.style.borderColor=\'#2563eb\'" onmouseout="this.style.borderColor=\'#e0e7f1\'">'
-    + '            <div style="font-size:26px;color:#2563eb;margin-bottom:12px;"><i class="bi bi-bar-chart-line"></i></div>'
-    + '            <h3 style="font-size:17px;font-weight:700;color:#0f172a;margin:0 0 8px;">MacroBEAM</h3>'
-    + '            <p style="font-size:13px;color:#3b4963;line-height:1.65;margin:0 0 12px;">Fast beam analysis directly in the browser. Input loads, supports, and section properties — get shear, moment, and deflection results instantly.</p>'
+    + '        <div class="home-cards">'
+    + '          <a href="#" onclick="event.preventDefault();showPage(\'draw-plate3d\')" class="home-card">'
+    + '            <div style="font-size:28px;color:#111;margin-bottom:14px;"><i class="bi bi-stack"></i></div>'
+    + '            <h3 style="font-size:18px;font-weight:700;color:#111;margin:0 0 8px;">PLATE 3D</h3>'
+    + '            <p style="font-size:13px;color:#8a8a8a;line-height:1.65;margin:0 0 14px;">A spreadsheet that builds a steel structure. Parts become modules, modules become the assembly — change one cell and every copy follows.</p>'
     + '            <div style="display:flex;flex-wrap:wrap;gap:6px;">'
-    + '              <span style="font-size:10.5px;font-weight:600;padding:3px 10px;border-radius:6px;background:rgba(37,99,235,0.1);color:#2563eb;">SimpleBEAM</span>'
-    + '              <span style="font-size:10.5px;font-weight:600;padding:3px 10px;border-radius:6px;background:rgba(37,99,235,0.1);color:#2563eb;">MultiBEAM</span>'
-    + '              <span style="font-size:10.5px;font-weight:600;padding:3px 10px;border-radius:6px;background:#f1f5fb;color:#64748b;border:1px solid #e0e7f1;">SFD / BMD</span>'
-    + '              <span style="font-size:10.5px;font-weight:600;padding:3px 10px;border-radius:6px;background:#f1f5fb;color:#64748b;border:1px solid #e0e7f1;">Deflection</span>'
+    + '              <span style="font-size:10.5px;font-weight:600;padding:3px 10px;border-radius:20px;background:#f0f0f0;color:#555;">Spreadsheet-driven</span>'
+    + '              <span style="font-size:10.5px;font-weight:600;padding:3px 10px;border-radius:20px;background:#f0f0f0;color:#555;">Drawings · STL · IFC</span>'
     + '            </div>'
     + '          </a>'
-    + '          <a href="#" onclick="event.preventDefault();showPage(\'draw-plate3d\')" style="background:#fff;border:1px solid #e0e7f1;border-radius:12px;padding:24px;text-decoration:none;display:block;cursor:pointer;transition:border-color .2s;" onmouseover="this.style.borderColor=\'#2563eb\'" onmouseout="this.style.borderColor=\'#e0e7f1\'">'
-    + '            <div style="font-size:26px;color:#2563eb;margin-bottom:12px;"><i class="bi bi-stack"></i></div>'
-    + '            <h3 style="font-size:17px;font-weight:700;color:#0f172a;margin:0 0 8px;">PLATE 3D</h3>'
-    + '            <p style="font-size:13px;color:#3b4963;line-height:1.65;margin:0 0 12px;">A spreadsheet that builds a steel structure. Parts become modules, modules become the assembly &mdash; change one cell and every copy follows. Exports drawings, a take-off, STL and IFC.</p>'
+    + '          <a href="#" onclick="event.preventDefault();showPage(\'draw-pier\')" class="home-card">'
+    + '            <div style="font-size:28px;color:#111;margin-bottom:14px;line-height:1;"><svg viewBox="0 0 28 28" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" aria-hidden="true"><path d="M1 2.5h26v2.5H1z"/><path d="M7 5v1.5M21 5v1.5"/><path d="M3 6.5h22v2l-6 3H9l-6-3z"/><path d="M10.5 11.5h7v10h-7z"/><path d="M5 21.5h18v4H5z"/></svg></div>'
+    + '            <h3 style="font-size:18px;font-weight:700;color:#111;margin:0 0 8px;">PIER</h3>'
+    + '            <p style="font-size:13px;color:#8a8a8a;line-height:1.65;margin:0 0 14px;">Bridge pier parametric design. Input dimensions, generate multi-view drawings with DXF export.</p>'
     + '            <div style="display:flex;flex-wrap:wrap;gap:6px;">'
-    + '              <span style="font-size:10.5px;font-weight:600;padding:3px 10px;border-radius:6px;background:rgba(37,99,235,0.1);color:#2563eb;">Spreadsheet-driven</span>'
-    + '              <span style="font-size:10.5px;font-weight:600;padding:3px 10px;border-radius:6px;background:#f1f5fb;color:#64748b;border:1px solid #e0e7f1;">Steel</span>'
-    + '              <span style="font-size:10.5px;font-weight:600;padding:3px 10px;border-radius:6px;background:#f1f5fb;color:#64748b;border:1px solid #e0e7f1;">Drawings &middot; STL &middot; IFC</span>'
+    + '              <span style="font-size:10.5px;font-weight:600;padding:3px 10px;border-radius:20px;background:#f0f0f0;color:#555;">Parametric</span>'
+    + '              <span style="font-size:10.5px;font-weight:600;padding:3px 10px;border-radius:20px;background:#f0f0f0;color:#555;">DXF Export</span>'
+    + '            </div>'
+    + '          </a>'
+    + '          <a href="/store/" class="home-card">'
+    + '            <div style="font-size:28px;color:#111;margin-bottom:14px;"><i class="bi bi-bag"></i></div>'
+    + '            <h3 style="font-size:18px;font-weight:700;color:#111;margin:0 0 8px;">Store</h3>'
+    + '            <p style="font-size:13px;color:#8a8a8a;line-height:1.65;margin:0 0 14px;">Standard drawings for retaining walls and culverts. Sized to your dimensions, rebar included, delivered as DXF.</p>'
+    + '            <div style="display:flex;flex-wrap:wrap;gap:6px;">'
+    + '              <span style="font-size:10.5px;font-weight:600;padding:3px 10px;border-radius:20px;background:#f0f0f0;color:#555;">Retaining Wall</span>'
+    + '              <span style="font-size:10.5px;font-weight:600;padding:3px 10px;border-radius:20px;background:#f0f0f0;color:#555;">Culvert</span>'
+    + '              <span style="font-size:10.5px;font-weight:600;padding:3px 10px;border-radius:20px;background:#f0f0f0;color:#555;">DXF</span>'
     + '            </div>'
     + '          </a>'
     + '        </div>'
-    + '        <h2 style="font-size:20px;font-weight:700;color:#0f172a;margin:0 0 6px;padding-left:14px;border-left:4px solid #2563eb;">Engineering Tables</h2>'
-    + '        <p style="font-size:13px;color:#64748b;margin:0 0 16px;">Rebar specifications, steel sections, and code-based data at your fingertips</p>'
-    + '        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:36px;">'
-    + '          <a href="#" onclick="event.preventDefault();showPage(\'rebar\')" style="background:#fff;border:1px solid #e0e7f1;border-radius:10px;padding:14px;text-decoration:none;display:block;cursor:pointer;transition:border-color .2s;" onmouseover="this.style.borderColor=\'#f59e0b\'" onmouseout="this.style.borderColor=\'#e0e7f1\'"><div style="font-size:17px;color:#f59e0b;margin-bottom:6px;"><i class="bi bi-grid-3x3"></i></div><h4 style="font-size:13px;font-weight:600;color:#0f172a;margin:0 0 3px;">Rebar Tables</h4><p style="font-size:11.5px;color:#64748b;margin:0;">KS D 3504 · ASTM A615M · BS 4449</p></a>'
-    + '          <a href="#" onclick="event.preventDefault();showPage(\'strength\')" style="background:#fff;border:1px solid #e0e7f1;border-radius:10px;padding:14px;text-decoration:none;display:block;cursor:pointer;transition:border-color .2s;" onmouseover="this.style.borderColor=\'#f59e0b\'" onmouseout="this.style.borderColor=\'#e0e7f1\'"><div style="font-size:17px;color:#f59e0b;margin-bottom:6px;"><i class="bi bi-grid-3x3"></i></div><h4 style="font-size:13px;font-weight:600;color:#0f172a;margin:0 0 3px;">Steel Strength</h4><p style="font-size:11.5px;color:#64748b;margin:0;">Steel material strength properties</p></a>'
-    + '          <a href="#" onclick="event.preventDefault();showPage(\'steel\')" style="background:#fff;border:1px solid #e0e7f1;border-radius:10px;padding:14px;text-decoration:none;display:block;cursor:pointer;transition:border-color .2s;" onmouseover="this.style.borderColor=\'#f59e0b\'" onmouseout="this.style.borderColor=\'#e0e7f1\'"><div style="font-size:17px;color:#f59e0b;margin-bottom:6px;"><i class="bi bi-grid-3x3"></i></div><h4 style="font-size:13px;font-weight:600;color:#0f172a;margin:0 0 3px;">Steel Section Tables</h4><p style="font-size:11.5px;color:#64748b;margin:0;">H-Section, Channel, Angle, Tube, Pipe — 7 types</p></a>'
-    + '          <a href="#" onclick="event.preventDefault();showPage(\'bendradius\')" style="background:#fff;border:1px solid #e0e7f1;border-radius:10px;padding:14px;text-decoration:none;display:block;cursor:pointer;transition:border-color .2s;" onmouseover="this.style.borderColor=\'#f59e0b\'" onmouseout="this.style.borderColor=\'#e0e7f1\'"><div style="font-size:17px;color:#f59e0b;margin-bottom:6px;"><i class="bi bi-grid-3x3"></i></div><h4 style="font-size:13px;font-weight:600;color:#0f172a;margin:0 0 3px;">Rebar Bend Radius</h4><p style="font-size:11.5px;color:#64748b;margin:0;">ACI · AASHTO · Eurocode · KDS</p></a>'
-    + '          <a href="#" onclick="event.preventDefault();showPage(\'rebarleng\')" style="background:#fff;border:1px solid #e0e7f1;border-radius:10px;padding:14px;text-decoration:none;display:block;cursor:pointer;transition:border-color .2s;" onmouseover="this.style.borderColor=\'#8b5cf6\'" onmouseout="this.style.borderColor=\'#e0e7f1\'"><div style="font-size:17px;color:#8b5cf6;margin-bottom:6px;"><i class="bi bi-rulers"></i></div><h4 style="font-size:13px;font-weight:600;color:#0f172a;margin:0 0 3px;">Anchorage / Splice</h4><p style="font-size:11.5px;color:#64748b;margin:0;">Eurocode-based anchorage and splice length calculator</p></a>'
-    + '        </div>'
-    + '        <h2 style="font-size:20px;font-weight:700;color:#0f172a;margin:0 0 6px;padding-left:14px;border-left:4px solid #2563eb;">Parametric Sections &amp; Structures</h2>'
-    + '        <p style="font-size:13px;color:#64748b;margin:0 0 36px;">Pier, Retaining Walls (Gravity / Inverted-T / L-shaped), H Section, Channel, I Beam, BOX 1-Cell, Circle, Octagon, Track, Rect, Bolt Splice, Lifting Lug — multi-view 3D parametric drawings with batch CSV input and DXF export</p>'
-    + '        <h2 style="font-size:20px;font-weight:700;color:#0f172a;margin:0 0 12px;padding-left:14px;border-left:4px solid #2563eb;">Recent Updates</h2>'
-    + '        <div id="recent-updates" style="margin-bottom:36px;max-height:240px;overflow-y:auto;"><p style="font-size:13px;color:#64748b;margin:0;">No updates yet.</p></div>'
-    + '        <div style="background:#f1f5f9;border-top:2px solid #cbd5e1;border-radius:12px;padding:20px 32px;margin-top:32px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;">'
-    + '          <div>'
-    + '            <h2 style="font-size:16px;font-weight:700;color:#0f172a;margin:0 0 4px;">Contact Us</h2>'
-    + '            <p style="font-size:12px;color:#64748b;margin:0;max-width:480px;line-height:1.6;">Built by <strong style="color:#0f172a;">MacroEngineering</strong> — engineering automation, simplified. From civil and structural to architectural and mechanical, we pursue one-click solutions for repetitive engineering work. Business inquiries, custom automation requests, and collaboration are always welcome.</p>'
-    + '          </div>'
-    + '          <div style="display:flex;flex-direction:column;gap:10px;align-items:flex-end;">'
-    + '            <a href="http://www.macrobim.com" style="display:flex;align-items:center;gap:8px;font-size:13px;color:#2563eb;text-decoration:none;font-weight:500;"><i class="bi bi-globe2"></i> www.macrobim.com</a>'
-    + '            <a href="mailto:macrobim@macrobim.com" style="display:flex;align-items:center;gap:8px;font-size:13px;color:#2563eb;text-decoration:none;font-weight:500;"><i class="bi bi-envelope"></i> macrobim@macrobim.com</a>'
-    + '          </div>'
-    + '        </div>'
-    + '        <div style="text-align:center;padding:16px 0 20px;font-size:11px;color:#94a3b8;">&copy; 2026 macroBIM. All rights reserved.</div>'
+    + '      </div>'
+    /* 푸터 마크업(클래스)은 스토어 store/index.html 과 같다 · 문구는 영어 · 약관은 스토어 페이지로 */
+    + '      <footer class="site-foot"><div class="wrap">'
+    + '        <nav class="foot-links" aria-label="Policies"><a href="/store/terms.html">Terms of Service</a><a href="/store/privacy.html"><b>Privacy Policy</b></a><a href="/store/refund.html">Refund Policy</a><a href="/store/support.html">Support</a><a href="/store/guide.html">Guide</a></nav>'
+    + '        <div class="foot-in"><span>Copyright © 2026 Macro Engineering. All rights reserved.</span><span class="foot-loc">Republic of Korea</span></div>'
+    + '        <div class="foot-biz">Macro Engineering · Representative: Park Youngjin · 201, 27 Pangyogongwon-ro 5-gil, Bundang-gu, Seongnam-si, Gyeonggi-do, Korea · Business Registration No. 688-15-02549 · Mail-order Sales Registration No. 2026-Seongnam Bundang-A-1005 · <a href="mailto:support@macrobim.com">support@macrobim.com</a> · Tel +82-10-4965-3195 · Hosted by Cafe24</div>'
+    + '      </div></footer>'
     + '      </div>'
     + '    </div>'
 
@@ -407,7 +370,7 @@ function initLayout(phpData) {
     + '    <div class="page-view" id="page-draw-gravitywall"><h1 class="page-heading">Gravity Wall Layout</h1><div class="breadcrumb"><a href="#">Home</a> / <a href="#">Retaining Wall</a> / <span>Gravity Wall</span></div><div id="mount-draw-gravitywall"></div></div>'
     + '    <div class="page-view" id="page-draw-invtwall"><h1 class="page-heading">Inverted-T Wall Layout</h1><div class="breadcrumb"><a href="#">Home</a> / <a href="#">Retaining Wall</a> / <span>Inverted-T Wall</span></div><div id="mount-draw-invtwall"></div></div>'
     + '    <div class="page-view" id="page-draw-lwall"><h1 class="page-heading">L-shaped Wall Layout</h1><div class="breadcrumb"><a href="#">Home</a> / <a href="#">Retaining Wall</a> / <span>L-shaped Wall</span></div><div id="mount-draw-lwall"></div></div>'
-    + '    <div class="page-view" id="page-draw-pier"><h1 class="page-heading">Pier Input</h1><div class="breadcrumb"><a href="#">Home</a> / <span>Pier</span></div><div id="mount-draw-pier"></div></div>'
+    + '    <div class="page-view" id="page-draw-pier"><h1 class="page-heading">PIER</h1><div class="breadcrumb"><a href="#">Home</a> / <span>PIER</span></div><div id="mount-draw-pier"></div></div>'
     + '    <div class="page-view" id="page-draw-plate3d"><h1 class="page-heading">PLATE3D</h1><div class="breadcrumb"><a href="#">Home</a> / <span>PLATE3D</span></div><div id="mount-draw-plate3d"></div></div>'
     + '    <div class="page-view" id="page-quick-simpleconn"><h1 class="page-heading">Simple connector</h1><div class="breadcrumb"><a href="#">Home</a> / <a href="#">MacroPLATE3D</a> / <span>Simple connector</span></div><div id="mount-quick-simpleconn"></div></div>'
     + '    <div class="page-view" id="page-beam-formula"><h1 class="page-heading">SimpleBEAM</h1><div class="breadcrumb"><a href="#">Home</a> / <a href="#">MacroBEAM</a> / <span>SimpleBEAM</span></div><div id="mount-beam-formula"></div></div>'
@@ -418,7 +381,7 @@ function initLayout(phpData) {
     + '</div>';
 
     var root = document.getElementById('app-root');
-    root.style.cssText = 'display:flex;flex:1;height:100%;min-height:0;gap:16px;overflow:hidden;';
+    root.style.cssText = 'display:flex;flex-direction:column;flex:1;height:100%;min-height:0;overflow:hidden;';
     root.innerHTML = html;
 
     _createTemplates();
@@ -744,9 +707,9 @@ function _bindNavigation() {
         document.querySelectorAll('.nav-sub a').forEach(function(s) { s.classList.remove('active'); });
         var sb = document.querySelector('.nav-sub a[data-page="' + pageId + '"]');
         if (sb) sb.classList.add('active');
-        document.querySelectorAll('.nav-item[data-page]').forEach(function(s) { s.classList.remove('active'); });
-        var topItem = document.querySelector('.nav-item[data-page="' + pageId + '"]');
-        if (topItem) topItem.classList.add('active');
+        document.querySelectorAll('.topnav-item[data-page]').forEach(function(s) { s.removeAttribute('aria-current'); });
+        var topItem = document.querySelector('.topnav-item[data-page="' + pageId + '"]');
+        if (topItem) topItem.setAttribute('aria-current', 'page');
 
         // PLATE3D runs in an iframe that mountDrawing does not touch, so it has to
         // be dropped by hand on the way out. Leaving the page throws away whatever
@@ -875,7 +838,34 @@ function _bindNavigation() {
     }
 
     // Pier input module (bim_pier_test.js) — single-page, single entry fdraw_pier. Load on demand.
+    // 버튼 이름 · 아이콘은 여기서만 바꾼다. bim_pier_test.js 는 운영도 같이 쓰는 파일이라 손대지 않는다.
+    // PIER 는 값이 바뀔 때마다 카드를 새로 그리므로, 그려질 때마다 다시 붙인다.
+    var PIER_ICON_BOX = '<svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor" aria-hidden="true"><path d="M8.186 1.113a.5.5 0 0 0-.372 0L1.846 3.5 8 5.961 14.154 3.5zM15 4.239l-6.5 2.6v7.922l6.5-2.6V4.24zM7.5 14.762V6.838L1 4.239v7.923zM7.443.184a1.5 1.5 0 0 1 1.114 0l7.129 2.852A.5.5 0 0 1 16 3.5v8.662a1 1 0 0 1-.629.928l-7.185 2.874a.5.5 0 0 1-.372 0L.63 13.09a1 1 0 0 1-.63-.928V3.5a.5.5 0 0 1 .314-.464z"/></svg>';
+    var PIER_ICON_DOWN = '<svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor" aria-hidden="true"><path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5"/><path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708z"/></svg>';
+    var PIER_LABELS = {
+        'data-pr-3d':  PIER_ICON_BOX + '3D View',
+        'data-pr-stl': PIER_ICON_DOWN + 'Download STL',
+        'data-pr-dxf': PIER_ICON_DOWN + 'Download DXF'
+    };
+    function relabelPier(mount) {
+        Object.keys(PIER_LABELS).forEach(function (attr) {
+            mount.querySelectorAll('[' + attr + ']').forEach(function (b) {
+                if (b.getAttribute('data-mb-label') === '1') return;
+                b.innerHTML = PIER_LABELS[attr];
+                b.setAttribute('data-mb-label', '1');
+            });
+        });
+    }
+    function watchPier() {
+        var m = document.getElementById('mount-draw-pier');
+        if (!m || m._mbWatch) return;
+        m._mbWatch = new MutationObserver(function () { relabelPier(m); });
+        m._mbWatch.observe(m, { childList: true, subtree: true });
+        relabelPier(m);
+    }
+
     function ensurePier() {
+        watchPier();
         if (typeof fdraw_pier === 'function') { fdraw_pier('mount-draw-pier'); return; }
         if (window._pierLoading) return;
         window._pierLoading = true;
@@ -925,8 +915,12 @@ function _bindNavigation() {
 
         var want = 0;                       // 프레임이 스스로 요청한 높이
         function sizeFrame() {
-            var top = fr.getBoundingClientRect().top;
-            var room = Math.floor(window.innerHeight - top - 12);
+            // 바깥 상자(.content-wrap)의 아래 여백까지 빼야 페이지가 넘치지 않는다
+            var wrap = fr.closest('.content-wrap');
+            var padB = wrap ? parseFloat(getComputedStyle(wrap).paddingBottom) || 0 : 0;
+            var top = fr.getBoundingClientRect().top + (wrap ? wrap.scrollTop : 0);
+            var room = Math.floor(window.innerHeight - top - padB - 2);
+
             var h = want ? Math.min(want, room) : room;
             fr.style.height = Math.max(520, h) + 'px';
         }
@@ -1103,33 +1097,8 @@ function _bindNavigation() {
     }
     window.mountDrawing = mountDrawing;
 
-    document.getElementById('tablesToggle').addEventListener('click', function(e) {
-        e.preventDefault(); this.classList.toggle('open'); document.getElementById('tables-sub').classList.toggle('show');
-    });
-    document.getElementById('codeToggle').addEventListener('click', function(e) {
-        e.preventDefault(); this.classList.toggle('open'); document.getElementById('code-sub').classList.toggle('show');
-    });
-    document.getElementById('drawingsToggle').addEventListener('click', function(e) {
-        e.preventDefault(); this.classList.toggle('open'); document.getElementById('drawings-sub').classList.toggle('show');
-    });
-    document.getElementById('quick3dToggle').addEventListener('click', function(e) {
-        e.preventDefault(); this.classList.toggle('open'); document.getElementById('quick3d-sub').classList.toggle('show');
-    });
-    document.getElementById('macrobeamToggle').addEventListener('click', function(e) {
-        e.preventDefault(); this.classList.toggle('open'); document.getElementById('macrobeam-sub').classList.toggle('show');
-    });
-    document.getElementById('retainingToggle').addEventListener('click', function(e) {
-        e.preventDefault(); this.classList.toggle('open'); document.getElementById('retaining-sub').classList.toggle('show');
-    });
-    document.querySelectorAll('.nav-item[data-page]').forEach(function(el) {
+    document.querySelectorAll('.topnav-item[data-page]').forEach(function(el) {
         el.addEventListener('click', function(e) { e.preventDefault(); goPage(this.getAttribute('data-page')); });
-    });
-    document.querySelectorAll('.nav-sub a[data-page]').forEach(function(el) {
-        el.addEventListener('click', function(e) {
-            e.preventDefault(); goPage(this.getAttribute('data-page'));
-            var pt = this.closest('.nav-sub').previousElementSibling;
-            if (pt) { pt.classList.add('open'); this.closest('.nav-sub').classList.add('show'); }
-        });
     });
     // default landing page (Dashboard removed) — open Pier and load its module
     showPage('home');                     // the site opens on Home

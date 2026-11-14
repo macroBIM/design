@@ -6,18 +6,21 @@
     흰 바탕 · 무채색 · Inter + Pretendard
 */
 *{margin:0;padding:0;box-sizing:border-box;}
-body{font-family:'Inter','Pretendard',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;background:#fff;color:#444;display:flex;flex-direction:column;height:100vh;overflow:hidden;font-size:14px;}
+body{font-family:'Pretendard',-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Malgun Gothic',system-ui,sans-serif;-webkit-font-smoothing:antialiased;letter-spacing:-.005em;background:#fff;color:#444;display:flex;flex-direction:column;height:100vh;overflow:hidden;font-size:14px;}
 
 /* ── APP ROOT (layout_body.js 사용 시) ── */
 #app-root{display:flex;flex-direction:column;flex:1;height:100%;min-height:0;overflow:hidden;}
 
 /* ── TOP NAV ── */
-#topnav{display:flex;align-items:center;justify-content:space-between;padding:0 32px;height:52px;min-height:52px;border-bottom:1px solid #e5e5e5;background:#fff;}
-.topnav-logo{display:flex;align-items:center;gap:8px;text-decoration:none;color:#111;font-size:15px;}
-.topnav-menu{display:flex;align-items:center;gap:4px;}
-.topnav-item{padding:6px 14px;font-size:13.5px;font-weight:500;color:#8a8a8a;text-decoration:none;border-radius:20px;transition:all .15s;}
-.topnav-item:hover{background:#f0f0f0;color:#333;}
-.topnav-item.active{background:#f0f0f0;color:#111;font-weight:600;}
+/* 스토어 store.css 의 .site-head · .brand · .head-nav 값을 그대로 */
+#topnav{flex:none;background:#fbfbfd;border-bottom:1px solid rgba(0,0,0,.08);}
+.topnav-in{display:flex;align-items:center;gap:40px;min-height:52px;width:100%;max-width:1400px;margin:0 auto;padding-inline:20px;}
+.topnav-logo{display:flex;align-items:center;flex:none;}
+.topnav-logo img{display:block;height:28px;width:auto;}
+.topnav-menu{display:flex;align-items:center;gap:32px;font-size:14px;font-weight:600;}
+.topnav-item{color:#111;white-space:nowrap;padding-block:6px;border-bottom:2px solid transparent;text-decoration:none;}
+.topnav-item:hover,.topnav-item.active{border-bottom-color:#111;}
+@media (max-width:760px){.topnav-in{gap:24px;}.topnav-menu{gap:22px;}.topnav-logo img{height:22px;}}
 
 /* ── MAIN ── */
 #main{flex:1;display:flex;flex-direction:column;overflow:hidden;}

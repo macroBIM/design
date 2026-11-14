@@ -148,6 +148,7 @@
             .then(function (txt) {
                 var d; try { d = JSON.parse(txt); } catch (e) { throw new Error('응답이 JSON 이 아님: ' + txt.slice(0, 120)); }
                 if (!d.ok) throw new Error(d.error || '서버 오류');
+                if (!d.J || !d.param) throw new Error('서버 엔진이 옛 버전입니다 — pull.php 를 한 번 돌려 주세요 (시뮬레이션 모드 없음)');
                 DATA = d; draw(d, false); tables(d);
                 st.textContent = d.label + ' — 서버 ' + d.ms + ' ms · 왕복 ' + (Date.now() - t0) + ' ms' + (d.server && d.server.php ? ' · PHP ' + d.server.php : '');
             })

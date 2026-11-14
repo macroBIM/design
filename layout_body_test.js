@@ -1251,6 +1251,13 @@ function _bindNavigation() {
                 fileIn.addEventListener('change', function () { var f = fileIn.files[0]; if (f) _rebarDispatch(f); fileIn.value = ''; });
             }
         }
+        //  처음 열 때 빈 화면이 되지 않게 — 기본은 일반(거더 J-field) 입력 화면. 엑셀을 넣으면 open 행 유무로 바뀐다.
+        var sub = document.getElementById('mount-rebar-sub');
+        if (sub && !sub.firstElementChild) {
+            var hint = document.getElementById('rebarDispHint');
+            if (hint) hint.innerHTML = '기본: 일반단면(거더 J-field) 입력. 엑셀을 넣으면 <b>open</b> 행 유무로 일반/격벽 엔진을 자동 선택합니다.';
+            _rebarEnsureMod('fdraw_pscbox', 'bim_pscbox_test.js', 'mount-rebar-sub');
+        }
     }
 
     // Gravity wall module (bim_gravitywall.js) may not be in the page's script list — load on demand.

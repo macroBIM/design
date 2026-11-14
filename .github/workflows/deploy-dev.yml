@@ -1,0 +1,39 @@
+# dev 브랜치를 www.macrobim.com/dev/ 에 반영한다 (스토어의 deploy-store.yml 과 같은 방식).
+# 서버의 /www/dev/_deploy.php 를 https 로 불러 서버가 GitHub 에서 직접 끌어가게 한다.
+#
+# 한 번만 설정: Settings → Secrets and variables → Actions → Secrets 에
+#   DEPLOY_KEY   서버 /config/store_deploy.php 의 key 와 같은 값 (store 저장소의 DEPLOY_KEY 와 같다)
+# 설정 전에는 경고만 남기고 건너뛴다.
+name: Deploy dev
+
+on:
+  push:
+    branches: [dev]
+    paths: ["dev/**", "layout_style.css", "layout_body_test.js", ".github/workflows/deploy-dev.yml"]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-dev
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ask the server to pull dev/
+        env:
+          DEPLOY_KEY: ${{ secrets.DEPLOY_KEY }}
+        run: |
+          if [ -z "$DEPLOY_KEY" ]; then
+            echo "::warning::DEPLOY_KEY secret 이 없어 반영을 건너뜁니다."
+            exit 0
+          fi
+          # --data '': 카페24 앞단은 길이 없는 POST 를 502 로 막는다 (store 와 같은 이유)
+          code=$(curl -sS -L -o body.txt -w '%{http_code}' --max-time 180 \
+            -X POST --post301 --post302 --post303 --data '' -H "X-Deploy-Key: $DEPLOY_KEY" \
+            "https://www.macrobim.com/dev/_deploy.php") || { echo "::error::서버에 연결하지 못했습니다."; exit 1; }
+          cat body.txt
+          if [ "$code" != "200" ] || ! grep -q '^OK' body.txt; then
+            echo "::error::서버 반영 실패 (HTTP $code)"
+            exit 1
+          fi

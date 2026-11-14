@@ -1204,20 +1204,10 @@ function _bindNavigation() {
         fi.click = orig;
         try {
             var dt = new DataTransfer(); dt.items.add(file); fi.files = dt.files;
-            fi.dispatchEvent(new Event('change'));               // 핸들러 발동 → 내 파일 처리
+            window._rebarFwd = true;                            // 아래 가로채기(_rebarHook)가 통과시키게
+            try { fi.dispatchEvent(new Event('change')); } finally { window._rebarFwd = false; }   // 핸들러 발동 → 내 파일 처리
         } catch (e) { console.error('[REBAR] 파일 전달:', e); }
-    }
-    function _rebarDispatch(file) {
-        var hint = document.getElementById('rebarDispHint');
-        var sheet = String(((document.getElementById('rebarSheetName') || {}).value) || 'input').trim();
-        if (typeof window.loadSheetData !== 'function') { if (hint) hint.textContent = 'Excel reader 로딩 중 — 잠시 뒤 다시'; return; }
-        if (hint) hint.textContent = '읽는 중…';
-        window.loadSheetData(file, sheet).then(function (data) {
-            var open = _rebarHasOpenRow(data);
-            if (hint) hint.textContent = open ? '격벽(개구부) 감지 → 격벽 엔진' : '일반단면 → 거더 J-field 엔진';
-            if (open) _rebarEnsureMod('fdraw_pscboxdia', 'bim_pscbox_diaphragm_test.js', 'mount-rebar-sub', function () { _rebarForwardWhenReady('PXDIA', file, sheet); });
-            else      _rebarEnsureMod('fdraw_pscbox', 'bim_pscbox_test.js', 'mount-rebar-sub', function () { _rebarForwardWhenReady('PXBOX', file, sheet); });
-        }).catch(function (e) { if (hint) hint.textContent = '엑셀 읽기 실패: ' + (e && e.message || e); });
+        window._rebarCur = global;
     }
     //  REBAR PARA — 서버 엔진 화면(rebar_srv/rebar_server.js : REBAR 와 같은 틀 · 엑셀 · 2D · 3D · 철근표 + 표준 I/T 거더 · 검증).
     //  계산은 전부 서버 rebar_api.php(비공개 PHP). 다른 메뉴와 DOM id 가 같아 mountDrawing 목록으로 서로 지운다.
@@ -1244,32 +1234,36 @@ function _bindNavigation() {
             document.head.appendChild(sc);
         })(0);
     }
+    //  REBAR — 화면 안의 원래 [Load Excel] 하나로 엔진을 고른다 (위쪽 별도 입력줄 없음).
+    //  모듈의 파일 입력(#excelFileInput) change 를 **가로채** 시트를 먼저 읽고 open 행 유무로
+    //  일반(거더 J-field · PXBOX) / 격벽(PXDIA) 를 정한 뒤, 같은 엔진이면 그대로 넘기고 다르면 모듈을 바꿔 넘긴다.
+    function _rebarHook(e) {
+        var fi = e.target;
+        if (!fi || fi.id !== 'excelFileInput' || window._rebarFwd) return;
+        var f = fi.files && fi.files[0]; if (!f) return;
+        if (typeof window.loadSheetData !== 'function') return;          // 판별 불가 → 원래대로
+        e.stopImmediatePropagation(); e.preventDefault();
+        var sheet = String(((document.getElementById('sheetName') || {}).value) || 'input').trim();
+        window.loadSheetData(f, sheet).then(function (data) {
+            var want = _rebarHasOpenRow(data) ? 'PXDIA' : 'PXBOX';
+            if (want === (window._rebarCur || 'PXBOX')) {
+                window._rebarFwd = true;
+                try { fi.dispatchEvent(new Event('change')); } finally { window._rebarFwd = false; }
+            } else if (want === 'PXDIA') {
+                _rebarEnsureMod('fdraw_pscboxdia', 'bim_pscbox_diaphragm_test.js', 'mount-rebar-sub', function () { _rebarForwardWhenReady('PXDIA', f, sheet); });
+            } else {
+                _rebarEnsureMod('fdraw_pscbox', 'bim_pscbox_test.js', 'mount-rebar-sub', function () { _rebarForwardWhenReady('PXBOX', f, sheet); });
+            }
+        }).catch(function () { window._rebarFwd = true; try { fi.dispatchEvent(new Event('change')); } finally { window._rebarFwd = false; } });
+    }
     function ensurePscboxUnified() {
         var mount = document.getElementById('mount-draw-rebar');
         if (!mount) return;
-        if (!mount.querySelector('#rebarDisp')) {
-            mount.innerHTML =
-                '<div id="rebarDisp" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:0 0 14px;padding:12px 14px;border:1px solid #e2e8f0;border-radius:10px;background:#f8fafc;">' +
-                '  <span style="font-size:13px;color:#334155;">Sheet</span>' +
-                '  <input type="text" id="rebarSheetName" value="input" style="font:inherit;font-size:13px;padding:4px 8px;border:1px solid #cbd5e1;border-radius:6px;width:90px;">' +
-                '  <button id="rebarLoadBtn" type="button" style="font:inherit;font-size:13px;font-weight:700;color:#fff;background:#2563eb;border:1px solid #2563eb;border-radius:6px;padding:6px 14px;cursor:pointer;">&#8682; Load Excel</button>' +
-                '  <input type="file" id="rebarDispFile" accept=".xlsx,.xls" style="display:none;">' +
-                '  <span id="rebarDispHint" style="font-size:12px;color:#64748b;">엑셀을 넣으면 <b>open</b> 행 유무로 일반(J-field)/격벽 엔진을 자동 선택합니다.</span>' +
-                '</div>' +
-                '<div id="mount-rebar-sub"></div>';
-            var btn = mount.querySelector('#rebarLoadBtn'), fileIn = mount.querySelector('#rebarDispFile');
-            if (btn && fileIn) {
-                btn.addEventListener('click', function () { fileIn.click(); });
-                fileIn.addEventListener('change', function () { var f = fileIn.files[0]; if (f) _rebarDispatch(f); fileIn.value = ''; });
-            }
-        }
-        //  처음 열 때 빈 화면이 되지 않게 — 기본은 일반(거더 J-field) 입력 화면. 엑셀을 넣으면 open 행 유무로 바뀐다.
+        if (!mount.querySelector('#mount-rebar-sub')) mount.innerHTML = '<div id="mount-rebar-sub"></div>';
+        if (!mount._rebarHooked) { mount.addEventListener('change', _rebarHook, true); mount._rebarHooked = true; }
+        //  처음 열 때 기본은 일반단면(거더 J-field) 입력 화면
         var sub = document.getElementById('mount-rebar-sub');
-        if (sub && !sub.firstElementChild) {
-            var hint = document.getElementById('rebarDispHint');
-            if (hint) hint.innerHTML = '기본: 일반단면(거더 J-field) 입력. 엑셀을 넣으면 <b>open</b> 행 유무로 일반/격벽 엔진을 자동 선택합니다.';
-            _rebarEnsureMod('fdraw_pscbox', 'bim_pscbox_test.js', 'mount-rebar-sub');
-        }
+        if (sub && !sub.firstElementChild) { window._rebarCur = 'PXBOX'; _rebarEnsureMod('fdraw_pscbox', 'bim_pscbox_test.js', 'mount-rebar-sub'); }
     }
 
     // Gravity wall module (bim_gravitywall.js) may not be in the page's script list — load on demand.

@@ -60,7 +60,8 @@
   //  호스트 페이지가 window.PSC_BASE(= 커밋 고정 jsDelivr 베이스)를 주면 3D 모듈도 같은 버전으로.
   var MOD3D = 'https://macrobim.github.io/design/rebar_srv/bim_pscboxdia_3d.js';
   //  I/T 표준 단면 (서버 카탈로그 키) — 그리기용 이름표만
-  var GIRDERS = [['AASHTO_IV', 'AASHTO Type IV (I)'], ['AASHTO_III', 'AASHTO Type III (I)'], ['PCI_BT72', 'PCI BT-72 (T)'], ['PCI_BT63', 'PCI BT-63 (T)'], ['PCI_BT54', 'PCI BT-54 (T)']];
+  var GIRDERS = [['AASHTO_IV', 'AASHTO Type IV (I)'], ['AASHTO_III', 'AASHTO Type III (I)'],
+                 ['FDOT_FIB36', 'FDOT FIB-36 (T 벌브, 표준도)'], ['FDOT_FIB54', 'FDOT FIB-54 (T 벌브, 표준도)'], ['FDOT_FIB72', 'FDOT FIB-72 (T 벌브, 표준도)'], ['FDOT_FIB96', 'FDOT FIB-96 (T 벌브, 표준도)']];
   var _secMode = 'AASHTO_IV', _polyRow = null;   // 'PSCBOX' | 카탈로그 키 | 'POLY'
   var OP_SHAPES = [['RECT', 'Rectangle'], ['HEX', 'Hexagon'], ['OCT', 'Octagon']];
 
@@ -183,13 +184,14 @@
     var th = 'style="background:#f1f5f9;padding:5px 6px;text-align:right;white-space:nowrap"', td = 'style="padding:4px 6px;text-align:right;border-bottom:1px solid #f1f5f9;font-variant-numeric:tabular-nums"';
     h += '<div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px"><div><div class="draw-card-title" style="margin-bottom:6px">횡방향 꺾임점</div><table style="width:100%;border-collapse:collapse;font-size:12px"><tr><th ' + th + '>철근</th><th ' + th + '>코드</th><th ' + th + '>φ°</th><th ' + th + '>정답 x</th><th ' + th + '>정답 y</th><th ' + th + '>J 오차</th></tr>';
     (v.param.bars || []).forEach(function (b) {
-      var e = errs[b.id], q = b.vtx || b.pts[1];
+      var e = errs[b.id], q = b.vtx || b.pts[1] || b.pts[0];
+      if (b.straight && e != null) { h += '<tr><td ' + td + '>' + b.id + '</td><td ' + td + '>' + b.code + '</td><td ' + td + '>직선</td><td ' + td + '>' + f1(b.pts[0][0]) + '~' + f1(b.pts[1][0]) + '</td><td ' + td + '>' + f1(b.pts[0][1]) + '</td><td ' + td + '><b style="' + ok(e <= 1) + '">' + f2(e) + '</b></td></tr>'; return; }
       h += '<tr><td ' + td + '>' + b.id + '</td><td ' + td + '>' + b.code + '</td><td ' + td + '>' + (b.straight ? '직선' : f1(b.ang)) + '</td><td ' + td + '>' + f1(q[0]) + '</td><td ' + td + '>' + f1(q[1]) + '</td><td ' + td + '>' +
            (b.straight ? '<span style="color:#94a3b8">— (꺾임 없음)</span>' : '<b style="' + ok(e != null && e <= 1) + '">' + f2(e) + '</b>') + '</td></tr>';
     });
     h += '</table></div><div><div class="draw-card-title" style="margin-bottom:6px">종방향 절곡부</div><table style="width:100%;border-collapse:collapse;font-size:12px"><tr><th ' + th + '>모서리</th><th ' + th + '>종류</th><th ' + th + '>정답 x</th><th ' + th + '>정답 y</th><th ' + th + '>J 오차</th></tr>';
     var each = le.each || {};
-    (v.param.long || []).forEach(function (l) { var e = each[l.at] || {}, pk = l.kind === 'pocket'; h += '<tr><td ' + td + '>' + l.at + '</td><td ' + td + '>' + (pk ? '절곡부' : '오목(제외)') + '</td><td ' + td + '>' + f1(l.p[0]) + '</td><td ' + td + '>' + f1(l.p[1]) + '</td><td ' + td + '>' + (pk ? '<b style="' + ok(e.err != null && e.err <= 1) + '">' + f2(e.err) + '</b>' : f2(e.err)) + '</td></tr>'; });
+    (v.param.long || []).forEach(function (l) { var e = each[l.at] || {}, pk = l.kind === 'pocket' || l.kind === 'under'; h += '<tr><td ' + td + '>' + l.at + '</td><td ' + td + '>' + (l.kind === 'under' ? '4M 아래' : (pk ? '절곡부' : '오목(제외)')) + '</td><td ' + td + '>' + f1(l.p[0]) + '</td><td ' + td + '>' + f1(l.p[1]) + '</td><td ' + td + '>' + (pk ? '<b style="' + ok(e.err != null && e.err <= 1) + '">' + f2(e.err) + '</b>' : f2(e.err)) + '</td></tr>'; });
     h += '</table></div></div>';
     if (v.param.warn && v.param.warn.length) h += '<div style="font-size:12px;color:#92400e;background:#fffbeb;border:1px solid #fde68a;border-radius:6px;padding:6px 9px;margin-top:10px">' + v.param.warn.map(esc).join('<br>') + '</div>';
     h += '<div style="font-size:12px;color:#64748b;margin-top:8px">2D 그림의 <b style="color:#cbd5e1">흰 점선</b> = 파라메트릭 정답 · <b style="color:#f87171">빨간 원</b> = 종방향 정답 · 보라 = J 횡방향 · 금색 = J 종방향 · 서버 ' + v.ms + ' ms</div>';
@@ -766,7 +768,7 @@
   }
   function drawParamLong(data, T) {
     var v = data.verify, par = v ? v.param : null; if (!par) return;
-    (par.long || []).forEach(function (l) { if (l.kind !== 'pocket') return; var c = T(l.p); barLayer.add(new Konva.Circle({ x: c[0], y: c[1], radius: Math.max(3, T.s * (l.dia || 16) / 2 + 2), stroke: '#f87171', strokeWidth: 1.6 })); });
+    (par.long || []).forEach(function (l) { if (l.kind !== 'pocket' && l.kind !== 'under') return; var c = T(l.p); barLayer.add(new Konva.Circle({ x: c[0], y: c[1], radius: Math.max(3, T.s * (l.dia || 16) / 2 + 2), stroke: '#f87171', strokeWidth: 1.6 })); });
   }
   function playAnim(data, T) {
     var anim = data.anim, finalT = {}, finalL = {};

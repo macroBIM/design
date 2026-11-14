@@ -1,5 +1,51 @@
 # 테스트 → 운영 동기화 규칙
 
+## 상단 메뉴 화면 (2026-11-14 운영) — 먼저 읽을 것
+
+운영 첫 화면(`www.macrobim.com/`, 서버의 `index.html`)은 **왼쪽 사이드바가 없다.** 스토어
+(`/store/`)와 같은 모양의 상단 머리줄 + 흰/옅은 회색 화면이다.
+
+| | 운영 `www.macrobim.com/` | 시험 `www.macrobim.com/dev/` | 시험 `index_claude.html` |
+|---|---|---|---|
+| 레이아웃 JS | main `layout_body.js` (상단 메뉴) | **dev 브랜치** `layout_body_test.js` (상단 메뉴) | main `layout_body_test.js` (**왼쪽 메뉴 그대로** — REBAR PARA 등) |
+| 스타일 | main `layout_style.css` + **`layout_top.css`** | dev 브랜치 `layout_style.css` (새 화면용으로 다시 씀) | main `layout_style.css` |
+| 머리줄 · 푸터 | `/css/site.css` | `/css/dev/site.css` | — |
+| 나가는 길 | GitHub Pages (main) | 서버가 끌어감: `dev/_deploy.php` ← `deploy-dev.yml` | GitHub Pages (main) |
+
+- **메뉴:** `HOME · PLATE3D · PIER · STORE`. 모두 대문자, 영어. STORE 는 `/store/` 로 가는 그냥 링크다.
+  빔 계산(MacroBEAM) · 표 · 단면 도면 등은 메뉴에서 뺐다 — "도면 전문 사이트"로 보이게 하려는 사용자 결정.
+  페이지 코드는 남아 있어서 메뉴에 한 줄 넣으면 다시 나온다.
+- **메뉴 넣는 법:** `TOP NAV` 블록에 `'<a class="topnav-item" href="#" data-page="<페이지id>">LABEL</a>'` 한 줄.
+  `data-page` 는 이미 있는 `page-view` 의 id(`page-<페이지id>`)와 짝이다. 눌렀을 때 그 페이지를 만드는
+  `ensure...()` 는 `showPage` 에 이미 있다. 홈 카드에도 넣으려면 `.home-cards` 안에 `class="home-card"` 하나.
+- **스타일 넣는 곳:** 운영은 **`layout_top.css`** (layout_style.css 는 index_claude 도 쓰므로 새 화면 규칙을 넣지 않는다).
+  머리줄 · 푸터는 `css/site.css` 하나 — 값과 클래스 이름이 스토어 `store.css` 와 같다.
+- **PIER 버튼 이름**(3D View · Download STL · Download DXF)은 `bim_pier_test.js` 가 아니라 레이아웃의
+  `relabelPier` 가 바꾼다. 엔진 파일은 index_claude 와 같이 쓰므로 손대지 않았다.
+- **푸터는 영어** (사업자 정보 포함, 대표자 영문 Park Youngjin — 사용자 확인). 약관 링크는 `/store/*.html`.
+
+### dev → 운영 순서
+
+1. design `dev` 브랜치에서 `layout_body_test.js` · `layout_style.css` 를 고친다 → 1분 안에 `/dev/` 에 나간다.
+2. 운영으로 옮길 때는 **바뀐 부분만** `layout_body.js` 로, 스타일은 `layout_top.css` 로 (아래 원칙 그대로).
+   dev 브랜치를 main 에 통째로 합치지 않는다 — dev 의 `layout_body_test.js` · `layout_style.css` 가
+   main 으로 가면 index_claude 의 왼쪽 메뉴가 사라진다.
+3. `node tools/check_sync_scope.js` · `node tools/check_menu_reset.js --prod` · `node tools/check_menu_reset.js`.
+   마지막 것(index_claude 빌드)의 `Konva is not defined` 실패 1건은 원래 있던 것이다(검사가 unpkg 를 막아서).
+
+### 서버 자동 배포 (스토어와 같은 방식)
+
+GitHub Actions 가 서버의 `_deploy.php` 를 부르면 서버가 design 저장소(공개 — 토큰 없음)를 끌어간다.
+키는 서버 `/config/store_deploy.php` 의 `key` = design 저장소 Secret `DEPLOY_KEY`.
+
+| 서버 파일 | 무엇을 | 부르는 것 |
+|---|---|---|
+| `/www/dev/_deploy.php` | dev 브랜치의 `dev/*` + `layout_style.css` · `layout_body_test.js` → `/www/dev/` | `deploy-dev.yml` (dev 에 push) |
+| `/www/css/_deploy.php` | `css/*` → main 은 `/www/css/`, dev 는 `/www/css/dev/` | `deploy-css.yml` (main · dev 에 push) |
+
+`_deploy.php` 자신은 배포로 바뀌지 않는다 — 고치면 FTP 로 다시 올려야 한다.
+막 push 한 직후 GitHub zipball 이 한 커밋 전 것을 줄 때가 있어, 워크플로가 이번 커밋이 받아질 때까지 다시 부른다.
+
 > **창을 열면 `macroBIM/STATUS.md` 부터 읽는다.** 지금 무엇이 운영에 나가 있고
 > 무엇이 테스트에만 있는지, 다른 창이 무엇을 잡고 있는지가 거기 있다. 이 문서는
 > **어떻게** 옮기는지를 적고, 그 파일은 **지금 어디까지 갔는지**를 적는다.

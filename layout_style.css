@@ -249,3 +249,5 @@ body{font-family:'Pretendard',-apple-system,BlinkMacSystemFont,'Apple SD Gothic 
 #page-draw-plate3d .page-heading{font-size:17px;margin:0;}
 #page-draw-plate3d .breadcrumb{font-size:12px;margin:0 0 10px;}
 #mount-draw-plate3d{flex-basis:100%;}
+.home-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:40px;}
+@media (max-width:900px){.home-cards{grid-template-columns:1fr;}}

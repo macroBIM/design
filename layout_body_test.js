@@ -166,7 +166,7 @@ function initLayout(phpData) {
 
     /* ── HOME ── */
     + '    <div class="page-view active" id="page-home">'
-    + '      <div style="max-width:1140px;margin:0 auto;">'
+    + '      <div style="max-width:1140px;margin:0 auto;min-height:100%;display:flex;flex-direction:column;">'
     + '        <div style="padding:48px 0 40px;margin-bottom:32px;text-align:center;">'
     + '          <p style="font-size:13px;font-weight:500;letter-spacing:0.04em;color:#8a8a8a;margin:0 0 12px;">Fast & Simple BIM Tools</p>'
     + '          <h1 style="font-size:42px;font-weight:800;line-height:1.1;color:#111;margin:0 0 16px;letter-spacing:-0.02em;">3D BIM &amp; Drawings, faster.</h1>'
@@ -192,7 +192,8 @@ function initLayout(phpData) {
     + '            </div>'
     + '          </a>'
     + '        </div>'
-    + '        <div style="border-top:1px solid #e5e5e5;padding:24px 0;margin-top:40px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;">'
+    + '        <div style="flex:1;"></div>'
+    + '        <div style="border-top:1px solid #e5e5e5;padding:24px 0;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;">'
     + '          <div>'
     + '            <p style="font-size:12px;color:#8a8a8a;margin:0;max-width:480px;line-height:1.6;">Built by <strong style="color:#111;">MacroEngineering</strong> — engineering automation, simplified.</p>'
     + '          </div>'

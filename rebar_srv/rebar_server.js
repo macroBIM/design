@@ -168,7 +168,7 @@
     if (!v) { card.style.display = 'none'; return; }
     card.style.display = '';
     var errs = (v.J && v.J.err) || {}, nB = 0, okB = 0;
-    Object.keys(errs).forEach(function (k) { nB++; if (errs[k] != null && errs[k] <= 1) okB++; });
+    Object.keys(errs).forEach(function (k) { if (errs[k] == null) return; nB++; if (errs[k] <= 1) okB++; });
     var le = (v.J && v.J.longErr) || {}, t = v.trials || {};
     var ok = function (b) { return b ? 'color:#15803d' : 'color:#b91c1c'; };
     var kpi = function (val, lab, good) { return '<div style="border:1px solid #e2e8f0;border-radius:8px;padding:8px 10px;background:#f8fafc;min-width:150px"><b style="display:block;font-size:18px;' + (good == null ? '' : ok(good)) + '">' + val + '</b><span style="font-size:11.5px;color:#64748b">' + lab + '</span></div>'; };
@@ -182,7 +182,11 @@
       kpi(f1(v.props_in.A) + ' in²', '단면적 (공표 ' + v.pub.A + ')', Math.abs(v.props_in.A - v.pub.A) < 1) + '</div>';
     var th = 'style="background:#f1f5f9;padding:5px 6px;text-align:right;white-space:nowrap"', td = 'style="padding:4px 6px;text-align:right;border-bottom:1px solid #f1f5f9;font-variant-numeric:tabular-nums"';
     h += '<div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px"><div><div class="draw-card-title" style="margin-bottom:6px">횡방향 꺾임점</div><table style="width:100%;border-collapse:collapse;font-size:12px"><tr><th ' + th + '>철근</th><th ' + th + '>코드</th><th ' + th + '>φ°</th><th ' + th + '>정답 x</th><th ' + th + '>정답 y</th><th ' + th + '>J 오차</th></tr>';
-    (v.param.bars || []).forEach(function (b) { var e = errs[b.id]; h += '<tr><td ' + td + '>' + b.id + '</td><td ' + td + '>' + b.code + '</td><td ' + td + '>' + f1(b.ang) + '</td><td ' + td + '>' + f1(b.pts[1][0]) + '</td><td ' + td + '>' + f1(b.pts[1][1]) + '</td><td ' + td + '><b style="' + ok(e != null && e <= 1) + '">' + f2(e) + '</b></td></tr>'; });
+    (v.param.bars || []).forEach(function (b) {
+      var e = errs[b.id], q = b.vtx || b.pts[1];
+      h += '<tr><td ' + td + '>' + b.id + '</td><td ' + td + '>' + b.code + '</td><td ' + td + '>' + (b.straight ? '직선' : f1(b.ang)) + '</td><td ' + td + '>' + f1(q[0]) + '</td><td ' + td + '>' + f1(q[1]) + '</td><td ' + td + '>' +
+           (b.straight ? '<span style="color:#94a3b8">— (꺾임 없음)</span>' : '<b style="' + ok(e != null && e <= 1) + '">' + f2(e) + '</b>') + '</td></tr>';
+    });
     h += '</table></div><div><div class="draw-card-title" style="margin-bottom:6px">종방향 절곡부</div><table style="width:100%;border-collapse:collapse;font-size:12px"><tr><th ' + th + '>모서리</th><th ' + th + '>종류</th><th ' + th + '>정답 x</th><th ' + th + '>정답 y</th><th ' + th + '>J 오차</th></tr>';
     var each = le.each || {};
     (v.param.long || []).forEach(function (l) { var e = each[l.at] || {}, pk = l.kind === 'pocket'; h += '<tr><td ' + td + '>' + l.at + '</td><td ' + td + '>' + (pk ? '절곡부' : '오목(제외)') + '</td><td ' + td + '>' + f1(l.p[0]) + '</td><td ' + td + '>' + f1(l.p[1]) + '</td><td ' + td + '>' + (pk ? '<b style="' + ok(e.err != null && e.err <= 1) + '">' + f2(e.err) + '</b>' : f2(e.err)) + '</td></tr>'; });

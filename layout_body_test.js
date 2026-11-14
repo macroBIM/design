@@ -151,10 +151,10 @@ function initLayout(phpData) {
 
     var html = ''
     /* ══ TOP NAV ══ */
-    /* 로고는 스토어와 같은 파일을 쓴다 (www.macrobim.com/store/assets/img) */
-    + '<header id="topnav"><div class="topnav-in">'
-    + '  <a href="./" class="topnav-logo" aria-label="macroBIM"><img src="/store/assets/img/macrobim-logo-h.svg" alt="macroBIM" width="135" height="28"></a>'
-    + '  <nav class="topnav-menu">'
+    /* 머리줄 · 푸터 모양은 공용 /css/site.css (스토어와 같은 클래스) · 로고는 스토어 파일 */
+    + '<header class="site-head"><div class="wrap">'
+    + '  <a href="./" class="brand" aria-label="macroBIM"><img class="brand-logo" src="/store/assets/img/macrobim-logo-h.svg" alt="macroBIM" width="135" height="28"></a>'
+    + '  <nav class="head-nav">'
     + '    <a class="topnav-item" href="#" data-page="home">Home</a>'
     + '    <a class="topnav-item" href="#" data-page="draw-plate3d">PLATE3D</a>'
     + '    <a class="topnav-item" href="#" data-page="draw-pier">Pier</a>'
@@ -195,8 +195,8 @@ function initLayout(phpData) {
     + '          </a>'
     + '        </div>'
     + '      </div>'
-    /* 푸터는 스토어(store/index.html .site-foot)와 같은 마크업 · 약관은 스토어 페이지로 */
-    + '      <footer class="site-foot"><div class="foot-wrap">'
+    /* 푸터 마크업은 스토어 store/index.html 과 같다 · 약관은 스토어 페이지로 */
+    + '      <footer class="site-foot"><div class="wrap">'
     + '        <nav class="foot-links" aria-label="약관"><a href="/store/terms.html">이용약관</a><a href="/store/privacy.html"><b>개인정보처리방침</b></a><a href="/store/refund.html">환불 정책</a><a href="/store/support.html">고객지원</a><a href="/store/guide.html">사용법</a></nav>'
     + '        <div class="foot-in"><span>Copyright © 2026 매크로 엔지니어링. All rights reserved.</span><span class="foot-loc">대한민국</span></div>'
     + '        <div class="foot-biz">상호 매크로 엔지니어링 · 대표자 박영진 · 경기도 성남시 분당구 판교공원로5길 27, 201호 (판교동) · 사업자등록번호 688-15-02549 · 통신판매업 신고 제2026-성남분당A-1005호 · <a href="mailto:support@macrobim.com">support@macrobim.com</a> · 전화 010-4965-3195 · 호스팅 제공 카페24</div>'
@@ -794,9 +794,9 @@ function _bindNavigation() {
         document.querySelectorAll('.nav-sub a').forEach(function(s) { s.classList.remove('active'); });
         var sb = document.querySelector('.nav-sub a[data-page="' + pageId + '"]');
         if (sb) sb.classList.add('active');
-        document.querySelectorAll('.topnav-item[data-page]').forEach(function(s) { s.classList.remove('active'); });
+        document.querySelectorAll('.topnav-item[data-page]').forEach(function(s) { s.removeAttribute('aria-current'); });
         var topItem = document.querySelector('.topnav-item[data-page="' + pageId + '"]');
-        if (topItem) topItem.classList.add('active');
+        if (topItem) topItem.setAttribute('aria-current', 'page');
 
         if (pageId === 'dashboard') { loadVisitChart(); }
         // PLATE3D runs in an iframe that mountDrawing does not touch, so it has to

@@ -11,16 +11,8 @@ body{font-family:'Pretendard',-apple-system,BlinkMacSystemFont,'Apple SD Gothic 
 /* ── APP ROOT (layout_body.js 사용 시) ── */
 #app-root{display:flex;flex-direction:column;flex:1;height:100%;min-height:0;overflow:hidden;}
 
-/* ── TOP NAV ── */
-/* 스토어 store.css 의 .site-head · .brand · .head-nav 값을 그대로 */
-#topnav{flex:none;background:#fbfbfd;border-bottom:1px solid rgba(0,0,0,.08);}
-.topnav-in{display:flex;align-items:center;gap:40px;min-height:52px;width:100%;max-width:1400px;margin:0 auto;padding-inline:20px;}
-.topnav-logo{display:flex;align-items:center;flex:none;}
-.topnav-logo img{display:block;height:28px;width:auto;}
-.topnav-menu{display:flex;align-items:center;gap:32px;font-size:14px;font-weight:600;}
-.topnav-item{color:#111;white-space:nowrap;padding-block:6px;border-bottom:2px solid transparent;text-decoration:none;}
-.topnav-item:hover,.topnav-item.active{border-bottom-color:#111;}
-@media (max-width:760px){.topnav-in{gap:24px;}.topnav-menu{gap:22px;}.topnav-logo img{height:22px;}}
+/* 머리줄 · 푸터 모양은 공용 /css/site.css */
+#app-root > .site-head{flex:none;}
 
 /* ── MAIN ── */
 #main{flex:1;display:flex;flex-direction:column;overflow:hidden;}
@@ -250,15 +242,3 @@ body{font-family:'Pretendard',-apple-system,BlinkMacSystemFont,'Apple SD Gothic 
 .content-wrap:has(#page-home.active){padding:0;}
 .home-page{min-height:calc(100vh - 53px);display:flex;flex-direction:column;}
 .home-main{flex:1 0 auto;width:100%;max-width:1140px;margin:0 auto;padding:24px 20px 40px;}
-
-/* 푸터 — 스토어 store.css .site-foot · .foot-* 값 그대로 */
-.site-foot{padding-block:18px 26px;font-size:12px;color:#6e6e73;line-height:1.6;}
-.foot-wrap{width:100%;max-width:1400px;margin:0 auto;padding-inline:20px;}
-.foot-links{display:flex;flex-wrap:wrap;gap:4px 0;padding-top:16px;background:linear-gradient(#d2d2d7,#d2d2d7) top center/calc(100% - 40px) 1px no-repeat;}
-.foot-links a{color:#424245;text-decoration:none;}
-.foot-links a:hover{text-decoration:underline;}
-.foot-links a+a::before{content:"";display:inline-block;width:1px;height:11px;background:#d2d2d7;margin:0 12px;vertical-align:-1px;}
-.foot-in{display:flex;flex-wrap:wrap;align-items:center;gap:6px 0;padding-top:8px;}
-.foot-loc{margin-left:auto;}
-.foot-biz{margin:8px 0 0;font-size:11.5px;line-height:1.7;color:#86868b;}
-.foot-biz a{color:#6e6e73;text-decoration:underline;text-underline-offset:2px;}

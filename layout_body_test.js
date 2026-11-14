@@ -158,6 +158,7 @@ function initLayout(phpData) {
     + '    <a class="topnav-item" href="#" data-page="home" aria-current="page">Home</a>'
     + '    <a class="topnav-item" href="#" data-page="draw-plate3d">PLATE3D</a>'
     + '    <a class="topnav-item" href="#" data-page="draw-pier">PIER</a>'
+    + '    <a href="/store/">Store</a>'
     + '  </nav>'
     + '</div></header>'
 

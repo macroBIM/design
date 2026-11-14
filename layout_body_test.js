@@ -185,7 +185,7 @@ function initLayout(phpData) {
     + '            </div>'
     + '          </a>'
     + '          <a href="#" onclick="event.preventDefault();showPage(\'draw-pier\')" class="home-card">'
-    + '            <div style="font-size:28px;color:#111;margin-bottom:14px;line-height:1;"><svg viewBox="0 0 28 28" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" aria-hidden="true"><path d="M2 5.5h24v2.5l-7 3.5H9L2 8z"/><path d="M10.5 11.5h7v10h-7z"/><path d="M5.5 21.5h17v3.5h-17z"/><path d="M6 3.5v2M22 3.5v2"/></svg></div>'
+    + '            <div style="font-size:28px;color:#111;margin-bottom:14px;line-height:1;"><svg viewBox="0 0 28 28" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" aria-hidden="true"><path d="M1 2.5h26v2.5H1z"/><path d="M7 5v1.5M21 5v1.5"/><path d="M3 6.5h22v2l-6 3H9l-6-3z"/><path d="M10.5 11.5h7v10h-7z"/><path d="M5 21.5h18v4H5z"/></svg></div>'
     + '            <h3 style="font-size:18px;font-weight:700;color:#111;margin:0 0 8px;">PIER</h3>'
     + '            <p style="font-size:13px;color:#8a8a8a;line-height:1.65;margin:0 0 14px;">Bridge pier parametric design. Input dimensions, generate multi-view drawings with DXF export.</p>'
     + '            <div style="display:flex;flex-wrap:wrap;gap:6px;">'

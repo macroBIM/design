@@ -172,7 +172,7 @@ function initLayout(phpData) {
     + '      <div class="home-main">'
     + '        <div style="padding:48px 0 40px;margin-bottom:32px;text-align:center;">'
     + '          <p style="font-size:13px;font-weight:500;letter-spacing:0.04em;color:#8a8a8a;margin:0 0 12px;">Structural Drawings</p>'
-    + '          <h1 style="font-size:42px;font-weight:800;line-height:1.1;color:#1d1d1f;margin:0 0 16px;letter-spacing:-0.025em;">Drawings, done in seconds.</h1>'
+    + '          <h1 style="font-size:42px;font-weight:800;line-height:1.1;color:#1d1d1f;margin:0 0 16px;letter-spacing:-0.025em;">3D BIM &amp; Drawings, faster.</h1>'
     + '          <p style="font-size:15px;color:#86868b;max-width:500px;line-height:1.7;margin:0 auto;">Enter the dimensions, get the drawing.<br>Plans, sections, rebar and quantities, exported to DXF.</p>'
     + '        </div>'
     + '        <div class="home-cards">'

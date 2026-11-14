@@ -253,3 +253,7 @@ body{font-family:'Pretendard',-apple-system,BlinkMacSystemFont,'Apple SD Gothic 
 @media (max-width:900px){.home-cards{grid-template-columns:1fr;}}
 .home-card > div:first-child{height:28px;line-height:28px;}
 .home-card > div:first-child svg{display:block;}
+
+/* ── PIER: 본문 폭을 스토어 상품 화면(main.wrap.wide)과 같게 — 최대 1400, 좌우 20 (머리줄 로고와 줄이 맞는다) ── */
+.content-wrap:has(#page-draw-pier.active){padding:24px 0;}
+#page-draw-pier{max-width:1400px;margin:0 auto;padding-inline:20px;}

@@ -155,7 +155,7 @@ function initLayout(phpData) {
     + '<header class="site-head"><div class="wrap">'
     + '  <a href="./" class="brand" aria-label="macroBIM"><img class="brand-logo" src="/store/assets/img/macrobim-logo-h.svg" alt="macroBIM" width="135" height="28"></a>'
     + '  <nav class="head-nav">'
-    + '    <a class="topnav-item" href="#" data-page="home">Home</a>'
+    + '    <a class="topnav-item" href="#" data-page="home" aria-current="page">Home</a>'
     + '    <a class="topnav-item" href="#" data-page="draw-plate3d">PLATE3D</a>'
     + '    <a class="topnav-item" href="#" data-page="draw-pier">Pier</a>'
     + '  </nav>'

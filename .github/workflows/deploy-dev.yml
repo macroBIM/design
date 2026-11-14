@@ -28,12 +28,20 @@ jobs:
             echo "::warning::DEPLOY_KEY secret 이 없어 반영을 건너뜁니다."
             exit 0
           fi
-          # --data '': 카페24 앞단은 길이 없는 POST 를 502 로 막는다 (store 와 같은 이유)
-          code=$(curl -sS -L -o body.txt -w '%{http_code}' --max-time 180 \
-            -X POST --post301 --post302 --post303 --data '' -H "X-Deploy-Key: $DEPLOY_KEY" \
-            "https://www.macrobim.com/dev/_deploy.php") || { echo "::error::서버에 연결하지 못했습니다."; exit 1; }
-          cat body.txt
-          if [ "$code" != "200" ] || ! grep -q '^OK' body.txt; then
-            echo "::error::서버 반영 실패 (HTTP $code)"
-            exit 1
-          fi
+          # 막 올린 직후엔 GitHub zipball 이 한 커밋 전 것을 줄 때가 있다 → 이번 커밋이 받아질 때까지 다시 부른다
+          want="${GITHUB_SHA:0:7}"
+          for i in 1 2 3 4 5 6 7 8; do
+            # --data '': 카페24 앞단은 길이 없는 POST 를 502 로 막는다 (store 와 같은 이유)
+            code=$(curl -sS -L -o body.txt -w '%{http_code}' --max-time 180 \
+              -X POST --post301 --post302 --post303 --data '' -H "X-Deploy-Key: $DEPLOY_KEY" \
+              "https://www.macrobim.com/dev/_deploy.php") || { echo "::error::서버에 연결하지 못했습니다."; exit 1; }
+            cat body.txt
+            if [ "$code" != "200" ] || ! grep -q '^OK' body.txt; then
+              echo "::error::서버 반영 실패 (HTTP $code)"
+              exit 1
+            fi
+            grep -q "v=$want" body.txt && exit 0
+            sleep 15
+          done
+          echo "::error::$want 이 받아지지 않았습니다."
+          exit 1

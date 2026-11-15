@@ -7,6 +7,20 @@
   다른 규칙과 부딪히지 않게 .wrap 은 머리줄 · 푸터 안에서만 쓴다.
 */
 
+/* ── 글꼴 ──
+   영문은 Inter(Google Fonts, 페이지가 건다). Pretendard 는 한글에만 — unicode-range 로 한글이 화면에 있을 때만 받는다.
+   Pretendard 의 영문 글자가 곧 Inter 라 모양은 같다. 파일은 스토어 것(/store/assets/fonts)을 그대로 쓴다.
+   스토어의 fonts.css(전 범위 Pretendard)를 같은 페이지에 같이 걸면 이 절약이 없어진다. */
+@font-face { font-family: 'Pretendard'; font-weight: 400; font-style: normal; font-display: swap;
+  src: local('Pretendard Regular'), url('/store/assets/fonts/Pretendard-Regular.subset.woff2') format('woff2');
+  unicode-range: U+1100-11FF, U+3130-318F, U+A960-A97F, U+AC00-D7A3, U+D7B0-D7FF; }
+@font-face { font-family: 'Pretendard'; font-weight: 600; font-style: normal; font-display: swap;
+  src: local('Pretendard SemiBold'), url('/store/assets/fonts/Pretendard-SemiBold.subset.woff2') format('woff2');
+  unicode-range: U+1100-11FF, U+3130-318F, U+A960-A97F, U+AC00-D7A3, U+D7B0-D7FF; }
+@font-face { font-family: 'Pretendard'; font-weight: 700; font-style: normal; font-display: swap;
+  src: local('Pretendard Bold'), url('/store/assets/fonts/Pretendard-Bold.subset.woff2') format('woff2');
+  unicode-range: U+1100-11FF, U+3130-318F, U+A960-A97F, U+AC00-D7A3, U+D7B0-D7FF; }
+
 /* ── 머리줄 ── */
 .site-head { position: sticky; top: 0; z-index: 20; padding-top: env(safe-area-inset-top, 0px); background: #fbfbfd; border-bottom: 1px solid rgba(0, 0, 0, .08); }
 .site-head .wrap,

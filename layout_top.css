@@ -5,7 +5,7 @@
     새 화면에서 달라지는 것만 여기 둔다. 머리줄 · 푸터 모양은 공용 /css/site.css.
 */
 body{display:flex;flex-direction:column;padding:0;gap:0;background:#fff;
-  font-family:'Pretendard',-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Malgun Gothic',system-ui,sans-serif;
+  font-family:'Pretendard','Inter',-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Malgun Gothic',system-ui,sans-serif;
   -webkit-font-smoothing:antialiased;letter-spacing:-.005em;}
 #app-root{flex-direction:column;gap:0;}
 #app-root > .site-head{flex:none;}

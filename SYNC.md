@@ -20,6 +20,10 @@
   `ensure...()` 는 `showPage` 에 이미 있다. 홈 카드에도 넣으려면 `.home-cards` 안에 `class="home-card"` 하나.
 - **스타일 넣는 곳:** 운영은 **`layout_top.css`** (layout_style.css 는 index_claude 도 쓰므로 새 화면 규칙을 넣지 않는다).
   머리줄 · 푸터는 `css/site.css` 하나 — 값과 클래스 이름이 스토어 `store.css` 와 같다.
+- **글꼴:** 영문은 Google Inter(페이지 `<head>`), 한글 Pretendard 는 `css/site.css` 의 `unicode-range` 로 **한글이 있을 때만** 받는다.
+  스토어의 `/store/assets/css/fonts.css` 는 걸지 않는다 — 걸면 Pretendard 4굵기(735KB, 카페24)를 첫 화면에서 다 받는다.
+- **`?v=` (운영):** `layout_body.js` 의 `_ensureSiteCss` 가 거는 `layout_top.css?v=` · `/css/site.css?v=` 는 그 파일을 고칠 때 올린다.
+  `/css/` 는 Cloudflare 가 4시간 들고 있다. `/dev/` 는 배포가 파일 내용 해시로 자동으로 붙인다.
 - **PIER 버튼 이름**(3D View · Download STL · Download DXF)은 `bim_pier_test.js` 가 아니라 레이아웃의
   `relabelPier` 가 바꾼다. 엔진 파일은 index_claude 와 같이 쓰므로 손대지 않았다.
 - **푸터는 영어** (사업자 정보 포함, 대표자 영문 Park Youngjin — 사용자 확인). 약관 링크는 `/store/*.html`.

@@ -152,7 +152,8 @@ window.MB = window.MB || {};
     };
 })();
 
-/* 머리줄 · 푸터는 사이트 공용 /css/site.css, 글꼴은 스토어 /store/assets/css/fonts.css, 새 화면 스타일은 layout_top.css.
+/* 머리줄 · 푸터 · 한글 글꼴(Pretendard, 한글에만)은 사이트 공용 /css/site.css, 새 화면 스타일은 layout_top.css.
+   영문 Inter 는 index.html 이 건다. ?v= 는 그 파일을 고칠 때 올린다(Cloudflare 가 4시간 들고 있다).
    페이지 <head> 가 이미 걸어 두었으면(/dev/ 는 /css/dev/site.css) 건드리지 않는다. */
 function _ensureSiteCss() {
     function has(part) {
@@ -165,9 +166,8 @@ function _ensureSiteCss() {
         document.head.appendChild(l);
     }
     // 새 화면 스타일 — layout_style.css(시험 페이지와 같이 씀) 위에 덧씌운다
-    if (!has('layout_top.css')) add('https://macrobim.github.io/design/layout_top.css?v=1');
-    if (!has('/store/assets/css/fonts.css')) add('/store/assets/css/fonts.css');
-    if (!has('/site.css')) add('/css/site.css');
+    if (!has('layout_top.css')) add('https://macrobim.github.io/design/layout_top.css?v=2');
+    if (!has('/site.css')) add('/css/site.css?v=2');
     if (!document.querySelector('link[rel="icon"]')) add('/store/assets/img/macrobim-icon.svg', 'icon', 'image/svg+xml');
 }
 

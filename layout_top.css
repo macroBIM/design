@@ -24,19 +24,22 @@ body{display:flex;flex-direction:column;padding:0;gap:0;background:#fff;
 .home-page{min-height:calc(100vh - 53px);display:flex;flex-direction:column;}
 .home-main{flex:1 0 auto;width:100%;max-width:1140px;margin:0 auto;padding:24px 20px 40px;}
 
-/* ── PLATE3D: 제목 · 경로를 한 줄로 작게, 프레임이 창에 꼭 맞게 ── */
-.content-wrap:has(#page-draw-plate3d.active){padding:12px 20px;}
-#page-draw-plate3d.active{display:flex;flex-wrap:wrap;align-items:baseline;column-gap:12px;}
-#page-draw-plate3d .page-heading{font-size:17px;margin:0;}
-#page-draw-plate3d .breadcrumb{font-size:12px;margin:0 0 10px;}
-#mount-draw-plate3d{flex-basis:100%;}
+/* ── 모든 페이지 제목: 제목 · 경로를 한 줄로 작게 (PLATE3D 모양으로 통일, 2026-11-15) ── */
+.page-view.active:has(> .page-heading){display:flex;flex-wrap:wrap;align-items:baseline;column-gap:12px;}
+.page-view > .page-heading{font-size:17px;margin:0;}
+.page-view > .breadcrumb{font-size:12px;margin:0 0 10px;}
+.page-view.active:has(> .page-heading) > :not(.page-heading):not(.breadcrumb){flex-basis:100%;min-width:0;}
+
+/* ── PLATE3D: 본문 폭을 PIER 와 같게 (최대 1400, 좌우 20), 프레임이 창에 꼭 맞게 ── */
+.content-wrap:has(#page-draw-plate3d.active){padding:12px 0;}
+#page-draw-plate3d{max-width:1400px;margin:0 auto;padding-inline:20px;}
 .home-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:40px;}
 @media (max-width:900px){.home-cards{grid-template-columns:1fr;}}
 .home-card > div:first-child{height:28px;line-height:28px;}
 .home-card > div:first-child svg{display:block;}
 
 /* ── PIER: 본문 폭을 스토어 상품 화면(main.wrap.wide)과 같게 — 최대 1400, 좌우 20 (머리줄 로고와 줄이 맞는다) ── */
-.content-wrap:has(#page-draw-pier.active){padding:24px 0;}
+.content-wrap:has(#page-draw-pier.active){padding:12px 0 24px;}
 #page-draw-pier{max-width:1400px;margin:0 auto;padding-inline:20px;}
 
 /* ── PIER 버튼: 스토어 상품 화면의 버튼(.actbar .btn.btn-ghost)과 같게 ── */

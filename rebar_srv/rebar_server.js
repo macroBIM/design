@@ -310,9 +310,15 @@
   // ── 핸들러 ────────────────────────────────────────────────────────────────
   var PX = {
     _view3D: 'iso', _proj3D: 'persp', _is3D: true,
-    mount: function (rootId) {
+    //  opts (선택) : { mode: 'PSCBOX' | 카탈로그 키 — 처음 띄울 단면, opening: false — 개구부 '고려' 끄고 시작 }
+    //  /dev/ 의 PSCBOX · REBAR 메뉴가 이 화면을 PSCBOX 로 띄운다 (REBAR PARA 는 opts 없이 = 예전 그대로)
+    mount: function (rootId, opts) {
       var root = el(rootId); if (!root) return;
+      opts = opts || {};
+      if (opts.mode) _secMode = opts.mode;
+      _excelData = null; _polyRow = null;
       root.innerHTML = mountHTML();
+      if (opts.opening === false) { var oc0 = el('opConsider'), ob0 = el('openingBody'); if (oc0) oc0.checked = false; if (ob0) ob0.style.display = 'none'; }
       syncSectionUI();
       initStages();
       renderRebarTable();
@@ -417,7 +423,12 @@
     });
     if (sawGirder) { syncSectionUI(); return; }
     var hasDim = rows.some(function (r) { var t = firstTok(r).toLowerCase(); return t === 'dim' || t === 'type'; });
-    if (hasDim) { _secMode = 'PSCBOX'; syncSectionUI(); }
+    if (hasDim) {
+      _secMode = 'PSCBOX'; syncSectionUI();
+      //  open 행이 없는 박스 시트 = 거더(일반 단면) → 화면 기본 개구부를 쓰지 않는다
+      var hasOpen = rows.some(function (r) { return (r || []).some(function (c) { return String(c == null ? '' : c).trim().toLowerCase() === 'open'; }); });
+      if (!hasOpen) { var oc1 = el('opConsider'); if (oc1) oc1.checked = false; }
+    }
     var keyByLower = {}; ADEFS.forEach(function (d) { keyByLower[d[0].toLowerCase()] = d[0]; });
     rows.forEach(function (r) {
       if (!r) return;

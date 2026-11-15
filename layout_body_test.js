@@ -145,7 +145,7 @@ window.MB = window.MB || {};
     };
 })();
 
-/* 머리줄 · 푸터는 사이트 공용 /css/site.css, 글꼴은 스토어 /store/assets/css/fonts.css.
+/* 머리줄 · 푸터 · 한글 글꼴(Pretendard, 한글에만)은 사이트 공용 /css/site.css. 영문 Inter 는 페이지가 건다.
    페이지 <head> 가 이미 걸어 두었으면(/dev/ 는 /css/dev/site.css) 건드리지 않는다. */
 function _ensureSiteCss() {
     function has(part) {
@@ -157,7 +157,6 @@ function _ensureSiteCss() {
         if (type) l.type = type;
         document.head.appendChild(l);
     }
-    if (!has('/store/assets/css/fonts.css')) add('/store/assets/css/fonts.css');
     if (!has('/site.css')) add('/css/site.css');
     if (!document.querySelector('link[rel="icon"]')) add('/store/assets/img/macrobim-icon.svg', 'icon', 'image/svg+xml');
 }
@@ -414,7 +413,7 @@ function initLayout(phpData) {
 
     _createTemplates();
     _bindNavigation();
-    loadVisitChart();
+    // 방문 그래프는 대시보드를 열 때 그린다(showPage) — 첫 화면에서 페이지를 한 번 더 부르지 않게
     loadRecentUpdates();
 }
 

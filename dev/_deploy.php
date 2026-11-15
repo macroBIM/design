@@ -63,6 +63,7 @@ $first = $zip->getNameIndex(0);
 if ($first !== false && preg_match('/-([0-9a-f]{7,})\//', $first, $m)) $ver = substr($m[1], 0, 7);
 
 $written = 0;
+$indexData = null;
 for ($i = 0; $i < $zip->numFiles; $i++) {
     $name  = $zip->getNameIndex($i);
     $parts = explode('/', $name, 2);
@@ -80,7 +81,7 @@ for ($i = 0; $i < $zip->numFiles; $i++) {
 
     $data = $zip->getFromIndex($i);
     if ($data === false) { $zip->close(); @unlink($tmpZip); deploy_fail(500, 'read failed: ' . $rel); }
-    if ($out === 'index.html') $data = str_replace('__V__', $ver, $data);
+    if ($out === 'index.html') { $indexData = $data; continue; }   // 다른 파일을 다 쓴 뒤 버전을 매겨 맨 끝에 쓴다
 
     $dest = __DIR__ . '/' . $out;
     $dir  = dirname($dest);
@@ -95,5 +96,23 @@ for ($i = 0; $i < $zip->numFiles; $i++) {
 }
 $zip->close();
 @unlink($tmpZip);
+
+// index.html 의 "파일?v=__V__" 는 그 파일 내용의 해시로 — 안 바뀐 파일은 주소가 그대로라 Cloudflare 캐시가 산다.
+// "/..." 는 웹루트 기준(예: /css/dev/site.css), 나머지는 이 폴더 기준. 찾지 못하면 커밋 번호.
+if ($indexData !== null) {
+    $root = rtrim($_SERVER['DOCUMENT_ROOT'], '/');
+    $indexData = preg_replace_callback('/([^"\'\s?]+)\?v=__V__/', function ($m) use ($root, $ver) {
+        $f = $m[1][0] === '/' ? $root . $m[1] : __DIR__ . '/' . $m[1];
+        $h = (strpos($m[1], '..') === false && is_file($f)) ? substr(md5_file($f), 0, 8) : $ver;
+        return $m[1] . '?v=' . $h;
+    }, $indexData);
+    $indexData = str_replace('__V__', $ver, $indexData);
+    $dest = __DIR__ . '/index.html';
+    if (!(is_file($dest) && md5_file($dest) === md5($indexData))) {
+        $tmp = $dest . '.deploy-tmp';
+        if (file_put_contents($tmp, $indexData) === false || !rename($tmp, $dest)) { @unlink($tmp); deploy_fail(500, 'write failed: index.html'); }
+        $written++;
+    }
+}
 
 echo "OK written=" . $written . " branch=" . $branch . " v=" . $ver . "\n";

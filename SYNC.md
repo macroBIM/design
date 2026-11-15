@@ -22,6 +22,11 @@
   머리줄 · 푸터는 `css/site.css` 하나 — 값과 클래스 이름이 스토어 `store.css` 와 같다.
 - **글꼴:** 영문은 Google Inter(페이지 `<head>`), 한글 Pretendard 는 `css/site.css` 의 `unicode-range` 로 **한글이 있을 때만** 받는다.
   스토어의 `/store/assets/css/fonts.css` 는 걸지 않는다 — 걸면 Pretendard 4굵기(735KB, 카페24)를 첫 화면에서 다 받는다.
+- **운영 `index.html`** (서버에만 있다 · 저장소에 없다 · 위쪽은 QnA · 방문자 수 PHP — `db.php` 를 부른다): 2026-11-15 부터
+  스크립트는 `layout_body.js` **하나**만 건다(예전 사이드바 화면용 ~30개를 뺐다 — 화면마다 필요한 것은 그 화면이 열 때 받는다).
+  `layout_body.js` · `layout_top.css` · `/css/site.css` 에 `?v=<?php echo floor(time()/600) ?>` — **10분마다** 바뀌므로
+  GitHub 에 올린 것이 10분 안에 나간다. **그래서 이 파일은 다시 올릴 일이 거의 없다.** `_ensureSiteCss` 의 `?v=` 는 index.html 이 이미 걸었으면 쓰이지 않는다.
+  메뉴에서 뺀 화면(표 · 단면 도면 등)을 다시 메뉴에 넣을 때는, 그 화면이 예전에 index.html 의 스크립트에 기대던 것인지 확인한다.
 - **`?v=` (운영):** `layout_body.js` 의 `_ensureSiteCss` 가 거는 `layout_top.css?v=` · `/css/site.css?v=` 는 그 파일을 고칠 때 올린다.
   `/css/` 는 Cloudflare 가 4시간 들고 있다. `/dev/` 는 배포가 파일 내용 해시로 자동으로 붙인다.
 - **PIER 버튼 이름**(3D View · Download STL · Download DXF)은 `bim_pier_test.js` 가 아니라 레이아웃의

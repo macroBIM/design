@@ -1012,31 +1012,25 @@ function _bindNavigation() {
         fr.title = 'PLATE3D';
         fr.allow = 'fullscreen';
         // 높이를 100vh 에서 상수를 빼서 잡던 방식은 추정이었다. 프레임 위에 무엇이
-        // 얼마나 오는지 이 스크립트는 알 수 없고, 추정이 조금만 모자라면 페이지가
-        // 스크롤되고 조금만 남으면 도면 아래가 허옇게 뜬다. 두 값 모두 실측으로 잡는다:
-        //   위쪽 — 프레임의 실제 위치에서 창 아래까지 (= 쓸 수 있는 최대)
-        //   아래쪽 — PLATE3D 가 postMessage 로 알려주는 "실제 필요한 높이"
-        // 둘 중 작은 값을 쓴다. 그래서 넘치지도, 남지도 않는다.
+        // 얼마나 오는지 이 스크립트는 알 수 없으므로, 창 아래까지의 공간을 실측해서
+        // 그대로 준다 — 프레임의 실제 위치에서 창 아래까지.
+        //
+        // 전에는 여기에 PLATE3D 가 postMessage 로 알려 주는 "필요한 높이" 를 받아
+        // 둘 중 작은 값을 썼다. 그때는 엔진이 3D 뷰를 16:9 로 못박고 있어서, 그보다
+        // 높은 프레임을 주면 뷰 아래가 허옇게 떴기 때문이다. 이제 엔진이 받은 상자를
+        // 다 쓰므로(fitRenderer) 그 상한이 필요 없다 — 주는 만큼 채운다.
         fr.style.cssText = 'width:100%;height:520px;min-height:520px;'
                          + 'border:1px solid #e3e6ea;border-radius:8px;display:block;background:#15181c;';
         mount.appendChild(fr);
 
-        var want = 0;                       // 프레임이 스스로 요청한 높이
         function sizeFrame() {
             // 바깥 상자(.content-wrap)의 아래 여백까지 빼야 페이지가 넘치지 않는다
             var wrap = fr.closest('.content-wrap');
             var padB = wrap ? parseFloat(getComputedStyle(wrap).paddingBottom) || 0 : 0;
             var top = fr.getBoundingClientRect().top + (wrap ? wrap.scrollTop : 0);
             var room = Math.floor(window.innerHeight - top - padB - 2);
-            var h = want ? Math.min(want, room) : room;
-            fr.style.height = Math.max(520, h) + 'px';
+            fr.style.height = Math.max(520, room) + 'px';
         }
-        window.addEventListener('message', function (e) {
-            var d = e && e.data;
-            if (!d || d.plate3d !== 'height' || !(d.h > 0)) return;
-            want = d.h;
-            sizeFrame();
-        });
         window.addEventListener('resize', sizeFrame);
         sizeFrame();
     }

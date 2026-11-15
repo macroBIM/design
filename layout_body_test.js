@@ -870,9 +870,10 @@ function _bindNavigation() {
         if (pageId === 'draw-lwall') { mountDrawing('lwall'); ensureLWall(); }
         if (pageId === 'draw-pier') { mountDrawing('pier'); ensurePier(); }
         if (pageId === 'draw-plate3d') { ensurePlate3d(); }
-        if (pageId === 'draw-pscbox') { mountDrawing('pscbox'); ensurePscbox(); }
+        //  PSCBOX · REBAR 도 서버 엔진 화면(rebar_srv) — 계산은 비공개 PHP, 브라우저엔 그리기만. 옛 JS 판(ensurePscbox · ensurePscboxUnified)은 남겨 둠
+        if (pageId === 'draw-pscbox') { mountDrawing('pscbox'); ensureRebarSrv('mount-draw-pscbox', { mode: 'PSCBOX', opening: false }); }
         if (pageId === 'draw-pscboxdia') { mountDrawing('pscboxdia'); ensurePscboxDia(); }
-        if (pageId === 'draw-pscboxu') { mountDrawing('rebar'); ensurePscboxUnified(); }
+        if (pageId === 'draw-pscboxu') { mountDrawing('rebar'); ensureRebarSrv('mount-draw-rebar', { mode: 'PSCBOX' }); }
         if (pageId === 'rebar-para') { mountDrawing('rebarpara'); ensureRebarSrv(); }
         if (pageId === 'draw-psc') { mountDrawing('psc'); ensurePsc(); }
         if (pageId === 'quick-simpleconn') { ensureQuickSimpleConn(); }
@@ -1214,10 +1215,17 @@ function _bindNavigation() {
     }
     //  REBAR PARA — 서버 엔진 화면(rebar_srv/rebar_server.js : REBAR 와 같은 틀 · 엑셀 · 2D · 3D · 철근표 + 표준 I/T 거더 · 검증).
     //  계산은 전부 서버 rebar_api.php(비공개 PHP). 다른 메뉴와 DOM id 가 같아 mountDrawing 목록으로 서로 지운다.
-    function ensureRebarSrv() {
-        var mount = document.getElementById('mount-draw-rebarpara');
+    //  서버 엔진 화면 하나(PXR)를 메뉴마다 다른 자리 · 다른 시작 단면으로 띄운다.
+    //  mountDrawing 이 다른 메뉴의 자리를 비우므로 한 번에 한 화면만 있다 (DOM id 충돌 없음).
+    function ensureRebarSrv(mountId, opts) {
+        mountId = mountId || 'mount-draw-rebarpara';
+        var mount = document.getElementById(mountId);
         if (!mount) return;
-        var go = function () { if (window.PXR && !mount.firstElementChild) window.PXR.mount('mount-draw-rebarpara'); };
+        window._rebarSrvWant = { id: mountId, opts: opts };   // 받는 도중 메뉴를 바꿔도 마지막 것에 띄운다
+        var go = function () {
+            var w = window._rebarSrvWant || {}, m = document.getElementById(w.id);
+            if (window.PXR && m && !m.firstElementChild) window.PXR.mount(w.id, w.opts);
+        };
         if (window.PXR) { go(); return; }
         if (window._rebarSrvLoading) return;
         window._rebarSrvLoading = true;
@@ -1225,7 +1233,7 @@ function _bindNavigation() {
         if (!document.getElementById('rebarSrvCss')) { var ln = document.createElement('link'); ln.id = 'rebarSrvCss'; ln.rel = 'stylesheet'; ln.href = B + 'pscbox-ui.css' + v; document.head.appendChild(ln); }
         var q = [];
         if (!window.XLSX) q.push('https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js');
-        if (!window.Konva) q.push('https://cdnjs.cloudflare.com/ajax/libs/konva/9.3.6/konva.min.js');
+        if (!window.Konva) q.push(KONVA_URLS[0]);
         if (!window.RWSVG || !window.RWSVG.render3d) q.push(B + 'bim_draw_test_core.js' + v);
         if (!window.pscDrawGuide) q.push(B + 'pscbox.guide.js' + v);
         q.push(B + 'rebar_server.js' + v);

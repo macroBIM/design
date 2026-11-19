@@ -207,6 +207,7 @@
       '    <span class="px-mb-label">Excel :</span>' +
       '    <button type="button" class="px-btn" onclick="PXR.loadExcel()">&#8682; Load Excel</button>' +
       '    <button type="button" class="px-btn px-btn-lite" onclick="PXR.toggleLoadLog()">&#128220; View Log</button>' +
+      '    <button type="button" class="px-btn" id="pxCalcBtn" onclick="PXR.calc()" title="입력을 마친 뒤 누르면 서버에서 계산합니다 (칸에서 Enter 도 같음)">&#9654; 계산</button>' +
       '    <input type="file" id="excelFileInput" accept=".xlsx,.xls" style="display:none;">' +
       '    <span id="pxStatus" style="margin-left:8px;font-size:12.5px;color:#64748b;"></span>' +
       '  </div>' +
@@ -323,7 +324,9 @@
       initStages();
       renderRebarTable();
       this._mark3DBar();
-      this.redraw();
+      //  칸에서 Enter = 계산
+      root.addEventListener('keydown', function (ev) { if (ev.key === 'Enter' && ev.target && ev.target.tagName === 'INPUT' && ev.target.type !== 'file') { ev.target.blur(); PX.calc(); } });
+      this.calc();          // 처음 열 때 한 번
     },
     //  3D 켜고/끄기 — 끄면 2D 가 한 줄을 다 쓴다
     toggle3D: function () {
@@ -372,7 +375,9 @@
     },
     loadExcel: function () { var f = el('excelFileInput'); if (f) f.click(); },
     toggleLoadLog: function () { var p = el('pxLoadLog'); if (p) p.style.display = (p.style.display === 'none' || !p.style.display) ? 'block' : 'none'; },
-    redraw: function () { solve(gatherRows()); }
+    //  칸을 고칠 때마다 서버를 부르지 않는다 — 고친 것만 표시해 두고, [계산] 을 누를 때 한 번 계산한다.
+    redraw: function () { markDirty(true); },
+    calc: function () { markDirty(false); solve(gatherRows()); }
   };
   window.PXR = PX;
 
@@ -470,6 +475,13 @@
   }
 
   // ── 서버 호출 ──────────────────────────────────────────────────────────────
+  var _dirty = false;
+  function markDirty(on) {
+    _dirty = !!on;
+    var b = el('pxCalcBtn');
+    if (b) { b.style.background = on ? '#f59e0b' : ''; b.style.borderColor = on ? '#d97706' : ''; b.style.boxShadow = on ? '0 0 0 3px rgba(245,158,11,.25)' : ''; }
+    if (on && !_busy) setStatus('입력이 바뀌었습니다 — [계산] 을 누르면 반영됩니다');
+  }
   function setStatus(msg, bad) { var s = el('pxStatus'); if (s) { s.textContent = msg; s.style.color = bad ? '#dc2626' : '#64748b'; } }
   function solve(rows) {
     //  진행 중이면 요청을 버리지 않고 "최신 입력"만 대기열에 둔다 — 끝나면 그걸로 다시 그린다.
@@ -479,7 +491,8 @@
     setStatus('서버에서 계산 중…');
     var done = function () {
       _busy = false;
-      if (_queued) { var q = _queued; _queued = null; solve(q); }   // 대기 중 최신 입력으로 재계산
+      if (_queued) { var q = _queued; _queued = null; solve(q); return; }   // 대기 중 최신 입력으로 재계산
+      if (_dirty) markDirty(true);                                           // 계산하는 동안 또 고쳤다
     };
     fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sheet: rows }) })
       .then(function (r) { return r.json(); })
@@ -524,7 +537,7 @@
         _excelData = rows;
         populateFromRows(rows);
         renderRebarTable();
-        PX.redraw();
+        PX.calc();            // 엑셀을 불러오면 한 번 계산
       } catch (e) { setStatus('엑셀 읽기 실패: ' + e.message, true); }
     };
     reader.readAsArrayBuffer(file);

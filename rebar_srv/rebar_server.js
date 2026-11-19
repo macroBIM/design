@@ -233,6 +233,7 @@
       '    <button type="button" class="px-btn" onclick="PXR.loadExcel()">&#8682; Load Excel</button>' +
       '    <button type="button" class="px-btn px-btn-lite" onclick="PXR.toggleLoadLog()">&#128220; View Log</button>' +
       '    <button type="button" class="px-btn" id="pxCalcBtn" onclick="PXR.calc()" title="입력을 마친 뒤 누르면 서버에서 계산합니다 (칸에서 Enter 도 같음)">&#9654; 계산</button>' +
+      '    <button type="button" class="px-btn px-btn-lite" id="pxProcBtn" onclick="PXR.replay()" title="철근이 시작 자리에서 제자리를 찾아가는 과정을 다시 봅니다 (I/T · 사용자 단면)">&#8635; 과정</button>' +
       '    <input type="file" id="excelFileInput" accept=".xlsx,.xls" style="display:none;">' +
       '    <span id="pxStatus" style="margin-left:8px;font-size:12.5px;color:#64748b;"></span>' +
       '  </div>' +
@@ -410,6 +411,7 @@
     toggleLoadLog: function () { var p = el('pxLoadLog'); if (p) p.style.display = (p.style.display === 'none' || !p.style.display) ? 'block' : 'none'; },
     //  칸을 고칠 때마다 서버를 부르지 않는다 — 고친 것만 표시해 두고, [계산] 을 누를 때 한 번 계산한다.
     redraw: function () { markDirty(true); },
+    replay: function () { if (_last) { if (hasProc(_last)) draw(_last); else setStatus('과정 기록이 없습니다 — 엑셀 철근 행(또는 예제)이 있는 I/T · 사용자 단면에서 [계산] 뒤에 볼 수 있습니다'); } },
     calc: function () { markDirty(false); solve(gatherRows()); }
   };
   window.PXR = PX;
@@ -766,6 +768,7 @@
     (data.lbars2d || []).forEach(function (b) { (b.dots || []).forEach(function (p) { all.push(p); }); });
     (data.mesh2d || []).forEach(function (b) { (b.pts || []).forEach(function (p) { all.push(p); }); });
     (data.anim || []).forEach(function (a) { (a.frames || []).forEach(function (fr) { fr.forEach(function (s) { all.push([s[0], s[1]]); if (s.length >= 4) all.push([s[2], s[3]]); }); }); });
+    if (hasProc(data)) Object.keys(data.jinit || {}).forEach(function (k) { (data.jinit[k] || []).forEach(function (p) { all.push(p); }); });   // 시작 자리도 화면 안에
     if (!all.length) { layer.draw(); barLayer.draw(); drawElev(data); return; }
     var T = fitView(all);
     drawGrid(T);   // 보이는 화면 전체를 채우는 격자 + 원점 십자
@@ -782,6 +785,7 @@
     (data.mesh2d || []).forEach(function (b) { layer.add(new Konva.Line({ points: polyPoints(b.pts || [], T), stroke: '#ea580c', strokeWidth: 1.4, lineCap: 'round', opacity: 0.9 })); });
     layer.draw();
     if (!noAnim && data.anim && data.anim.length) playAnim(data, T);
+    else if (!noAnim && hasProc(data)) playProcess(data, T);
     else {
       if (data.kind === 'girder') drawParam(data, T);
       if (data.kind === 'girder' && data.prims && data.prims.length) drawPrims(data, T); else drawBarsFinal(data.bars2d || [], T);
@@ -863,6 +867,71 @@
       if (tick > maxTick + step) stopAnim();
     }
     render(); animTimer = setInterval(render, 45);
+  }
+  // ── 과정 보기 (I/T · 사용자 단면) ─────────────────────────────────────────
+  //  서버가 준 data.proc : 횡방향은 조각마다 **풀이 반복점**(시작 자리 → 면에 앉기까지), 종방향은 시작 자리 → 결과.
+  //  철근 하나씩, 그 안에서 조각 하나씩 차례로 보여 준다. 반복점 사이는 화면에서 직선으로 이어 움직인다(표시용).
+  function hasProc(data) { return !!(data && data.kind === 'girder' && data.proc && data.proc.bars && data.proc.bars.length); }
+  function playProcess(data, T) {
+    var proc = data.proc, finalT = {}, finalL = {}, init = data.jinit || {};
+    (data.bars2d || []).forEach(function (b) { finalT[b.id] = b; });
+    (data.lbars2d || []).forEach(function (b) { finalL[b.id] = b; });
+    var segOf = function (pl, k) { return (pl && pl[k] && pl[k + 1]) ? [pl[k][0], pl[k][1], pl[k + 1][0], pl[k + 1][1]] : null; };
+    //  단계 목록 : 조각 → (철근마다) 꺾임점 잇기 → 종방향 줄
+    var ph = [], t = 0, SEG = 900, JOIN = 450, LONG = 600;
+    proc.bars.forEach(function (b, bi) {
+      var ip = init[b.id] || [];
+      b.segs.forEach(function (sg, k) {
+        var path = (sg.path && sg.path.length) ? sg.path.slice() : [];
+        var s0 = segOf(ip, k); if (s0 && (!path.length || path[0].join() !== s0.join())) path.unshift(s0);   // 맨 앞은 입력한 시작 자리
+        if (!path.length) return;
+        //  반복점 사이 시간 = 움직인 거리에 비례 (+ 조금) — 큰 걸음도 작은 걸음도 눈에 보이게
+        var w = [], tot = 0; for (var i = 1; i < path.length; i++) { var d = Math.abs(path[i][0] - path[i - 1][0]) + Math.abs(path[i][1] - path[i - 1][1]) + Math.abs(path[i][2] - path[i - 1][2]) + Math.abs(path[i][3] - path[i - 1][3]); w.push(d); tot += d; }
+        var cum = [0], acc = 0; w.forEach(function (d) { acc += d + tot * 0.04 + 0.01; cum.push(acc); });
+        ph.push({ kind: 'seg', bi: bi, k: k, path: path, cum: cum, label: sg.label, iter: sg.iter, rest: sg.rest, t0: t, dur: SEG }); t += SEG;
+      });
+      ph.push({ kind: 'join', bi: bi, t0: t, dur: JOIN }); t += JOIN;
+    });
+    (proc.long || []).forEach(function (g, gi) { ph.push({ kind: 'long', gi: gi, t0: t, dur: LONG }); t += LONG; });
+    var total = t, speed = total > 24000 ? total / 24000 : 1;   // 철근이 많으면 전체 24초 안에
+    var ghost = function (pts) { barLayer.add(new Konva.Line({ points: pts, stroke: 'rgba(255,255,255,0.55)', strokeWidth: 1, dash: [6, 5] })); };
+    var seg4 = function (q) { var a = T([q[0], q[1]]), b = T([q[2], q[3]]); return [a[0], a[1], b[0], b[1]]; };
+    var lerp4 = function (a, b, f) { return [a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f, a[2] + (b[2] - a[2]) * f, a[3] + (b[3] - a[3]) * f]; };
+    var at = function (p, f) {   // 조각 p 의 진행 f(0~1) 에서의 자리
+      var c = p.cum, end = c[c.length - 1]; if (!end || p.path.length < 2) return p.path[p.path.length - 1];
+      var x = f * end, i = 1; while (i < c.length - 1 && c[i] < x) i++;
+      return lerp4(p.path[i - 1], p.path[i], (x - c[i - 1]) / Math.max(c[i] - c[i - 1], 1e-9));
+    };
+    var start = Date.now(), cap = '';
+    function render() {
+      var now = (Date.now() - start) * speed;
+      barLayer.destroyChildren(); cap = '';
+      //  시작 자리 (점선) — 끝날 때까지 남겨 얼마나 움직였는지 보이게
+      proc.bars.forEach(function (b) { var ip = init[b.id]; if (ip && ip.length > 1) ghost(polyPoints(ip, T)); });
+      var joinOf = {}; ph.forEach(function (p) { if (p.kind === 'join') joinOf[p.bi] = p; });
+      proc.bars.forEach(function (b, bi) {
+        var J = joinOf[bi], fin = finalT[b.id];
+        if (J && now >= J.t0 + J.dur) { if (fin) addBar(polyPoints(fin.pts || [], T), b.dia, T, TRE_COLOR, 0); return; }
+        ph.forEach(function (p) {
+          if (p.kind !== 'seg' || p.bi !== bi || now < p.t0) return;
+          var f = Math.min(1, (now - p.t0) / p.dur), q = at(p, f), active = f < 1;
+          if (J && now >= J.t0 && fin && fin.pts && fin.pts[p.k + 1]) { q = lerp4(q, segOf(fin.pts, p.k), Math.min(1, (now - J.t0) / J.dur)); cap = b.id + ' — 조각들을 꺾임점에서 잇는다'; }
+          addBar(seg4(q), b.dia, T, active ? '#FFB020' : TRE_COLOR, active ? 0.35 : 0);
+          if (active) cap = b.id + ' · 조각 ' + (p.label || (p.k + 1)) + ' — 시작 자리 → 면 (반복 ' + (p.iter || 0) + '회' + ((p.rest && p.rest.length) ? ' · 앉은 면 ' + p.rest[0] : '') + ')';
+        });
+      });
+      (proc.long || []).forEach(function (g, gi) {
+        var p = null; ph.forEach(function (x) { if (x.kind === 'long' && x.gi === gi) p = x; }); if (!p || now < p.t0) return;
+        var fb = finalL[g.id], to = fb ? fb.dots : null, f = Math.min(1, (now - p.t0) / p.dur), r = Math.max(1.2, T.s * (g.dia || 13) / 2);
+        if (!to) return;
+        if (f < 1) { cap = g.id + ' (종방향 ' + to.length + '개) — 시작 자리 → 결과'; (g.from || []).forEach(function (q) { var c0 = T(q); barLayer.add(new Konva.Circle({ x: c0[0], y: c0[1], radius: r, stroke: 'rgba(255,255,255,0.6)', strokeWidth: 1, dash: [3, 3] })); }); }
+        to.forEach(function (q, i) { var a = (g.from && g.from[i]) ? g.from[i] : q, c = T([a[0] + (q[0] - a[0]) * f, a[1] + (q[1] - a[1]) * f]); barLayer.add(new Konva.Circle({ x: c[0], y: c[1], radius: r, fill: '#FFD700', stroke: '#B8860B', strokeWidth: Math.max(0.6, r * 0.18) })); });
+      });
+      if (cap) barLayer.add(new Konva.Text({ x: 12, y: stage.height() - 28, text: '과정 · ' + cap, fontSize: 13, fill: '#ffffff', fontFamily: 'inherit' }));
+      barLayer.draw();
+      if (now > total + 400) { stopAnim(); draw(data, true); }   // 끝 → 보통의 결과 그림으로
+    }
+    render(); animTimer = setInterval(render, 33);
   }
   function stopElevAnim() { if (elevTimer) { clearInterval(elevTimer); elevTimer = null; } }
   function elevPoly(pts, T) { var a = []; (pts || []).forEach(function (p) { var q = T(p); a.push(q[0], q[1]); }); return a; }

@@ -280,7 +280,7 @@
       ['lrebar', 'id', 'dia', 'num', 'init (x, y, rot)', 'range (-, +)', 'nors', 'ctc', 'ctcmax', 'ctcmin', 'gap', 'path', 'z'],
       ['crebar', 'id', 'dia', 'plane', 'at (cell/all/range)', 'set', 'lap', 'from', 'to', 'ctc', '', 'ctcmin, ctcmax', ''],
       ['srebar', 'id', 'code', 'dia', 'init (x, y, rot)', 'range (-, +)', 'num', 'ctc', 'len', 'seat', '', 'ctcmin, ctcmax', 'z'],
-      ['duct', 'id', 'shape', 'D / B', 'H', 'x', 'y', 'ref', 'clr', '', '', '', '']
+      ['duct', 'id', 'shape', 'D / B', 'H', 'x', 'y', 'ref', 'clr', 'field (off = 그림만)', '', '', '']
     ];
     var ncol = SCHEMA[0].length;
     var rows = [];
@@ -736,8 +736,10 @@
     (sec.cells || []).forEach(function (c) { layer.add(new Konva.Line({ points: polyPoints(c, T), stroke: 'rgba(255,255,255,0.45)', strokeWidth: 1, closed: true })); });
     (sec.openings || []).forEach(function (op) { layer.add(new Konva.Line({ points: polyPoints(op, T), stroke: '#ffffff', strokeWidth: 2, closed: true, lineJoin: 'round' })); });
     (sec.ducts || []).forEach(function (d) {
-      if (d.shape === 'circ') { var c = T([d.x, d.y]); layer.add(new Konva.Circle({ x: c[0], y: c[1], radius: T.s * d.D / 2, stroke: '#FF61E6', strokeWidth: 1.5 })); }
-      else if (d.pts) { layer.add(new Konva.Line({ points: polyPoints(d.pts, T), stroke: '#FF61E6', strokeWidth: 1.5, closed: true })); }
+      //  장이 없는 덕트(field off)는 그림만 — 회색 점선으로 구분한다 (철근은 이 덕트를 모른다)
+      var dcol = d.field === false ? '#cbd5e1' : '#FF61E6', ddash = d.field === false ? [5, 4] : null;
+      if (d.shape === 'circ') { var c = T([d.x, d.y]); layer.add(new Konva.Circle({ x: c[0], y: c[1], radius: T.s * d.D / 2, stroke: dcol, strokeWidth: 1.5, dash: ddash })); }
+      else if (d.pts) { layer.add(new Konva.Line({ points: polyPoints(d.pts, T), stroke: dcol, strokeWidth: 1.5, closed: true, dash: ddash })); }
     });
     (data.mesh2d || []).forEach(function (b) { layer.add(new Konva.Line({ points: polyPoints(b.pts || [], T), stroke: '#ea580c', strokeWidth: 1.4, lineCap: 'round', opacity: 0.9 })); });
     layer.draw();

@@ -62,7 +62,29 @@
   //  I/T 표준 단면 (서버 카탈로그 키) — 그리기용 이름표만
   var GIRDERS = [['AASHTO_IV', 'AASHTO Type IV (I)'], ['AASHTO_III', 'AASHTO Type III (I)'],
                  ['FDOT_FIB36', 'FDOT FIB-36 (T 벌브, 표준도)'], ['FDOT_FIB54', 'FDOT FIB-54 (T 벌브, 표준도)'], ['FDOT_FIB72', 'FDOT FIB-72 (T 벌브, 표준도)'], ['FDOT_FIB96', 'FDOT FIB-96 (T 벌브, 표준도)']];
-  var _secMode = 'AASHTO_IV', _polyRow = null;   // 'PSCBOX' | 카탈로그 키 | 'POLY'
+  var _secMode = 'AASHTO_IV', _polyRow = null;   // 'PSCBOX' | 카탈로그 키 | 'POLY' | 'EX_T' · 'EX_I' · 'EX_B'
+  //  예제 — **같은 철근 행**을 단면 형식 세 가지에 그대로 (높이 2500 만 같다). 입력 데이터일 뿐, 계산은 서버.
+  var EX_SECS = {
+    EX_T: ['예제 · T형보 (복부 500)', '-1025,2500 ; -1025,2250 ; -250,2250 ; -250,0 ; 250,0 ; 250,2250 ; 1025,2250 ; 1025,2500'],
+    EX_I: ['예제 · I거더 (복부 300)', '-700,2500 ; -700,2300 ; -150,2150 ; -150,450 ; -400,250 ; -400,0 ; 400,0 ; 400,250 ; 150,450 ; 150,2150 ; 700,2300 ; 700,2500'],
+    EX_B: ['예제 · 박스 복부 한 개 (복부 450 · 기울기 6 %)', '-1025,2500 ; -1025,2250 ; -351,2100 ; -225,0 ; 1025,0 ; 1025,250 ; 525,250 ; 201,400 ; 96,2150 ; 396,2250 ; 1025,2250 ; 1025,2500']
+  };
+  var EX_ROWS = [
+    ['seat1', 'off'],
+    ['duct', 'P1', 'circ', '90', '', '0', '120', 'abs', '20', ''],
+    ['duct', 'P2', 'circ', '90', '', '0', '300', 'abs', '20', ''],
+    ['duct', 'P3', 'circ', '90', '', '0', '480', 'abs', '20', ''],
+    ['trebar', 'T1', '1', '13', '0,2440,0', '', 'a:1200', '', '', '', '', '', '0'],
+    ['trebar', 'CAP', '21', '13', '0,2440,180', '', 'a:1500,b:250,c:1500', '', '', '', '', '', '1'],
+    ['trebar', 'U', '21', '13', '0,60,0', '', 'a:1300,b:250,c:1300', '', '', '', '', '', '2'],
+    ['lrebar', 'LB', '16', '3', '0,90,0', '-100,100', '-1', '80', '160', '40', '0', ''],
+    ['lrebar', 'LT', '16', '3', '0,2410,0', '-100,100', '1', '80', '160', '40', '0', ''],
+    ['lrebar', 'LO', '16', '8', '-90,1250,90', '-800,800', '1', '200', '400', '100', '0', ''],
+    ['lrebar', 'LI', '16', '8', '90,1250,90', '-800,800', '-1', '200', '400', '100', '0', '']
+  ];
+  var _exData = false;                           // _excelData 가 예제 행인가 (사용자가 올린 엑셀이 아님)
+  function isEx() { return !!EX_SECS[_secMode]; }
+  function isPoly() { return _secMode === 'POLY' || isEx(); }
   var OP_SHAPES = [['RECT', 'Rectangle'], ['HEX', 'Hexagon'], ['OCT', 'Octagon']];
 
   // ── 상태 ──
@@ -147,7 +169,9 @@
       '  <div class="px-opthalf" style="flex:0 0 auto;white-space:nowrap;"><b>검증 :</b>' +
       '    <label><input type="checkbox" id="g_verify" checked onchange="PXR.redraw()"> 파라메트릭 정답 비교</label>' +
       '    N ' + inp('g_n', 20, 46) + ' ±xy ' + inp('g_jxy', 25, 46) + ' ±° ' + inp('g_jr', 5, 40) + '</div>' +
-      '  <div class="draw-card-desc" style="flex:1 1 100%;margin:0;">엑셀에 <b>trebar · lrebar</b> 행이 있으면 자동 철근 대신 그 행을 서버 J 엔진으로 푼다. <b>section | KEY</b> · <b>poly | x,y;…</b> 행으로 단면을 바꿀 수 있다.</div>' +
+      '  <div class="px-opthalf" style="flex:0 0 auto;white-space:nowrap;"><b>덕트 :</b>' +
+      '    <label><input type="checkbox" id="g_duct" checked onchange="PXR.redraw()"> duct 행을 넣는다 (끄면 덕트 없이)</label></div>' +
+      '  <div class="draw-card-desc" style="flex:1 1 100%;margin:0;">엑셀에 <b>trebar · lrebar</b> 행이 있으면 자동 철근 대신 그 행을 서버 J 엔진으로 푼다. <b>section | KEY</b> · <b>poly | x,y;…</b> 행으로 단면을 바꿀 수 있다. Section 의 <b>예제</b> 세 가지는 아래 REBAR 표의 <b>같은 행</b>을 단면만 바꿔 푼다.</div>' +
       '</div>';
   }
   function isGirder() { return _secMode !== 'PSCBOX'; }
@@ -157,7 +181,7 @@
     if (gp) gp.style.display = g ? '' : 'none';
     if (bp) bp.style.display = g ? 'none' : '';
     if (ss) ss.value = _secMode;
-    if (dd) dd.textContent = g ? '표준 I/T 거더 — 서버 엔진(J-field · J 종방향 절곡부 주머니)이 철근을 앉힌다' : 'PSC box girder — 1 / 2 cell · 서버 엔진이 단면·철근을 계산';
+    if (dd) dd.textContent = isEx() ? '예제 — 같은 철근 행(아래 REBAR 표)을 T형보 · I거더 · 박스 복부에 그대로. Section 만 바꿔 [계산]' : g ? '표준 I/T 거더 — 서버 엔진(J-field · J 종방향 절곡부 주머니)이 철근을 앉힌다' : 'PSC box girder — 1 / 2 cell · 서버 엔진이 단면·철근을 계산';
     var vc = el('verifyCard'); if (vc && !g) vc.style.display = 'none';
     var c3 = el('cap3d'); if (c3) c3.innerHTML = g ? '3D &mdash; GIRDER' : '3D &mdash; DIAPHRAGM';
   }
@@ -203,6 +227,7 @@
       '    <span class="px-mb-label">Section :</span>' +
       '    <select id="pxSecSel" onchange="PXR.onSection()" style="font:inherit;font-size:13px;padding:4px 8px;border:1px solid #cbd5e1;border-radius:6px;margin-right:10px;">' +
       GIRDERS.map(function (g) { return '<option value="' + g[0] + '">' + g[1] + '</option>'; }).join('') +
+      Object.keys(EX_SECS).map(function (k) { return '<option value="' + k + '">' + EX_SECS[k][0] + '</option>'; }).join('') +
       '      <option value="POLY">엑셀 poly (사용자 단면)</option><option value="PSCBOX">PSCBOX 박스 (치수)</option></select>' +
       '    <span class="px-mb-label">Excel :</span>' +
       '    <button type="button" class="px-btn" onclick="PXR.loadExcel()">&#8682; Load Excel</button>' +
@@ -317,7 +342,8 @@
       var root = el(rootId); if (!root) return;
       opts = opts || {};
       if (opts.mode) _secMode = opts.mode;
-      _excelData = null; _polyRow = null;
+      _excelData = null; _polyRow = null; _exData = false;
+      if (isEx()) { _excelData = EX_ROWS.slice(); _exData = true; }
       root.innerHTML = mountHTML();
       if (opts.opening === false) { var oc0 = el('opConsider'), ob0 = el('openingBody'); if (oc0) oc0.checked = false; if (ob0) ob0.style.display = 'none'; }
       syncSectionUI();
@@ -359,7 +385,14 @@
       Array.prototype.forEach.call(bar.querySelectorAll('[data-p]'), function (b) { b.classList.toggle('active', b.getAttribute('data-p') === self._proj3D); });
     },
     onCellType: function () { this.redraw(); },
-    onSection: function () { var s = el('pxSecSel'); _secMode = s ? s.value : 'AASHTO_IV'; syncSectionUI(); this.redraw(); },
+    onSection: function () {
+      var s = el('pxSecSel'); _secMode = s ? s.value : 'AASHTO_IV';
+      //  예제 단면 : 올린 엑셀이 없으면 예제 철근 행을 채운다. 예제끼리 오갈 때 행은 그대로 — 단면만 바뀐다.
+      if (isEx()) { if (!_excelData || _exData) { _excelData = EX_ROWS.slice(); _exData = true; } }
+      else if (_exData) { _excelData = null; _exData = false; }
+      renderRebarTable(); syncSectionUI();
+      if (isEx()) this.calc(); else this.redraw();
+    },
     onOpConsider: function () {
       var c = el('opConsider'), body = el('openingBody');
       if (body) body.style.display = (c && c.checked) ? '' : 'none';
@@ -385,15 +418,20 @@
   function gatherRows() {
     if (isGirder()) {
       var gr = [], c = val('g_cover') || '40';
-      if (_secMode === 'POLY') { if (_polyRow) gr.push(_polyRow); else gr.push(['section', 'AASHTO_IV']); }
+      if (isEx()) gr.push(['poly', EX_SECS[_secMode][1]]);
+      else if (_secMode === 'POLY') { if (_polyRow) gr.push(_polyRow); else gr.push(['section', 'AASHTO_IV']); }
       else gr.push(['section', _secMode]);
       gr.push(['cover', c, c, c]);
-      var hasRebar = false;
-      (_excelData || []).forEach(function (r) { var t = firstTok(r).toLowerCase(); if (t === 'trebar' || t === 'lrebar') { hasRebar = true; gr.push(r); } });
+      var hasRebar = false, gd = el('g_duct'), ductOn = !gd || gd.checked;
+      (_excelData || []).forEach(function (r) {
+        var t = firstTok(r).toLowerCase();
+        if (t === 'trebar' || t === 'lrebar') { hasRebar = true; gr.push(r); }
+        else if (t === 'seat1' || t === 'ductescape' || (t === 'duct' && ductOn)) gr.push(r);   // 면 고르기 규칙 · 덕트 탈출 · 덕트
+      });
       var ga = el('g_auto');
       if (!hasRebar && (!ga || ga.checked)) gr.push(['auto', 'corner', val('g_ds') || 13, val('g_dl') || 16, val('g_ctc') || 150]);
       var gv = el('g_verify');
-      if (gv && gv.checked && _secMode !== 'POLY') gr.push(['verify', val('g_n') || 20, val('g_jxy') || 25, val('g_jr') || 5, 20261114]);
+      if (gv && gv.checked && !isPoly()) gr.push(['verify', val('g_n') || 20, val('g_jxy') || 25, val('g_jr') || 5, 20261114]);
       return gr;
     }
     var rows = [];
@@ -534,7 +572,7 @@
         var wb = XLSX.read(ev.target.result, { type: 'array' });
         var ws = wb.Sheets['input'] || wb.Sheets[wb.SheetNames[0]];
         var rows = XLSX.utils.sheet_to_json(ws, { header: 1, blankrows: false, defval: '' });
-        _excelData = rows;
+        _excelData = rows; _exData = false;
         populateFromRows(rows);
         renderRebarTable();
         PX.calc();            // 엑셀을 불러오면 한 번 계산

@@ -82,7 +82,16 @@
     ['lrebar', 'LO', '16', '8', '-90,1250,90', '-800,800', '1', '200', '400', '100', '0', ''],
     ['lrebar', 'LI', '16', '8', '90,1250,90', '-800,800', '-1', '200', '400', '100', '0', '']
   ];
+  //  파라메트릭 전용 입력 — 조각마다 놓이는 면 번호(면 k = 외곽 꼭짓점 k → k+1). **단면 형식마다 다시 지정해야 한다.**
+  var EX_PARAM = {
+    EX_T: { T1: '7', CAP: '4;7;2', U: '2;3;4', LB: '3', LT: '7', LO: '2', LI: '4' },
+    EX_I: { T1: '11', CAP: '8;11;2', U: '2;5;8', LB: '5', LT: '11', LO: '2', LI: '8' },
+    EX_B: { T1: '11', CAP: '7;11;2', U: '2;3;7', LB: '3', LT: '11', LO: '2', LI: '7' }
+  };
+  function exRows() { var pm = EX_PARAM[_secMode] || {}; return EX_ROWS.concat(Object.keys(pm).map(function (id) { return ['param', id, pm[id]]; })); }
   var _exData = false;                           // _excelData 가 예제 행인가 (사용자가 올린 엑셀이 아님)
+  var _paraPage = false;                         // REBAR PARA 메뉴 = 파라메트릭 화면 (교점을 계산해 잇는다 — 움직임 없음)
+  function method() { var m = el('g_method'); return m ? m.value : (_paraPage ? 'param' : 'j'); }
   function isEx() { return !!EX_SECS[_secMode]; }
   function isPoly() { return _secMode === 'POLY' || isEx(); }
   var OP_SHAPES = [['RECT', 'Rectangle'], ['HEX', 'Hexagon'], ['OCT', 'Octagon']];
@@ -169,6 +178,11 @@
       '  <div class="px-opthalf" style="flex:0 0 auto;white-space:nowrap;"><b>검증 :</b>' +
       '    <label><input type="checkbox" id="g_verify" checked onchange="PXR.redraw()"> 파라메트릭 정답 비교</label>' +
       '    N ' + inp('g_n', 20, 46) + ' ±xy ' + inp('g_jxy', 25, 46) + ' ±° ' + inp('g_jr', 5, 40) + '</div>' +
+      '  <div class="px-opthalf" style="flex:0 0 auto;white-space:nowrap;"><b>방법 :</b> ' +
+      '    <select id="g_method" onchange="PXR.setMethod()" style="font:inherit;font-size:13px;padding:3px 6px;border:1px solid #cbd5e1;border-radius:6px;">' +
+      '      <option value="param"' + (_paraPage ? ' selected' : '') + '>파라메트릭 (면 지정 → 교점 계산)</option>' +
+      '      <option value="j"' + (_paraPage ? '' : ' selected') + '>우리 방법 (시작 자리 → 스스로 자리 잡음)</option>' +
+      '      <option value="both">둘 겹쳐 보기</option></select></div>' +
       '  <div class="px-opthalf" style="flex:0 0 auto;white-space:nowrap;"><b>덕트 :</b>' +
       '    <label><input type="checkbox" id="g_duct" checked onchange="PXR.redraw()"> duct 행을 넣는다 (끄면 덕트 없이)</label></div>' +
       '  <div class="draw-card-desc" style="flex:1 1 100%;margin:0;">엑셀에 <b>trebar · lrebar</b> 행이 있으면 자동 철근 대신 그 행을 서버 J 엔진으로 푼다. <b>section | KEY</b> · <b>poly | x,y;…</b> 행으로 단면을 바꿀 수 있다. Section 의 <b>예제</b> 세 가지는 아래 REBAR 표의 <b>같은 행</b>을 단면만 바꿔 푼다.</div>' +
@@ -181,7 +195,7 @@
     if (gp) gp.style.display = g ? '' : 'none';
     if (bp) bp.style.display = g ? 'none' : '';
     if (ss) ss.value = _secMode;
-    if (dd) dd.textContent = isEx() ? '예제 — 같은 철근 행(아래 REBAR 표)을 T형보 · I거더 · 박스 복부에 그대로. Section 만 바꿔 [계산]' : g ? '표준 I/T 거더 — 서버 엔진(J-field · J 종방향 절곡부 주머니)이 철근을 앉힌다' : 'PSC box girder — 1 / 2 cell · 서버 엔진이 단면·철근을 계산';
+    if (dd) dd.textContent = (isEx() && _paraPage) ? '파라메트릭 — 조각마다 놓일 면을 지정(REBAR 표의 param 행)하면 그 면을 안으로 민 선의 교점을 이어 그린다. 단면 형식이 바뀌면 param 행을 다시 지정' : isEx() ? '예제 — 같은 철근 행(아래 REBAR 표)을 T형보 · I거더 · 박스 복부에 그대로. Section 만 바꿔 [계산]' : g ? '표준 I/T 거더 — 서버 엔진(J-field · J 종방향 절곡부 주머니)이 철근을 앉힌다' : 'PSC box girder — 1 / 2 cell · 서버 엔진이 단면·철근을 계산';
     var vc = el('verifyCard'); if (vc && !g) vc.style.display = 'none';
     var c3 = el('cap3d'); if (c3) c3.innerHTML = g ? '3D &mdash; GIRDER' : '3D &mdash; DIAPHRAGM';
   }
@@ -190,8 +204,11 @@
   function renderVerify(data) {
     var card = el('verifyCard'), body = el('verifyBody'); if (!card || !body) return;
     var v = data && data.verify;
+    var ttl = card.querySelector('.draw-card-title'), dsc = card.querySelector('.draw-card-desc');
+    if (!v && data && data.pcmp) { card.style.display = ''; if (ttl) ttl.textContent = 'PARAMETRIC'; if (dsc) dsc.textContent = '파라메트릭 (면 지정 → 교점) 과 우리 방법 (면 지정 없음) 의 좌표 차이'; body.innerHTML = pcmpHTML(data.pcmp); return; }
     if (!v) { card.style.display = 'none'; return; }
     card.style.display = '';
+    if (ttl) ttl.textContent = 'VERIFY'; if (dsc) dsc.textContent = '(a) 파라메트릭 정답 vs (c) J — 서버가 같은 단면을 세 방법으로 (APF 는 정답을 목표점으로 받음)';
     var errs = (v.J && v.J.err) || {}, nB = 0, okB = 0;
     Object.keys(errs).forEach(function (k) { if (errs[k] == null) return; nB++; if (errs[k] <= 1) okB++; });
     var le = (v.J && v.J.longErr) || {}, t = v.trials || {};
@@ -221,6 +238,31 @@
     h += '<div style="font-size:12px;color:#64748b;margin-top:8px">2D 그림의 <b style="color:#cbd5e1">흰 점선</b> = 파라메트릭 정답 · <b style="color:#f87171">빨간 원</b> = 종방향 정답 · 보라 = J 횡방향 · 금색 = J 종방향 · 서버 ' + v.ms + ' ms</div>';
     body.innerHTML = h;
   }
+  function pcmpHTML(c) {
+    var ok = function (b) { return b ? 'color:#15803d' : 'color:#b91c1c'; };
+    var kpi = function (val, lab, good) { return '<div style="border:1px solid #e2e8f0;border-radius:8px;padding:8px 10px;background:#f8fafc;min-width:150px"><b style="display:block;font-size:18px;' + (good == null ? '' : ok(good)) + '">' + val + '</b><span style="font-size:11.5px;color:#64748b">' + lab + '</span></div>'; };
+    var nPk = 0, nDu = 0, duMax = 0; (c.long || []).forEach(function (l) { nPk += l.nPocket || 0; nDu += l.nDuct || 0; duMax = Math.max(duMax, l.ductMove || 0); });
+    var h = '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px">' +
+      kpi(c.nFace + ' 개', '파라메트릭 : 사람이 지정한 면 (단면 형식마다 다시)', null) +
+      kpi('0 개', '우리 방법 : 면 지정', null) +
+      kpi(f2(c.errMax) + ' mm', '두 방법 좌표 차이 최대 (덕트 영향 없는 것)', c.errMax <= 1) +
+      kpi(nPk + ' 개', '우리 방법이 절곡부에 넣은 종방향 (식 Q 와 최대 ' + f2(c.pocketMax) + ' mm)', null) +
+      kpi(nDu + ' 개', '파라메트릭 자리가 덕트와 겹침' + (nDu ? ' — 우리 방법은 최대 ' + f1(duMax) + ' mm 비킴' : ''), nDu ? false : null) + '</div>';
+    var th = 'style="background:#f1f5f9;padding:5px 6px;text-align:right;white-space:nowrap"', td = 'style="padding:4px 6px;text-align:right;border-bottom:1px solid #f1f5f9;font-variant-numeric:tabular-nums"';
+    h += '<div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px"><div><div class="draw-card-title" style="margin-bottom:6px">횡방향</div><table style="width:100%;border-collapse:collapse;font-size:12px"><tr><th ' + th + '>철근</th><th ' + th + '>지정한 면</th><th ' + th + '>파라메트릭 꺾임점 (x, y)</th><th ' + th + '>우리 방법과 차이</th></tr>';
+    (c.bars || []).forEach(function (b) {
+      var mid = (b.pts || []).slice(1, -1), txt = mid.length ? mid.map(function (q) { return '(' + f1(q[0]) + ', ' + f1(q[1]) + ')'; }).join(' ') : '직선 ' + (b.pts || []).map(function (q) { return '(' + f1(q[0]) + ', ' + f1(q[1]) + ')'; }).join(' ~ ');
+      h += '<tr><td ' + td + '>' + esc(b.id) + '</td><td ' + td + '>' + (b.faces || []).join(' · ') + '</td><td ' + td + '>' + txt + '</td><td ' + td + '>' + (b.errMax == null ? '-' : '<b style="' + ok(b.errMax <= 1) + '">' + f2(b.errMax) + '</b>') + '</td></tr>';
+    });
+    h += '</table></div><div><div class="draw-card-title" style="margin-bottom:6px">종방향</div><table style="width:100%;border-collapse:collapse;font-size:12px"><tr><th ' + th + '>줄</th><th ' + th + '>지정한 면</th><th ' + th + '>개수</th><th ' + th + '>차이 최대</th><th ' + th + '>절곡부로 들어감</th><th ' + th + '>덕트와 겹침</th></tr>';
+    (c.long || []).forEach(function (l) {
+      h += '<tr><td ' + td + '>' + esc(l.id) + '</td><td ' + td + '>' + l.face + '</td><td ' + td + '>' + l.n + '</td><td ' + td + '>' + (l.ductRow ? '<span style="color:#b45309">' + f2(l.plainMax) + ' (덕트에 밀림)</span>' : '<b style="' + ok(l.plainMax <= 1) + '">' + f2(l.plainMax) + '</b>') + '</td><td ' + td + '>' + (l.nPocket ? l.nPocket + '개 (' + f2(l.pocketMax) + ')' : '-') + '</td><td ' + td + '>' + (l.nDuct ? '<b style="color:#b91c1c">' + l.nDuct + '개 (' + f1(l.ductMove) + ' mm)</b>' : '-') + '</td></tr>';
+    });
+    h += '</table></div></div>';
+    if (c.warn && c.warn.length) h += '<div style="font-size:12px;color:#92400e;background:#fffbeb;border:1px solid #fde68a;border-radius:6px;padding:6px 9px;margin-top:10px">' + c.warn.map(esc).join('<br>') + '</div>';
+    h += '<div style="font-size:12px;color:#64748b;margin-top:8px">파라메트릭 : 조각마다 놓일 면(그림의 번호)을 지정 → 그 면을 피복 + 반지름만큼 안으로 민 선의 교점을 잇는다. 덕트는 모른다. · 우리 방법 : 면 지정 없이 어림한 시작 자리에서 스스로 자리를 잡고 덕트를 비킨다. · 2D 그림 : <b style="color:#0891b2">청록</b> = 파라메트릭 · <b style="color:#7c3aed">보라</b> = 우리 방법 · 빨강 = 덕트와 겹친 파라메트릭 자리</div>';
+    return h;
+  }
   function mountHTML() {
     return '<div class="px-root">' +
       '  <div class="px-menubar">' +
@@ -230,10 +272,10 @@
       Object.keys(EX_SECS).map(function (k) { return '<option value="' + k + '">' + EX_SECS[k][0] + '</option>'; }).join('') +
       '      <option value="POLY">엑셀 poly (사용자 단면)</option><option value="PSCBOX">PSCBOX 박스 (치수)</option></select>' +
       '    <span class="px-mb-label">Excel :</span>' +
-      '    <button type="button" class="px-btn" onclick="PXR.loadExcel()">&#8682; Load Excel</button>' +
-      '    <button type="button" class="px-btn px-btn-lite" onclick="PXR.toggleLoadLog()">&#128220; View Log</button>' +
-      '    <button type="button" class="px-btn" id="pxCalcBtn" onclick="PXR.calc()" title="입력을 마친 뒤 누르면 서버에서 계산합니다 (칸에서 Enter 도 같음)">&#9654; 계산</button>' +
-      '    <button type="button" class="px-btn px-btn-lite" id="pxProcBtn" onclick="PXR.replay()" title="철근이 시작 자리에서 제자리를 찾아가는 과정을 다시 봅니다 (I/T · 사용자 단면)">&#8635; 과정</button>' +
+      '    <button type="button" class="px-btn" style="white-space:nowrap;flex-shrink:0" onclick="PXR.loadExcel()">&#8682; Load Excel</button>' +
+      '    <button type="button" class="px-btn px-btn-lite" style="white-space:nowrap;flex-shrink:0" onclick="PXR.toggleLoadLog()">&#128220; View Log</button>' +
+      '    <button type="button" class="px-btn" id="pxCalcBtn" style="white-space:nowrap;flex-shrink:0" onclick="PXR.calc()" title="입력을 마친 뒤 누르면 서버에서 계산합니다 (칸에서 Enter 도 같음)">&#9654; 계산</button>' +
+      '    <button type="button" class="px-btn px-btn-lite" id="pxProcBtn" style="white-space:nowrap;flex-shrink:0" onclick="PXR.replay()" title="철근이 시작 자리에서 제자리를 찾아가는 과정을 다시 봅니다 (I/T · 사용자 단면)">&#8635; 과정</button>' +
       '    <input type="file" id="excelFileInput" accept=".xlsx,.xls" style="display:none;">' +
       '    <span id="pxStatus" style="margin-left:8px;font-size:12.5px;color:#64748b;"></span>' +
       '  </div>' +
@@ -306,13 +348,14 @@
       ['lrebar', 'id', 'dia', 'num', 'init (x, y, rot)', 'range (-, +)', 'nors', 'ctc', 'ctcmax', 'ctcmin', 'gap', 'path', 'z'],
       ['crebar', 'id', 'dia', 'plane', 'at (cell/all/range)', 'set', 'lap', 'from', 'to', 'ctc', '', 'ctcmin, ctcmax', ''],
       ['srebar', 'id', 'code', 'dia', 'init (x, y, rot)', 'range (-, +)', 'num', 'ctc', 'len', 'seat', '', 'ctcmin, ctcmax', 'z'],
-      ['duct', 'id', 'shape', 'D / B', 'H', 'x', 'y', 'ref', 'clr', 'field (off = 그림만)', '', '', '']
+      ['duct', 'id', 'shape', 'D / B', 'H', 'x', 'y', 'ref', 'clr', 'field (off = 그림만)', '', '', ''],
+      ['param', 'id', '면 번호 (조각 순서대로 ; 로 — 파라메트릭 전용)', '', '', '', '', '', '', '', '', '', '']
     ];
     var ncol = SCHEMA[0].length;
     var rows = [];
     (_excelData || []).forEach(function (r) {
       var t = firstTok(r).toLowerCase();
-      if (t === 'trebar' || t === 'lrebar' || t === 'crebar' || t === 'srebar' || t === 'duct') rows.push(r);
+      if (t === 'trebar' || t === 'lrebar' || t === 'crebar' || t === 'srebar' || t === 'duct' || t === 'param') rows.push(r);
     });
     var h = '<div class="rebar-table-wrap"><table class="rebar-table"><thead>';
     SCHEMA.forEach(function (row) {
@@ -323,8 +366,9 @@
     h += '</thead><tbody>';
     if (rows.length) {
       rows.forEach(function (r) {
+        var pm = firstTok(r).toLowerCase() === 'param';   // 파라메트릭 전용 행은 노랗게
         h += '<tr>';
-        for (var i = 0; i < ncol; i++) h += '<td>' + esc(r[i]) + '</td>';
+        for (var i = 0; i < ncol; i++) h += '<td' + (pm ? ' style="background:#fffbeb"' : '') + '>' + esc(r[i]) + '</td>';
         h += '</tr>';
       });
     } else {
@@ -344,7 +388,9 @@
       opts = opts || {};
       if (opts.mode) _secMode = opts.mode;
       _excelData = null; _polyRow = null; _exData = false;
-      if (isEx()) { _excelData = EX_ROWS.slice(); _exData = true; }
+      _paraPage = /rebarpara/i.test(String(rootId));
+      if (_paraPage && !opts.mode) _secMode = 'EX_T';   // 파라메트릭 화면은 예제 T형보로 시작
+      if (isEx()) { _excelData = exRows(); _exData = true; }
       root.innerHTML = mountHTML();
       if (opts.opening === false) { var oc0 = el('opConsider'), ob0 = el('openingBody'); if (oc0) oc0.checked = false; if (ob0) ob0.style.display = 'none'; }
       syncSectionUI();
@@ -389,7 +435,7 @@
     onSection: function () {
       var s = el('pxSecSel'); _secMode = s ? s.value : 'AASHTO_IV';
       //  예제 단면 : 올린 엑셀이 없으면 예제 철근 행을 채운다. 예제끼리 오갈 때 행은 그대로 — 단면만 바뀐다.
-      if (isEx()) { if (!_excelData || _exData) { _excelData = EX_ROWS.slice(); _exData = true; } }
+      if (isEx()) { if (!_excelData || _exData) { _excelData = exRows(); _exData = true; } }
       else if (_exData) { _excelData = null; _exData = false; }
       renderRebarTable(); syncSectionUI();
       if (isEx()) this.calc(); else this.redraw();
@@ -411,7 +457,8 @@
     toggleLoadLog: function () { var p = el('pxLoadLog'); if (p) p.style.display = (p.style.display === 'none' || !p.style.display) ? 'block' : 'none'; },
     //  칸을 고칠 때마다 서버를 부르지 않는다 — 고친 것만 표시해 두고, [계산] 을 누를 때 한 번 계산한다.
     redraw: function () { markDirty(true); },
-    replay: function () { if (_last) { if (hasProc(_last)) draw(_last); else setStatus('과정 기록이 없습니다 — 엑셀 철근 행(또는 예제)이 있는 I/T · 사용자 단면에서 [계산] 뒤에 볼 수 있습니다'); } },
+    setMethod: function () { if (_last) { draw(_last); draw3D(viewData(_last)); renderVerify(_last); statusOf(_last); } },
+    replay: function () { if (_last) { if (method() === 'param' && paramOf(_last)) setStatus('파라메트릭은 과정이 없습니다 — 교점을 계산해 바로 그립니다. 「방법」을 우리 방법으로 바꾸면 과정을 볼 수 있습니다'); else if (hasProc(_last)) draw(_last); else setStatus('과정 기록이 없습니다 — 엑셀 철근 행(또는 예제)이 있는 I/T · 사용자 단면에서 [계산] 뒤에 볼 수 있습니다'); } },
     calc: function () { markDirty(false); solve(gatherRows()); }
   };
   window.PXR = PX;
@@ -428,7 +475,7 @@
       (_excelData || []).forEach(function (r) {
         var t = firstTok(r).toLowerCase();
         if (t === 'trebar' || t === 'lrebar') { hasRebar = true; gr.push(r); }
-        else if (t === 'seat1' || t === 'ductescape' || (t === 'duct' && ductOn)) gr.push(r);   // 면 고르기 규칙 · 덕트 탈출 · 덕트
+        else if (t === 'seat1' || t === 'ductescape' || t === 'param' || (t === 'duct' && ductOn)) gr.push(r);   // 면 고르기 규칙 · 덕트 탈출 · 파라메트릭 면 지정 · 덕트
       });
       var ga = el('g_auto');
       if (!hasRebar && (!ga || ga.checked)) gr.push(['auto', 'corner', val('g_ds') || 13, val('g_dl') || 16, val('g_ctc') || 150]);
@@ -541,18 +588,41 @@
         if (isGirder() && data.kind !== 'girder') { setStatus('서버 엔진이 옛 버전입니다 — pull.php 를 한 번 돌려 주세요 (I/T 거더 없음)', true); done(); return; }
         draw(data);
         if (data.kind !== 'girder') { drawGuide(data); drawOpening(data); }
-        draw3D(data);
+        draw3D(viewData(data));
         fillLog(data.log);
         renderVerify(data);
         var nb = (data.bars2d || []).length, nl = (data.lbars2d || []).length, nh = (data.hoops || []).length, nm = (data.mesh2d || []).length;
         if (data.kind === 'girder') {
           var nd = 0; (data.lbars2d || []).forEach(function (b) { nd += (b.dots || []).length; });
-          setStatus('완료 — ' + (data.label || '') + ' · 횡방향 ' + nb + ' · 종방향 ' + nd + ' (' + nl + ' 줄) · 서버 ' + data.ms + ' ms');
+          statusOf(data);
         } else
         setStatus('완료 — trebar ' + nb + ' · lrebar ' + nl + ' · 폐합 ' + nh + ' · 면철근망 ' + nm + (data.stub ? ' (stub)' : ''));
         done();
       })
       .catch(function (e) { setStatus('서버 연결 실패: ' + e.message, true); done(); });
+  }
+  //  파라메트릭 결과 (서버 pcmp — param 행이 있을 때. 표준 거더는 verify.param)
+  function paramOf(data) {
+    if (!data) return null;
+    if (data.pcmp) return { bars: data.pcmp.bars || [], long: data.pcmp.long || [], pockets: data.pcmp.pockets || [], full: true };
+    var v = data.verify && data.verify.param; if (!v) return null;
+    return { bars: (v.bars || []).map(function (b) { return { id: b.id, dia: 13, pts: b.pts }; }), long: [], pockets: (v.long || []).filter(function (l) { return l.kind === 'pocket' || l.kind === 'under'; }), full: false };
+  }
+  //  방법이 「파라메트릭」이면 3D 도 파라메트릭 좌표로
+  function viewData(data) {
+    var P = paramOf(data); if (method() !== 'param' || !P || !P.full || data.kind !== 'girder') return data;
+    var c = {}; Object.keys(data).forEach(function (k) { c[k] = data[k]; });
+    c.bars2d = P.bars.map(function (b) { return { id: b.id, dia: b.dia, z: 0, pts: b.pts }; });
+    c.lbars2d = P.long.map(function (l) { return { id: l.id, dia: l.dia, z: 0, dots: l.dots }; });
+    return c;
+  }
+  function statusOf(data) {
+    if (!data || data.kind !== 'girder') return;
+    var nb = (data.bars2d || []).length, nl = (data.lbars2d || []).length, nd = 0; (data.lbars2d || []).forEach(function (b) { nd += (b.dots || []).length; });
+    var m = method(), P = paramOf(data);
+    if (m === 'param' && P && P.full) { var pd = 0; P.long.forEach(function (l) { pd += (l.dots || []).length; }); setStatus('완료 — 파라메트릭 · 횡방향 ' + P.bars.length + ' · 종방향 ' + pd + ' · 면 지정 ' + data.pcmp.nFace + '개 (교점 계산)'); }
+    else if (m === 'param') setStatus('이 입력에는 param 행(조각마다 놓일 면)이 없어 파라메트릭을 계산하지 못했습니다 — 우리 방법 결과를 그립니다', true);
+    else setStatus('완료 — ' + (m === 'both' ? '둘 겹쳐 보기 · ' : '우리 방법 · ') + (data.label || '') + ' · 횡방향 ' + nb + ' · 종방향 ' + nd + ' (' + nl + ' 줄) · 서버 ' + data.ms + ' ms');
   }
   function fillLog(lines) { var p = el('pxLoadLog'); if (p) p.innerHTML = (lines || []).map(function (l) { return '<div>' + esc(l) + '</div>'; }).join(''); }
 
@@ -783,7 +853,11 @@
       else if (d.pts) { layer.add(new Konva.Line({ points: polyPoints(d.pts, T), stroke: dcol, strokeWidth: 1.5, closed: true, dash: ddash })); }
     });
     (data.mesh2d || []).forEach(function (b) { layer.add(new Konva.Line({ points: polyPoints(b.pts || [], T), stroke: '#ea580c', strokeWidth: 1.4, lineCap: 'round', opacity: 0.9 })); });
+    var M = data.kind === 'girder' ? method() : 'j', P = M === 'j' ? null : paramOf(data);
+    if (P && P.full) drawFaceNos(sec.outer || [], P, T);
+    if (P && M === 'both') drawParamStatic(P, T, false);
     layer.draw();
+    if (P && P.full && M === 'param') { drawParamStatic(P, T, true); barLayer.draw(); drawElev(data); return; }   // 파라메트릭 : 계산한 자리에 바로 — 과정이 없다
     if (!noAnim && data.anim && data.anim.length) playAnim(data, T);
     else if (!noAnim && hasProc(data)) playProcess(data, T);
     else {
@@ -867,6 +941,41 @@
       if (tick > maxTick + step) stopAnim();
     }
     render(); animTimer = setInterval(render, 45);
+  }
+  // ── 파라메트릭 그리기 ────────────────────────────────────────────────────
+  //  solid = true : 파라메트릭만 (청록 실선, barLayer) · false : 겹쳐 보기 (흰 점선, layer — 재생 중에도 남는다)
+  var PARAM_COLOR = '#22d3ee';
+  function drawParamStatic(P, T, solid) {
+    var L = solid ? barLayer : layer;
+    P.bars.forEach(function (b) {
+      var pts = polyPoints(b.pts || [], T);
+      if (solid) L.add(new Konva.Line({ points: pts, stroke: PARAM_COLOR, strokeWidth: barW(b.dia, T), lineCap: 'round', lineJoin: 'round' }));
+      else L.add(new Konva.Line({ points: pts, stroke: 'rgba(255,255,255,0.9)', strokeWidth: 1.3, dash: [6, 4] }));
+      if (solid) (b.pts || []).slice(1, -1).forEach(function (q) { var c = T(q); L.add(new Konva.Circle({ x: c[0], y: c[1], radius: 3.2, fill: '#ffffff', stroke: '#0e7490', strokeWidth: 1 })); });   // 교점
+    });
+    P.long.forEach(function (g) {
+      var r = Math.max(1.2, T.s * (g.dia || 13) / 2);
+      (g.dots || []).forEach(function (q, i) {
+        var c = T(q), hit = g.each && g.each[i] && g.each[i].kind === 'duct';
+        if (solid) L.add(new Konva.Circle({ x: c[0], y: c[1], radius: r, fill: hit ? '#ef4444' : PARAM_COLOR, stroke: hit ? '#7f1d1d' : '#0e7490', strokeWidth: Math.max(0.6, r * 0.18) }));
+        else L.add(new Konva.Circle({ x: c[0], y: c[1], radius: r + 1.5, stroke: hit ? '#f87171' : 'rgba(255,255,255,0.9)', strokeWidth: 1, dash: [3, 2] }));
+        if (solid && hit) L.add(new Konva.Circle({ x: c[0], y: c[1], radius: r + 5, stroke: '#ef4444', strokeWidth: 1.4 }));   // 덕트와 겹친 자리
+      });
+    });
+  }
+  //  면 번호 — 파라메트릭은 「이 조각은 몇 번 면」을 알려 줘야 한다. 지정에 쓰인 면은 밝게.
+  function drawFaceNos(outer, P, T) {
+    var n = outer.length; if (n < 3) return;
+    var used = {}; P.bars.forEach(function (b) { (b.faces || []).forEach(function (f) { used[((f % n) + n) % n] = 1; }); }); P.long.forEach(function (g) { if (g.face != null) used[((g.face % n) + n) % n] = 1; });
+    var A = 0; for (var i = 0; i < n; i++) { var a0 = outer[i], b0 = outer[(i + 1) % n]; A += a0[0] * b0[1] - b0[0] * a0[1]; }
+    var sg = A >= 0 ? 1 : -1;
+    for (var k = 0; k < n; k++) {
+      var a = T(outer[k]), b = T(outer[(k + 1) % n]), dx = outer[(k + 1) % n][0] - outer[k][0], dy = outer[(k + 1) % n][1] - outer[k][1], L = Math.sqrt(dx * dx + dy * dy) || 1;
+      var ox = dy / L * sg, oy = -dx / L * sg;   // 바깥쪽 (모델 좌표) → 화면은 y 가 뒤집힌다
+      var cx = (a[0] + b[0]) / 2 + ox * 13, cy = (a[1] + b[1]) / 2 - oy * 13, on = !!used[k];
+      layer.add(new Konva.Circle({ x: cx, y: cy, radius: 8.5, fill: on ? '#fde68a' : 'rgba(15,23,42,0.55)', stroke: on ? '#b45309' : 'rgba(255,255,255,0.4)', strokeWidth: 1 }));
+      layer.add(new Konva.Text({ x: cx - 9, y: cy - 5.5, width: 18, align: 'center', text: String(k), fontSize: 11, fontStyle: on ? 'bold' : 'normal', fill: on ? '#78350f' : '#e2e8f0' }));
+    }
   }
   // ── 과정 보기 (I/T · 사용자 단면) ─────────────────────────────────────────
   //  서버가 준 data.proc : 횡방향은 조각마다 **풀이 반복점**(시작 자리 → 면에 앉기까지), 종방향은 시작 자리 → 결과.

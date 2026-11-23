@@ -242,7 +242,11 @@
     var gp = el('girderPanel'), bp = el('boxPanel'), dd = el('pxDimDesc'), ss = el('pxSecSel');
     if (gp) gp.style.display = g ? '' : 'none';
     if (bp) bp.style.display = g ? 'none' : '';
-    if (ss) ss.value = _secMode;
+    if (ss) {
+      //  목록에 없는 단면(REBAR PARA 에서 엑셀을 올렸을 때)은 그때만 한 줄 넣는다
+      if (!ss.querySelector('option[value="' + _secMode + '"]')) { var op = document.createElement('option'); op.value = _secMode; op.textContent = _secMode === 'POLY' ? '엑셀 poly (올린 파일의 단면)' : _secMode === 'PSCBOX' ? '엑셀 PSCBOX (올린 파일)' : '엑셀 : ' + _secMode; ss.appendChild(op); }
+      ss.value = _secMode;
+    }
     if (dd) dd.textContent = (isEx() && EX_DESC[_secMode] && !(_paraPage && method() === 'param')) ? EX_DESC[_secMode] : (isEx() && _paraPage) ? '파라메트릭 — 조각마다 놓일 면을 지정(REBAR 표의 param 행)하면 그 면을 안으로 민 선의 교점을 이어 그린다. 단면 형식이 바뀌면 param 행을 다시 지정' : isEx() ? '예제 — 같은 철근 행(아래 REBAR 표)을 T형보 · I거더 · 박스 복부에 그대로. Section 만 바꿔 [계산]' : g ? '표준 I/T 거더 — 서버 엔진(J-field · J 종방향 절곡부 주머니)이 철근을 앉힌다' : 'PSC box girder — 1 / 2 cell · 서버 엔진이 단면·철근을 계산';
     var vc = el('verifyCard'); if (vc && !g) vc.style.display = 'none';
     var c3 = el('cap3d'); if (c3) c3.innerHTML = g ? '3D &mdash; GIRDER' : '3D &mdash; DIAPHRAGM';
@@ -317,9 +321,9 @@
       '  <div class="px-menubar">' +
       '    <span class="px-mb-label">Section :</span>' +
       '    <select id="pxSecSel" onchange="PXR.onSection()" style="font:inherit;font-size:13px;padding:4px 8px;border:1px solid #cbd5e1;border-radius:6px;margin-right:10px;">' +
-      GIRDERS.map(function (g) { return '<option value="' + g[0] + '">' + g[1] + '</option>'; }).join('') +
+      (_paraPage ? [] : GIRDERS).map(function (g) { return '<option value="' + g[0] + '">' + g[1] + '</option>'; }).join('') +   // REBAR PARA 는 예제만 (사용자 2026-11-23)
       Object.keys(EX_SECS).map(function (k) { return '<option value="' + k + '">' + EX_SECS[k][0] + '</option>'; }).join('') +
-      '      <option value="POLY">엑셀 poly (사용자 단면)</option><option value="PSCBOX">PSCBOX 박스 (치수)</option></select>' +
+      (_paraPage ? '' : '      <option value="POLY">엑셀 poly (사용자 단면)</option><option value="PSCBOX">PSCBOX 박스 (치수)</option>') + '</select>' +
       '    <span class="px-mb-label">Excel :</span>' +
       '    <button type="button" class="px-btn" style="white-space:nowrap;flex-shrink:0" onclick="PXR.loadExcel()">&#8682; Load Excel</button>' +
       '    <button type="button" class="px-btn px-btn-lite" style="white-space:nowrap;flex-shrink:0" onclick="PXR.toggleLoadLog()">&#128220; View Log</button>' +

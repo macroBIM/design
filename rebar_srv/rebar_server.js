@@ -67,8 +67,24 @@
   var EX_SECS = {
     EX_T: ['예제 · T형보 (복부 500)', '-1025,2500 ; -1025,2250 ; -250,2250 ; -250,0 ; 250,0 ; 250,2250 ; 1025,2250 ; 1025,2500'],
     EX_I: ['예제 · I거더 (복부 300)', '-700,2500 ; -700,2300 ; -150,2150 ; -150,450 ; -400,250 ; -400,0 ; 400,0 ; 400,250 ; 150,450 ; 150,2150 ; 700,2300 ; 700,2500'],
-    EX_B: ['예제 · 박스 복부 한 개 (복부 450 · 기울기 6 %)', '-1025,2500 ; -1025,2250 ; -351,2100 ; -225,0 ; 1025,0 ; 1025,250 ; 525,250 ; 201,400 ; 96,2150 ; 396,2250 ; 1025,2250 ; 1025,2500']
+    EX_B: ['예제 · 박스 복부 한 개 (복부 450 · 기울기 6 %)', '-1025,2500 ; -1025,2250 ; -351,2100 ; -225,0 ; 1025,0 ; 1025,250 ; 525,250 ; 201,400 ; 96,2150 ; 396,2250 ; 1025,2250 ; 1025,2500'],
+    EX_D: ['예제 · 덕트 사이 철근 (박스 하부 모서리 · 덕트 2열 × 3줄)', '0,1500 ; 0,0 ; 2000,0 ; 2000,250 ; 1100,250 ; 500,550 ; 500,1500']
   };
+  //  덕트 사이 예제 — 철근이 **덕트 줄에 걸친 채** 시작해 덕트 사이 틈으로 들어가 자리를 잡는다.
+  //  덕트 사이를 지나는 조각은 면에 붙지 않는다(nors 0) : 덕트가 미는 장만으로 움직인다.
+  var EX_OWN = { EX_D: [
+    ['seat1', 'off'],
+    ['duct', 'T1', 'circ', '100', '', '170', '690', 'abs', '10', ''], ['duct', 'T2', 'circ', '100', '', '330', '690', 'abs', '10', ''],
+    ['duct', 'T3', 'circ', '100', '', '170', '420', 'abs', '10', ''], ['duct', 'T4', 'circ', '100', '', '330', '420', 'abs', '10', ''],
+    ['duct', 'T5', 'circ', '100', '', '170', '250', 'abs', '10', ''], ['duct', 'T6', 'circ', '100', '', '330', '250', 'abs', '10', ''],
+    ['trebar', 'OL', '11', '16', '60,60,0', '', 'a:1300,b:1500', '', '', '', '', '', '0'],
+    ['trebar', 'F1', '1', '16', '250,690,0', '', 'a:380', '', 'a:0', '', '', '', '1'],
+    ['trebar', 'F2', '1', '16', '250,400,0', '', 'a:380', '', 'a:0', '', '', '', '2'],
+    ['trebar', 'H1', '23', '16', '460,820,90', '', 'a:400,b:700,c:600', 'a:-26.565,b:26.565', 'a:0,b:-1', '', '', '', '3'],
+    ['lrebar', 'LW', '16', '6', '100,800,90', '-600,600', '1', '200', '400', '100', '0', ''],
+    ['lrebar', 'LS', '16', '8', '1000,90,0', '-800,800', '-1', '200', '400', '100', '0', '']
+  ] };
+  var EX_DESC = { EX_D: '예제 — 덕트 사이 철근. F1 은 윗 덕트 줄 한가운데, F2 · H1 은 덕트 줄에 걸친 채 시작한다(점선). [계산] 뒤 과정을 보면 덕트 사이 틈으로 들어가 자리를 잡는다' };
   var EX_ROWS = [
     ['seat1', 'off'],
     ['duct', 'P1', 'circ', '90', '', '0', '120', 'abs', '20', ''],
@@ -86,9 +102,10 @@
   var EX_PARAM = {
     EX_T: { T1: '7', CAP: '4;7;2', U: '2;3;4', LB: '3', LT: '7', LO: '2', LI: '4' },
     EX_I: { T1: '11', CAP: '8;11;2', U: '2;5;8', LB: '5', LT: '11', LO: '2', LI: '8' },
-    EX_B: { T1: '11', CAP: '7;11;2', U: '2;3;7', LB: '3', LT: '11', LO: '2', LI: '7' }
+    EX_B: { T1: '11', CAP: '7;11;2', U: '2;3;7', LB: '3', LT: '11', LO: '2', LI: '7' },
+    EX_D: { OL: '0;1', LW: '0', LS: '1' }   // F1 · F2 · H1 은 놓일 면이 없다 — 면 → 교점 식으로는 정할 수 없다
   };
-  function exRows() { var pm = EX_PARAM[_secMode] || {}; return EX_ROWS.concat(Object.keys(pm).map(function (id) { return ['param', id, pm[id]]; })); }
+  function exRows() { var pm = EX_PARAM[_secMode] || {}; return (EX_OWN[_secMode] || EX_ROWS).concat(Object.keys(pm).map(function (id) { return ['param', id, pm[id]]; })); }
   var _exData = false;                           // _excelData 가 예제 행인가 (사용자가 올린 엑셀이 아님)
   var _paraPage = false;                         // REBAR PARA 메뉴 = 파라메트릭 화면 (교점을 계산해 잇는다 — 움직임 없음)
   function method() { var m = el('g_method'); return m ? m.value : (_paraPage ? 'param' : 'j'); }
@@ -195,7 +212,7 @@
     if (gp) gp.style.display = g ? '' : 'none';
     if (bp) bp.style.display = g ? 'none' : '';
     if (ss) ss.value = _secMode;
-    if (dd) dd.textContent = (isEx() && _paraPage) ? '파라메트릭 — 조각마다 놓일 면을 지정(REBAR 표의 param 행)하면 그 면을 안으로 민 선의 교점을 이어 그린다. 단면 형식이 바뀌면 param 행을 다시 지정' : isEx() ? '예제 — 같은 철근 행(아래 REBAR 표)을 T형보 · I거더 · 박스 복부에 그대로. Section 만 바꿔 [계산]' : g ? '표준 I/T 거더 — 서버 엔진(J-field · J 종방향 절곡부 주머니)이 철근을 앉힌다' : 'PSC box girder — 1 / 2 cell · 서버 엔진이 단면·철근을 계산';
+    if (dd) dd.textContent = (isEx() && EX_DESC[_secMode] && !(_paraPage && method() === 'param')) ? EX_DESC[_secMode] : (isEx() && _paraPage) ? '파라메트릭 — 조각마다 놓일 면을 지정(REBAR 표의 param 행)하면 그 면을 안으로 민 선의 교점을 이어 그린다. 단면 형식이 바뀌면 param 행을 다시 지정' : isEx() ? '예제 — 같은 철근 행(아래 REBAR 표)을 T형보 · I거더 · 박스 복부에 그대로. Section 만 바꿔 [계산]' : g ? '표준 I/T 거더 — 서버 엔진(J-field · J 종방향 절곡부 주머니)이 철근을 앉힌다' : 'PSC box girder — 1 / 2 cell · 서버 엔진이 단면·철근을 계산';
     var vc = el('verifyCard'); if (vc && !g) vc.style.display = 'none';
     var c3 = el('cap3d'); if (c3) c3.innerHTML = g ? '3D &mdash; GIRDER' : '3D &mdash; DIAPHRAGM';
   }
@@ -205,7 +222,7 @@
     var card = el('verifyCard'), body = el('verifyBody'); if (!card || !body) return;
     var v = data && data.verify;
     var ttl = card.querySelector('.draw-card-title'), dsc = card.querySelector('.draw-card-desc');
-    if (!v && data && data.pcmp) { card.style.display = ''; if (ttl) ttl.textContent = 'PARAMETRIC'; if (dsc) dsc.textContent = '파라메트릭 (면 지정 → 교점) 과 우리 방법 (면 지정 없음) 의 좌표 차이'; body.innerHTML = pcmpHTML(data.pcmp); return; }
+    if (!v && data && data.pcmp) { card.style.display = ''; if (ttl) ttl.textContent = 'PARAMETRIC'; if (dsc) dsc.textContent = '파라메트릭 (면 지정 → 교점) 과 우리 방법 (면 지정 없음) 의 좌표 차이'; body.innerHTML = pcmpHTML(data.pcmp, noParamIds(data)); return; }
     if (!v) { card.style.display = 'none'; return; }
     card.style.display = '';
     if (ttl) ttl.textContent = 'VERIFY'; if (dsc) dsc.textContent = '(a) 파라메트릭 정답 vs (c) J — 서버가 같은 단면을 세 방법으로 (APF 는 정답을 목표점으로 받음)';
@@ -238,7 +255,7 @@
     h += '<div style="font-size:12px;color:#64748b;margin-top:8px">2D 그림의 <b style="color:#cbd5e1">흰 점선</b> = 파라메트릭 정답 · <b style="color:#f87171">빨간 원</b> = 종방향 정답 · 보라 = J 횡방향 · 금색 = J 종방향 · 서버 ' + v.ms + ' ms</div>';
     body.innerHTML = h;
   }
-  function pcmpHTML(c) {
+  function pcmpHTML(c, noIds) {
     var ok = function (b) { return b ? 'color:#15803d' : 'color:#b91c1c'; };
     var kpi = function (val, lab, good) { return '<div style="border:1px solid #e2e8f0;border-radius:8px;padding:8px 10px;background:#f8fafc;min-width:150px"><b style="display:block;font-size:18px;' + (good == null ? '' : ok(good)) + '">' + val + '</b><span style="font-size:11.5px;color:#64748b">' + lab + '</span></div>'; };
     var nPk = 0, nDu = 0, duMax = 0; (c.long || []).forEach(function (l) { nPk += l.nPocket || 0; nDu += l.nDuct || 0; duMax = Math.max(duMax, l.ductMove || 0); });
@@ -247,7 +264,8 @@
       kpi('0 개', '우리 방법 : 면 지정', null) +
       kpi(f2(c.errMax) + ' mm', '두 방법 좌표 차이 최대 (덕트 영향 없는 것)', c.errMax <= 1) +
       kpi(nPk + ' 개', '우리 방법이 절곡부에 넣은 종방향 (식 Q 와 최대 ' + f2(c.pocketMax) + ' mm)', null) +
-      kpi(nDu + ' 개', '파라메트릭 자리가 덕트와 겹침' + (nDu ? ' — 우리 방법은 최대 ' + f1(duMax) + ' mm 비킴' : ''), nDu ? false : null) + '</div>';
+      kpi(nDu + ' 개', '파라메트릭 자리가 덕트와 겹침' + (nDu ? ' — 우리 방법은 최대 ' + f1(duMax) + ' mm 비킴' : ''), nDu ? false : null) +
+      ((noIds && noIds.length) ? kpi(noIds.length + ' 개', '놓일 면이 없어 면 → 교점 식으로 정할 수 없는 철근 (' + noIds.map(esc).join(' · ') + ') — 우리 방법은 덕트 사이에 놓음', false) : '') + '</div>';
     var th = 'style="background:#f1f5f9;padding:5px 6px;text-align:right;white-space:nowrap"', td = 'style="padding:4px 6px;text-align:right;border-bottom:1px solid #f1f5f9;font-variant-numeric:tabular-nums"';
     h += '<div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px"><div><div class="draw-card-title" style="margin-bottom:6px">횡방향</div><table style="width:100%;border-collapse:collapse;font-size:12px"><tr><th ' + th + '>철근</th><th ' + th + '>지정한 면</th><th ' + th + '>파라메트릭 꺾임점 (x, y)</th><th ' + th + '>우리 방법과 차이</th></tr>';
     (c.bars || []).forEach(function (b) {
@@ -457,7 +475,7 @@
     toggleLoadLog: function () { var p = el('pxLoadLog'); if (p) p.style.display = (p.style.display === 'none' || !p.style.display) ? 'block' : 'none'; },
     //  칸을 고칠 때마다 서버를 부르지 않는다 — 고친 것만 표시해 두고, [계산] 을 누를 때 한 번 계산한다.
     redraw: function () { markDirty(true); },
-    setMethod: function () { if (_last) { draw(_last); draw3D(viewData(_last)); renderVerify(_last); statusOf(_last); } },
+    setMethod: function () { syncSectionUI(); if (_last) { draw(_last); draw3D(viewData(_last)); renderVerify(_last); statusOf(_last); } },
     replay: function () { if (_last) { if (method() === 'param' && paramOf(_last)) setStatus('파라메트릭은 과정이 없습니다 — 교점을 계산해 바로 그립니다. 「방법」을 우리 방법으로 바꾸면 과정을 볼 수 있습니다'); else if (hasProc(_last)) draw(_last); else setStatus('과정 기록이 없습니다 — 엑셀 철근 행(또는 예제)이 있는 I/T · 사용자 단면에서 [계산] 뒤에 볼 수 있습니다'); } },
     calc: function () { markDirty(false); solve(gatherRows()); }
   };
@@ -620,7 +638,7 @@
     if (!data || data.kind !== 'girder') return;
     var nb = (data.bars2d || []).length, nl = (data.lbars2d || []).length, nd = 0; (data.lbars2d || []).forEach(function (b) { nd += (b.dots || []).length; });
     var m = method(), P = paramOf(data);
-    if (m === 'param' && P && P.full) { var pd = 0; P.long.forEach(function (l) { pd += (l.dots || []).length; }); setStatus('완료 — 파라메트릭 · 횡방향 ' + P.bars.length + ' · 종방향 ' + pd + ' · 면 지정 ' + data.pcmp.nFace + '개 (교점 계산)'); }
+    if (m === 'param' && P && P.full) { var pd = 0; P.long.forEach(function (l) { pd += (l.dots || []).length; }); var nn = noParamIds(data).length; setStatus('완료 — 파라메트릭 · 횡방향 ' + P.bars.length + ' · 종방향 ' + pd + ' · 면 지정 ' + data.pcmp.nFace + '개 (교점 계산)' + (nn ? ' · 면으로 정할 수 없는 철근 ' + nn + '개는 시작 자리 그대로(회색 점선)' : ''), !!nn); }
     else if (m === 'param') setStatus('이 입력에는 param 행(조각마다 놓일 면)이 없어 파라메트릭을 계산하지 못했습니다 — 우리 방법 결과를 그립니다', true);
     else setStatus('완료 — ' + (m === 'both' ? '둘 겹쳐 보기 · ' : '우리 방법 · ') + (data.label || '') + ' · 횡방향 ' + nb + ' · 종방향 ' + nd + ' (' + nl + ' 줄) · 서버 ' + data.ms + ' ms');
   }
@@ -857,7 +875,7 @@
     if (P && P.full) drawFaceNos(sec.outer || [], P, T);
     if (P && M === 'both') drawParamStatic(P, T, false);
     layer.draw();
-    if (P && P.full && M === 'param') { drawParamStatic(P, T, true); barLayer.draw(); drawElev(data); return; }   // 파라메트릭 : 계산한 자리에 바로 — 과정이 없다
+    if (P && P.full && M === 'param') { drawParamStatic(P, T, true, data); barLayer.draw(); drawElev(data); return; }   // 파라메트릭 : 계산한 자리에 바로 — 과정이 없다
     if (!noAnim && data.anim && data.anim.length) playAnim(data, T);
     else if (!noAnim && hasProc(data)) playProcess(data, T);
     else {
@@ -945,8 +963,17 @@
   // ── 파라메트릭 그리기 ────────────────────────────────────────────────────
   //  solid = true : 파라메트릭만 (청록 실선, barLayer) · false : 겹쳐 보기 (흰 점선, layer — 재생 중에도 남는다)
   var PARAM_COLOR = '#22d3ee';
-  function drawParamStatic(P, T, solid) {
+  function noParamIds(data) {   // 횡방향 중 param 행이 없는(면으로 정할 수 없는) 철근
+    var has = {}; ((data.pcmp && data.pcmp.bars) || []).forEach(function (b) { has[b.id] = 1; });
+    return Object.keys(data.jinit || {}).filter(function (id) { return !has[id]; });
+  }
+  function drawParamStatic(P, T, solid, data) {
     var L = solid ? barLayer : layer;
+    if (solid && data && data.pcmp) noParamIds(data).forEach(function (id) {   // 식이 없다 — 입력한 시작 자리 그대로 (회색 점선)
+      var ip = data.jinit[id]; if (!ip || ip.length < 2) return;
+      L.add(new Konva.Line({ points: polyPoints(ip, T), stroke: '#cbd5e1', strokeWidth: 1.4, dash: [7, 5] }));
+      var c = T(ip[0]); L.add(new Konva.Text({ x: c[0] + 4, y: c[1] - 15, text: id + ' : 식 없음', fontSize: 11, fill: '#e2e8f0' }));
+    });
     P.bars.forEach(function (b) {
       var pts = polyPoints(b.pts || [], T);
       if (solid) L.add(new Konva.Line({ points: pts, stroke: PARAM_COLOR, strokeWidth: barW(b.dia, T), lineCap: 'round', lineJoin: 'round' }));

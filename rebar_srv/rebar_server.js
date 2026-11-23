@@ -290,6 +290,33 @@
     h += '<div style="font-size:12px;color:#64748b;margin-top:8px">2D 그림의 <b style="color:#cbd5e1">흰 점선</b> = 파라메트릭 정답 · <b style="color:#f87171">빨간 원</b> = 종방향 정답 · 보라 = J 횡방향 · 금색 = J 종방향 · 서버 ' + v.ms + ' ms</div>';
     body.innerHTML = h;
   }
+  //  J 값 표기 — 큰 값은 자릿수 쉼표, 작은 값은 지수
+  function fJ(v) { if (v == null || !isFinite(v)) return '-'; var a = Math.abs(v); if (a >= 1000) return Math.round(v).toLocaleString('en-US'); if (a >= 1) return v.toFixed(2); if (a >= 0.001) return v.toFixed(4); if (a === 0) return '0'; return v.toExponential(1); }
+  function stagesOf(J, S) {   // 단계마다 [시작 J, 끝 J, 걸음 수]
+    var out = [], cur = null; (J || []).forEach(function (v, i) { var st = (S && S[i]) || 1; if (!cur || cur.s !== st) { cur = { s: st, a: v, b: v, n: 0 }; out.push(cur); } else { cur.b = v; cur.n++; } });
+    return out;
+  }
+  function sparkJ(J, S) {      // log 눈금 꺾은선 — 단계가 바뀌는 곳은 끊는다
+    var v = (J || []).map(function (x) { return Math.log10(Math.max(x == null ? 0 : x, 0) + 1e-6); }); if (v.length < 2) return '';
+    var lo = Math.min.apply(null, v), hi = Math.max.apply(null, v), W = 150, H = 34, X = function (i) { return 4 + i * (W - 8) / (v.length - 1); }, Y = function (y) { return H - 4 - (hi > lo ? (y - lo) / (hi - lo) : 0.5) * (H - 8); };
+    var d = '', dots = ''; v.forEach(function (y, i) { var brk = i > 0 && S && S[i] !== S[i - 1]; d += (i && !brk ? 'L' : 'M') + X(i).toFixed(1) + ' ' + Y(y).toFixed(1) + ' '; dots += '<circle cx="' + X(i).toFixed(1) + '" cy="' + Y(y).toFixed(1) + '" r="2" fill="#7c3aed"/>'; });
+    return '<svg width="' + W + '" height="' + H + '" style="vertical-align:middle"><path d="' + d + '" fill="none" stroke="#7c3aed" stroke-width="1.5"/>' + dots + '</svg>';
+  }
+  function renderProc(data) {
+    var card = el('procCard'), body = el('procBody'); if (!card || !body) return;
+    if (!hasProc(data) || method() === 'param') { card.style.display = 'none'; return; }
+    card.style.display = '';
+    var th = 'style="background:#f1f5f9;padding:5px 6px;text-align:right;white-space:nowrap"', td = 'style="padding:4px 6px;text-align:right;border-bottom:1px solid #f1f5f9;font-variant-numeric:tabular-nums;white-space:nowrap"';
+    var row = function (name, part, rest, steps, J, S) {
+      var st = stagesOf(J, S), cell = st.map(function (x, i) { return '<span style="color:#64748b">' + (i + 1) + '단계</span> ' + fJ(x.a) + ' → <b>' + fJ(x.b) + '</b>'; }).join(' &nbsp;·&nbsp; ');
+      return '<tr><td ' + td + '>' + esc(name) + '</td><td ' + td + '>' + esc(part) + '</td><td ' + td + '>' + esc(rest) + '</td><td ' + td + '>' + steps + '</td><td ' + td + ' style="padding:4px 6px;text-align:left;border-bottom:1px solid #f1f5f9;font-variant-numeric:tabular-nums">' + (cell || '-') + '</td><td ' + td + '>' + sparkJ(J, S) + '</td></tr>';
+    };
+    var h = '<table style="width:100%;border-collapse:collapse;font-size:12px"><tr><th ' + th + '>철근</th><th ' + th + '>조각 / 줄</th><th ' + th + '>앉은 면</th><th ' + th + '>걸음 수</th><th ' + th + ' style="background:#f1f5f9;padding:5px 6px;text-align:left">J (시작 → 끝)</th><th ' + th + '>J 변화 (log 눈금)</th></tr>';
+    (data.proc.bars || []).forEach(function (b) { (b.segs || []).forEach(function (sg) { h += row(b.id, '조각 ' + (sg.label || ''), (sg.rest && sg.rest.length) ? sg.rest[0] : '면 없음', sg.iter || 0, sg.J, sg.S); }); });
+    (data.proc.long || []).forEach(function (g) { h += row(g.id, '종방향 ' + ((g.path && g.path[0]) ? g.path[0].length : (g.from || []).length) + '개 한 줄', '-', g.steps || 0, g.J, g.S); });
+    h += '</table><div style="font-size:12px;color:#64748b;margin-top:8px">J = 어긋난 양의 제곱을 더한 값 (피복에서 벗어난 양 · 덕트 순간격 부족 · 철근끼리 겹침 · 절곡부 자리 · 시작 자리에서 멀어진 양). 풀이는 <b>J 가 줄어드는 걸음만</b> 받아들이고, 더 줄지 않으면 멈춘다. 1단계 = 콘크리트 면만 보고 앉는다 · 2단계부터 = 덕트 · 다른 철근 · 절곡부까지 넣어 다시 푼다(항이 늘어 J 가 다시 커졌다가 줄어든다). 값은 서버 엔진이 계산 중에 적은 것 그대로다.</div>';
+    body.innerHTML = h;
+  }
   function pcmpHTML(c, noIds) {
     var ok = function (b) { return b ? 'color:#15803d' : 'color:#b91c1c'; };
     var kpi = function (val, lab, good) { return '<div style="border:1px solid #e2e8f0;border-radius:8px;padding:8px 10px;background:#f8fafc;min-width:150px"><b style="display:block;font-size:18px;' + (good == null ? '' : ok(good)) + '">' + val + '</b><span style="font-size:11.5px;color:#64748b">' + lab + '</span></div>'; };
@@ -381,6 +408,10 @@
       '    </div>' +
       '  </div>' +
 
+      '  <div class="draw-card" id="procCard" style="display:none;">' +
+      '    <div class="draw-card-header"><div><span class="draw-card-title">J 수렴 기록</span> <span class="draw-card-desc">서버 엔진이 걸음마다 적은 J 값 — 철근이 자리를 잡는 것은 J 를 줄여 가는 계산이다</span></div></div>' +
+      '    <div class="draw-card-body"><div id="procBody"></div></div>' +
+      '  </div>' +
       '  <div class="draw-card" id="verifyCard" style="display:none;">' +
       '    <div class="draw-card-header"><div><span class="draw-card-title">VERIFY</span> <span class="draw-card-desc">(a) 파라메트릭 정답 vs (c) J — 서버가 같은 단면을 세 방법으로 (APF 는 정답을 목표점으로 받음)</span></div></div>' +
       '    <div class="draw-card-body"><div id="verifyBody"></div></div>' +
@@ -510,7 +541,7 @@
     toggleLoadLog: function () { var p = el('pxLoadLog'); if (p) p.style.display = (p.style.display === 'none' || !p.style.display) ? 'block' : 'none'; },
     //  칸을 고칠 때마다 서버를 부르지 않는다 — 고친 것만 표시해 두고, [계산] 을 누를 때 한 번 계산한다.
     redraw: function () { markDirty(true); },
-    setMethod: function () { syncSectionUI(); if (_last) { draw(_last); draw3D(viewData(_last)); renderVerify(_last); statusOf(_last); } },
+    setMethod: function () { syncSectionUI(); if (_last) { draw(_last); draw3D(viewData(_last)); renderVerify(_last); renderProc(_last); statusOf(_last); } },
     replay: function () { if (_last) { if (method() === 'param' && paramOf(_last)) setStatus('파라메트릭은 과정이 없습니다 — 교점을 계산해 바로 그립니다. 「방법」을 우리 방법으로 바꾸면 과정을 볼 수 있습니다'); else if (hasProc(_last)) draw(_last); else setStatus('과정 기록이 없습니다 — 엑셀 철근 행(또는 예제)이 있는 I/T · 사용자 단면에서 [계산] 뒤에 볼 수 있습니다'); } },
     calc: function () { markDirty(false); solve(gatherRows()); }
   };
@@ -643,7 +674,7 @@
         if (data.kind !== 'girder') { drawGuide(data); drawOpening(data); }
         draw3D(viewData(data));
         fillLog(data.log);
-        renderVerify(data);
+        renderVerify(data); renderProc(data);
         var nb = (data.bars2d || []).length, nl = (data.lbars2d || []).length, nh = (data.hoops || []).length, nm = (data.mesh2d || []).length;
         if (data.kind === 'girder') {
           var nd = 0; (data.lbars2d || []).forEach(function (b) { nd += (b.dots || []).length; });
@@ -1059,7 +1090,9 @@
         //  반복점 사이 시간 = 움직인 거리에 비례 (+ 조금) — 큰 걸음도 작은 걸음도 눈에 보이게
         var w = [], tot = 0; for (var i = 1; i < path.length; i++) { var d = Math.abs(path[i][0] - path[i - 1][0]) + Math.abs(path[i][1] - path[i - 1][1]) + Math.abs(path[i][2] - path[i - 1][2]) + Math.abs(path[i][3] - path[i - 1][3]); w.push(d); tot += d; }
         var cum = [0], acc = 0; w.forEach(function (d) { acc += d + tot * 0.04 + 0.01; cum.push(acc); });
-        ph.push({ kind: 'seg', bi: bi, k: k, path: path, cum: cum, label: sg.label, iter: sg.iter, rest: sg.rest, t0: t, dur: SEG }); t += SEG;
+        //  J : 서버 path 와 같은 번호. 맨 앞에 시작 자리를 끼워 넣었으면 그만큼 민다(k0 = −1 → 0 으로 눌린다)
+        var added = (sg.path && sg.path.length && path.length === sg.path.length + 1) ? -1 : 0;
+        ph.push({ kind: 'seg', bi: bi, k: k, path: path, cum: cum, label: sg.label, iter: sg.iter, rest: sg.rest, J: sg.J, S: sg.S, k0: added, t0: t, dur: SEG }); t += SEG;
       });
       ph.push({ kind: 'join', bi: bi, t0: t, dur: JOIN }); t += JOIN;
     });
@@ -1074,15 +1107,36 @@
     var ghost = function (pts) { barLayer.add(new Konva.Line({ points: pts, stroke: 'rgba(255,255,255,0.55)', strokeWidth: 1, dash: [6, 5] })); };
     var seg4 = function (q) { var a = T([q[0], q[1]]), b = T([q[2], q[3]]); return [a[0], a[1], b[0], b[1]]; };
     var lerp4 = function (a, b, f) { return [a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f, a[2] + (b[2] - a[2]) * f, a[3] + (b[3] - a[3]) * f]; };
-    var at = function (p, f) {   // 조각 p 의 진행 f(0~1) 에서의 자리
-      var c = p.cum, end = c[c.length - 1]; if (!end || p.path.length < 2) return p.path[p.path.length - 1];
+    var at = function (p, f) {   // 조각 p 의 진행 f(0~1) 에서의 자리 (p._k = 지금까지 지난 반복점 번호)
+      var c = p.cum, end = c[c.length - 1]; if (!end || p.path.length < 2) { p._k = p.path.length - 1; return p.path[p.path.length - 1]; }
       var x = f * end, i = 1; while (i < c.length - 1 && c[i] < x) i++;
-      return lerp4(p.path[i - 1], p.path[i], (x - c[i - 1]) / Math.max(c[i] - c[i - 1], 1e-9));
+      var ff = (x - c[i - 1]) / Math.max(c[i] - c[i - 1], 1e-9); p._k = ff >= 0.999 ? i : i - 1;
+      return lerp4(p.path[i - 1], p.path[i], ff);
     };
+    //  J 표시 — 지금 움직이는 조각 · 줄의 J 값(서버가 걸음마다 적은 것)과 변화 그래프
+    var hud = null;
+    function drawHud() {
+      if (!hud || !hud.J || !hud.J.length) return;
+      var J = hud.J, S = hud.S || [], k = Math.max(0, Math.min(J.length - 1, hud.k)), W = 250, H = 132, x0 = stage.width() - W - 12, y0 = 40;
+      barLayer.add(new Konva.Rect({ x: x0, y: y0, width: W, height: H, fill: 'rgba(15,23,42,0.82)', stroke: 'rgba(255,255,255,0.35)', strokeWidth: 1, cornerRadius: 6 }));
+      barLayer.add(new Konva.Text({ x: x0 + 10, y: y0 + 8, text: hud.title, fontSize: 12, fill: '#cbd5e1', width: W - 20 }));
+      barLayer.add(new Konva.Text({ x: x0 + 10, y: y0 + 25, text: 'J = ' + fJ(J[k]), fontSize: 21, fontStyle: 'bold', fill: '#fde047' }));
+      barLayer.add(new Konva.Text({ x: x0 + 10, y: y0 + 51, text: '걸음 ' + (k + 1) + ' / ' + J.length + '  ·  ' + (S[k] || 1) + '단계', fontSize: 11.5, fill: '#e2e8f0' }));
+      var v = J.map(function (q) { return Math.log10(Math.max(q == null ? 0 : q, 0) + 1e-6); }), lo = Math.min.apply(null, v), hi = Math.max.apply(null, v);
+      var gx = x0 + 12, gy = y0 + 70, gw = W - 24, gh = 50, X = function (i) { return gx + (v.length > 1 ? i * gw / (v.length - 1) : gw / 2); }, Y = function (y) { return gy + gh - (hi > lo ? (y - lo) / (hi - lo) : 0.5) * gh; };
+      barLayer.add(new Konva.Line({ points: [gx, gy + gh, gx + gw, gy + gh], stroke: 'rgba(255,255,255,0.3)', strokeWidth: 1 }));
+      var seg = [];
+      v.forEach(function (y, i) {
+        if (i > 0 && S[i] !== S[i - 1]) { if (seg.length >= 4) barLayer.add(new Konva.Line({ points: seg, stroke: '#a78bfa', strokeWidth: 1.6 })); seg = []; barLayer.add(new Konva.Line({ points: [X(i) - gw / (2 * Math.max(v.length - 1, 1)), gy, X(i) - gw / (2 * Math.max(v.length - 1, 1)), gy + gh], stroke: 'rgba(255,255,255,0.35)', strokeWidth: 1, dash: [3, 3] })); }
+        seg.push(X(i), Y(y));
+      });
+      if (seg.length >= 4) barLayer.add(new Konva.Line({ points: seg, stroke: '#a78bfa', strokeWidth: 1.6 }));
+      v.forEach(function (y, i) { barLayer.add(new Konva.Circle({ x: X(i), y: Y(y), radius: i === k ? 4.5 : 2, fill: i === k ? '#fde047' : (i < k ? '#a78bfa' : 'rgba(255,255,255,0.35)') })); });
+    }
     var start = Date.now(), cap = '';
     function render() {
       var now = (Date.now() - start) * speed;
-      barLayer.destroyChildren(); cap = '';
+      barLayer.destroyChildren(); cap = ''; hud = null;
       //  시작 자리 (점선) — 끝날 때까지 남겨 얼마나 움직였는지 보이게
       proc.bars.forEach(function (b) { var ip = init[b.id]; if (ip && ip.length > 1) ghost(polyPoints(ip, T)); });
       var joinOf = {}; ph.forEach(function (p) { if (p.kind === 'join') joinOf[p.bi] = p; });
@@ -1094,7 +1148,8 @@
           var f = Math.min(1, (now - p.t0) / p.dur), q = at(p, f), active = f < 1;
           if (J && now >= J.t0 && fin && fin.pts && fin.pts[p.k + 1]) { q = lerp4(q, segOf(fin.pts, p.k), Math.min(1, (now - J.t0) / J.dur)); cap = b.id + ' — 조각들을 꺾임점에서 잇는다'; }
           addBar(seg4(q), b.dia, T, active ? '#FFB020' : TRE_COLOR, active ? 0.35 : 0);
-          if (active) cap = b.id + ' · 조각 ' + (p.label || (p.k + 1)) + ' — 시작 자리 → 면 (반복 ' + (p.iter || 0) + '회' + ((p.rest && p.rest.length) ? ' · 앉은 면 ' + p.rest[0] : '') + ')';
+          if (active) { cap = b.id + ' · 조각 ' + (p.label || (p.k + 1)) + ' — 시작 자리 → 면 (반복 ' + (p.iter || 0) + '회' + ((p.rest && p.rest.length) ? ' · 앉은 면 ' + p.rest[0] : '') + ')';
+            if (p.J && p.J.length) hud = { title: b.id + ' · 조각 ' + (p.label || (p.k + 1)), J: p.J, S: p.S, k: (p.k0 || 0) + (p._k || 0) }; }
         });
       });
       (proc.long || []).forEach(function (g, gi) {
@@ -1104,9 +1159,11 @@
         var from = p.fr ? p.fr[0] : (g.from || []);
         if (f < 1) { cap = g.id + ' (종방향 ' + to.length + '개) — 시작 자리 → 결과' + (p.fr ? ' (반복점 ' + p.fr.length + '개)' : ''); from.forEach(function (q) { var c0 = T(q); barLayer.add(new Konva.Circle({ x: c0[0], y: c0[1], radius: r, stroke: 'rgba(255,255,255,0.6)', strokeWidth: 1, dash: [3, 3] })); }); }
         var cur = null;
-        if (p.fr && f < 1) { var c2 = p.cum, x = f * c2[c2.length - 1], k = 1; while (k < c2.length - 1 && c2[k] < x) k++; var ff = (x - c2[k - 1]) / Math.max(c2[k] - c2[k - 1], 1e-9), A = p.fr[k - 1], B = p.fr[k]; cur = A.map(function (a, i) { return [a[0] + (B[i][0] - a[0]) * ff, a[1] + (B[i][1] - a[1]) * ff]; }); }
+        if (p.fr && f < 1) { var c2 = p.cum, x = f * c2[c2.length - 1], k = 1; while (k < c2.length - 1 && c2[k] < x) k++; var ff = (x - c2[k - 1]) / Math.max(c2[k] - c2[k - 1], 1e-9), A = p.fr[k - 1], B = p.fr[k];
+          if (g.J && g.J.length === p.fr.length) hud = { title: g.id + ' · 종방향 ' + to.length + '개 한 줄', J: g.J, S: g.S, k: ff >= 0.999 ? k : k - 1 }; cur = A.map(function (a, i) { return [a[0] + (B[i][0] - a[0]) * ff, a[1] + (B[i][1] - a[1]) * ff]; }); }
         to.forEach(function (q, i) { var a = (g.from && g.from[i]) ? g.from[i] : q, c = cur ? T(cur[i]) : T([a[0] + (q[0] - a[0]) * f, a[1] + (q[1] - a[1]) * f]); barLayer.add(new Konva.Circle({ x: c[0], y: c[1], radius: r, fill: '#FFD700', stroke: '#B8860B', strokeWidth: Math.max(0.6, r * 0.18) })); });
       });
+      drawHud();
       if (cap) barLayer.add(new Konva.Text({ x: 12, y: stage.height() - 28, text: '과정 · ' + cap, fontSize: 13, fill: '#ffffff', fontFamily: 'inherit' }));
       barLayer.draw();
       if (now > total + 400) { stopAnim(); draw(data, true); }   // 끝 → 보통의 결과 그림으로

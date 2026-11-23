@@ -93,6 +93,27 @@
     EX_OWN[k] = rows;
     EX_DESC[k] = '예제 — 덕트 사이 헌치 철근 Type ' + t + '. 헌치 철근 H1 의 수평 다리는 높이 ' + d.y0 + ' 에서 덕트에 걸친 채 시작한다(점선). [계산] 뒤 과정을 보면 덕트 줄 사이 틈으로 들어가 선다. Type 을 바꾸면 덕트 줄 높이가 바뀐다';
   });
+  //  절곡부(갈고리) 안 종방향 철근 — 복부 상단 · 하부 헌치부만 잘라 확대한 상세 단면.
+  //  종방향 줄은 간격대로 놓인 어림 자리에서 시작하고, 절곡부 가까이 있는 철근이 꺾임 안쪽으로 끌려 들어간다.
+  EX_SECS.EX_PT = ['예제 · 절곡부 안 종방향 철근 — 복부 상단 상세', '-500,600 ; -500,380 ; -250,280 ; -250,0 ; 250,0 ; 250,280 ; 500,380 ; 500,600'];
+  EX_OWN.EX_PT = [
+    ['seat1', 'off'],
+    ['trebar', 'T1', '1', '16', '0,560,0', '', 'a:850', '', '', '', '', '', '0'],
+    ['trebar', 'CAP', '21', '16', '0,540,180', '', 'a:300,b:380,c:300', '', '', '', '', '', '1'],
+    ['lrebar', 'LT', '25', '5', '0,490,0', '-200,200', '1', '60', '120', '30', '0', ''],
+    ['lrebar', 'LO', '25', '2', '-150,150,90', '-100,100', '1', '120', '240', '60', '0', ''],
+    ['lrebar', 'LI', '25', '2', '150,150,90', '-100,100', '-1', '120', '240', '60', '0', '']
+  ];
+  EX_SECS.EX_PB = ['예제 · 절곡부 안 종방향 철근 — 하부 헌치부 상세', '0,600 ; 0,0 ; 900,0 ; 900,220 ; 700,220 ; 500,340 ; 500,600'];
+  EX_OWN.EX_PB = [
+    ['seat1', 'off'],
+    ['trebar', 'OL', '11', '16', '60,60,0', '', 'a:500,b:750', '', '', '', '', '', '0'],
+    ['trebar', 'U', '21', '16', '250,60,0', '', 'a:450,b:400,c:350', '', '', '', '', '', '1'],
+    ['lrebar', 'LS', '25', '6', '450,110,0', '-400,400', '-1', '130', '260', '65', '0', ''],
+    ['lrebar', 'LW', '25', '2', '110,350,90', '-150,150', '1', '150', '300', '75', '0', '']
+  ];
+  EX_DESC.EX_PT = '예제 — 절곡부 안 종방향 철근 (복부 상단만 확대). 윗줄 종방향 5개는 60 간격으로 놓인 자리에서 시작한다. [계산] 뒤 과정을 보면 양 끝 철근이 ∩ 철근의 꺾임 안쪽으로 끌려 들어간다';
+  EX_DESC.EX_PB = '예제 — 절곡부 안 종방향 철근 (하부 헌치부만 확대). 밑줄 종방향 6개는 130 간격으로 놓인 자리에서 시작한다. [계산] 뒤 과정을 보면 꺾임 가까이 있는 철근 둘이 바깥 L · U 철근의 꺾임 안쪽으로 끌려 들어간다';
   var EX_ROWS = [
     ['seat1', 'off'],
     ['duct', 'P1', 'circ', '90', '', '0', '120', 'abs', '20', ''],
@@ -112,6 +133,8 @@
     EX_I: { T1: '11', CAP: '8;11;2', U: '2;5;8', LB: '5', LT: '11', LO: '2', LI: '8' },
     EX_B: { T1: '11', CAP: '7;11;2', U: '2;3;7', LB: '3', LT: '11', LO: '2', LI: '7' }
   };
+  EX_PARAM.EX_PT = { T1: '7', CAP: '4;7;2', LT: '7', LO: '2', LI: '4' };
+  EX_PARAM.EX_PB = { OL: '0;1', U: '0;1;5', LS: '1', LW: '0' };
   Object.keys(EX_DT).forEach(function (t) { EX_PARAM['EX_D' + t] = { OL: '0;1', LW: '0', LI: '5', LS: '1' }; });   // H1 은 수평 다리가 놓일 면이 없다 — 면 → 교점 식으로는 정할 수 없다
   function exRows() { var pm = EX_PARAM[_secMode] || {}; return (EX_OWN[_secMode] || EX_ROWS).concat(Object.keys(pm).map(function (id) { return ['param', id, pm[id]]; })); }
   var _exData = false;                           // _excelData 가 예제 행인가 (사용자가 올린 엑셀이 아님)
@@ -1036,7 +1059,13 @@
       });
       ph.push({ kind: 'join', bi: bi, t0: t, dur: JOIN }); t += JOIN;
     });
-    (proc.long || []).forEach(function (g, gi) { ph.push({ kind: 'long', gi: gi, t0: t, dur: LONG }); t += LONG; });
+    (proc.long || []).forEach(function (g, gi) {
+      //  줄 전체의 풀이 반복점(서버 path)이 있으면 그것을, 없으면 시작 → 결과만. 장면 사이 시간 = 움직인 거리에 비례.
+      var fb = finalL[g.id], fr = (g.path && g.path.length > 1 && fb && g.path[0].length === (fb.dots || []).length) ? g.path : null, cum = [0];
+      if (fr) { var tot = 0, w = []; for (var i = 1; i < fr.length; i++) { var d = 0; for (var j = 0; j < fr[i].length; j++) d += Math.abs(fr[i][j][0] - fr[i - 1][j][0]) + Math.abs(fr[i][j][1] - fr[i - 1][j][1]); w.push(d); tot += d; } var acc = 0; w.forEach(function (d) { acc += d + tot * 0.04 + 0.01; cum.push(acc); }); }
+      var dur = fr ? Math.max(LONG, Math.min(2600, 500 + fr.length * 110)) : LONG;
+      ph.push({ kind: 'long', gi: gi, t0: t, dur: dur, fr: fr, cum: cum }); t += dur;
+    });
     var total = t, speed = total > 24000 ? total / 24000 : 1;   // 철근이 많으면 전체 24초 안에
     var ghost = function (pts) { barLayer.add(new Konva.Line({ points: pts, stroke: 'rgba(255,255,255,0.55)', strokeWidth: 1, dash: [6, 5] })); };
     var seg4 = function (q) { var a = T([q[0], q[1]]), b = T([q[2], q[3]]); return [a[0], a[1], b[0], b[1]]; };
@@ -1068,8 +1097,11 @@
         var p = null; ph.forEach(function (x) { if (x.kind === 'long' && x.gi === gi) p = x; }); if (!p || now < p.t0) return;
         var fb = finalL[g.id], to = fb ? fb.dots : null, f = Math.min(1, (now - p.t0) / p.dur), r = Math.max(1.2, T.s * (g.dia || 13) / 2);
         if (!to) return;
-        if (f < 1) { cap = g.id + ' (종방향 ' + to.length + '개) — 시작 자리 → 결과'; (g.from || []).forEach(function (q) { var c0 = T(q); barLayer.add(new Konva.Circle({ x: c0[0], y: c0[1], radius: r, stroke: 'rgba(255,255,255,0.6)', strokeWidth: 1, dash: [3, 3] })); }); }
-        to.forEach(function (q, i) { var a = (g.from && g.from[i]) ? g.from[i] : q, c = T([a[0] + (q[0] - a[0]) * f, a[1] + (q[1] - a[1]) * f]); barLayer.add(new Konva.Circle({ x: c[0], y: c[1], radius: r, fill: '#FFD700', stroke: '#B8860B', strokeWidth: Math.max(0.6, r * 0.18) })); });
+        var from = p.fr ? p.fr[0] : (g.from || []);
+        if (f < 1) { cap = g.id + ' (종방향 ' + to.length + '개) — 시작 자리 → 결과' + (p.fr ? ' (반복점 ' + p.fr.length + '개)' : ''); from.forEach(function (q) { var c0 = T(q); barLayer.add(new Konva.Circle({ x: c0[0], y: c0[1], radius: r, stroke: 'rgba(255,255,255,0.6)', strokeWidth: 1, dash: [3, 3] })); }); }
+        var cur = null;
+        if (p.fr && f < 1) { var c2 = p.cum, x = f * c2[c2.length - 1], k = 1; while (k < c2.length - 1 && c2[k] < x) k++; var ff = (x - c2[k - 1]) / Math.max(c2[k] - c2[k - 1], 1e-9), A = p.fr[k - 1], B = p.fr[k]; cur = A.map(function (a, i) { return [a[0] + (B[i][0] - a[0]) * ff, a[1] + (B[i][1] - a[1]) * ff]; }); }
+        to.forEach(function (q, i) { var a = (g.from && g.from[i]) ? g.from[i] : q, c = cur ? T(cur[i]) : T([a[0] + (q[0] - a[0]) * f, a[1] + (q[1] - a[1]) * f]); barLayer.add(new Konva.Circle({ x: c[0], y: c[1], radius: r, fill: '#FFD700', stroke: '#B8860B', strokeWidth: Math.max(0.6, r * 0.18) })); });
       });
       if (cap) barLayer.add(new Konva.Text({ x: 12, y: stage.height() - 28, text: '과정 · ' + cap, fontSize: 13, fill: '#ffffff', fontFamily: 'inherit' }));
       barLayer.draw();
